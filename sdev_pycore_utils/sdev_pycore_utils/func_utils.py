@@ -1,4 +1,4 @@
-"""Python core tuple datastructure utilitites"""
+"""Python core functions  utilitites"""
 
 
 def apply_at(func, pos, iterable):
@@ -60,3 +60,7 @@ def apply_at_tup(func, pos_lst, iterable, apply_to_value=True):
                 else:
                     temp.append(x)
     return temp
+
+
+
+
