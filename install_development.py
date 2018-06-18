@@ -30,8 +30,7 @@ def execute(cmd, working_directory=os.getcwd()):
 
 
 for name, dirs, files in walklevel(os.getcwd(), 1):
-    if files == []:
-	    continue
-    if files[0] == 'setup.py':
+    if 'setup.py' in files:
         proc = execute('pip install -e .', name)
         print(proc)
+
