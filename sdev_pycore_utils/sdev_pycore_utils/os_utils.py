@@ -48,6 +48,24 @@ def path_split_into_list(path):
 
 
 def walk_retrieve_filenames(path_to_dir, suffix='.csv'):
+    """
+    Walk directories and retrieve all filenames matching a filetype
+
+    Parameters
+    ----------
+
+    path_to_dir : str
+       Path to begin the crawling from
+
+    suffix : str
+       suffix of the filetypes to retrieve
+
+    Returns
+    -------
+
+    List
+        a list of filenames containing {suffix}
+    """
     filenames = [os.path.join(d, x)
                  for d, dirs, files in os.walk(path_to_dir)
                  for x in files if x.endswith(suffix)]
@@ -55,6 +73,26 @@ def walk_retrieve_filenames(path_to_dir, suffix='.csv'):
 
 
 def move_walked_files(path_to_dir=os.getcwd(), destination_dir=os.getcwd() + '//' + 'org', suffix='.csv'):
+    """
+    Move files matching a suffix to a organization folder
+
+    Parameters
+    ----------
+
+    path_to_dir : str
+       Path to begin the crawling from
+
+    destination_dir : str
+       Path to the destination directory
+
+    suffix : str
+       suffix of the filetypes to retrieve and move
+
+    Returns
+    -------
+
+    None
+    """
     ensure_dir(destination_dir)
     filenames = walk_retrieve_filenames(path_to_dir, suffix)
     for i in filenames:
@@ -78,19 +116,103 @@ def os_path_separators():
 
 
 def ensure_dir(directory):
+    """
+    Ensure a directory exists
+
+    Parameters
+    ----------
+
+    directory : str
+       Name of the directory to check
+
+    Returns
+    -------
+
+    None
+       nil
+    """
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 def ensure_dir_from_file(file_path):
+    """
+    Ensure a directory exists in a filepath
+
+    Parameters
+    ----------
+
+    file_path : str
+       Filepath to check
+
+    Returns
+    -------
+
+    None
+        nil
+    """
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 
 def truncated_path(path, lval=None, rval=None):
+    """
+    Allow slicing through path for a numpy-like interface
+
+    Parameters
+    ----------
+
+    path : str
+       Filepath to slice
+
+    lval : int
+       left slice
+
+    rval : int
+       right slice
+
+    Returns
+    -------
+
+    String
+       Sliced path
+    """
     return '{}'.format(os.sep).join(os.getcwd().split(os.sep)[lval:rval])
 
 class file_utils(object):
+    """
+    File manipulation utilities
+
+    Methods
+    ----------
+
+    load_file : path|str flag|str
+       load a file
+
+    save_file : data|pyObj path|str
+       save a file
+
+    to_pickle : data|pyObj path|str flag|str
+       Serialize object to pickle
+
+    from_pickle : path|str flag|str
+       Load a pyObj from a pickle file
+
+    delete_file : file_path|str
+       Delete this file
+
+    delete_empty_folder : dir_path|str
+       remove emptry directory
+
+    delete_directory_with_contents : dir_path|str
+       remove a directory and all its contents
+
+    Returns
+    -------
+
+    None
+        nil
+    """
     @staticmethod
     def load_file(path, flag='rb'):
         with open(path, flag) as f:
@@ -134,6 +256,24 @@ class file_utils(object):
 
 
 def filter_by_pattern(input, patterns):
+    """
+    Filter iterator based on Unix wildcard patterns
+
+    Parameters
+    ----------
+
+    input : iterable
+       Input to filter
+
+    patterns : str
+       patterns to use to filter iterable
+
+    Returns
+    -------
+
+    Set
+         a set containing all filtered output
+    """
     if patterns is None:
         return input
     output = set()
@@ -143,12 +283,48 @@ def filter_by_pattern(input, patterns):
 
 
 def find_files(directory, patterns = None):
+    """
+    Find files in a directory based on Unix Patterns
+
+    Parameters
+    ----------
+
+    directory : str
+       Path to begin crawling from
+
+    patterns : list
+       patterns ot use to find files
+
+    Returns
+    -------
+
+    Lazy str
+         Yields a filename of each file found lazily
+    """
     for root, dirnames, filenames in os.walk(directory):
         for filename in filter_by_pattern(filenames, patterns):
             yield (os.path.join(root, filename))
 
 
 def find_filenames( path_to_dir, suffix=".csv" ):
+    """
+    Find filenames matching a suffix
+
+    Parameters
+    ----------
+
+    path_to_dir : str
+       Path to begin crawling from
+
+    suffix : str
+       suffix of the filenames to retrieve
+
+    Returns
+    -------
+
+    List
+        A list of filenames that contain {suffix}
+    """
     filenames = os.listdir(path_to_dir)
     return [ filename for filename in filenames if filename.endswith( suffix ) ]
 
@@ -188,6 +364,24 @@ def subdirs(path):
             yield os.path.join(path, entry.name)
 
 def walklevel(some_dir, level=1):
+    """
+    Walk through directories restricted to a certain level
+
+    Parameters
+    ----------
+
+    some_dir : str
+       Path to begin crawling from
+
+    level : int
+       Level to stop the crawler in
+
+    Returns
+    -------
+
+    Generator
+        Generator yielding root
+    """
     some_dir = some_dir.rstrip(os.path.sep)
     assert os.path.isdir(some_dir)
     num_sep = some_dir.count(os.path.sep)
@@ -332,7 +526,7 @@ def waitAndCloseHandle(processHandle):
     WaitForSingleObject(processHandle, INFINITE)
     CloseHandle(processHandle)
 
-        
+
 
 def elevateAdminRights(waitAndClose=True, reattachConsole=True):
     '''
@@ -384,7 +578,7 @@ def elevateAdminRights(waitAndClose=True, reattachConsole=True):
         # indicate we're already running with administrative rights, see docstring
         return None
 
-    
+
 # def elevateAdminRun(script_path=__file__):
 #     if not check_admin_rights_elevated():
 #         # this is host process that doesn't have administrative rights
@@ -546,9 +740,3 @@ class open_atomic(object):
 
     def __getattr__(self, attr):
         return getattr(self.file, attr)
-
-
-
-
-
-    

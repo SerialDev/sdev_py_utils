@@ -3,7 +3,6 @@
 #from itertools import zip_longest # for Python 3.x
 # import zip_longest
 
-
 def flatten_list_tuples(list_tuples):
     l = []
     [l.extend(row) for row in list_tuples]

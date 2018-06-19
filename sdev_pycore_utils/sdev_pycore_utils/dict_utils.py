@@ -1,6 +1,22 @@
 """Python core dict datastructure utilitites"""
 
 def uniquify_to_dict(value):
+    """
+    Uniquify values in an iterator into a dictionary
+
+    Parameters
+    ----------
+
+    value : iterator
+       iterator to uniquify
+
+    Returns
+    -------
+
+    Dictionary
+        A python dictionary containing the uniquified values from iterator
+
+    """
     result = {}
     temp = []
     current = ''
@@ -150,5 +166,23 @@ def search(d, key, default=None):
 
 
 def without_keys(d, keys):
+    """
+    Filter keys out of a dictionary
+
+    Parameters
+    ----------
+
+    d : Dict
+       dict with keys to filter
+
+    keys : list
+       list of keys to use as a filter
+
+    Returns
+    -------
+
+    Dictionary
+        Filtered dictionary 
+    """
     return {x: d[x] for x in d if x not in keys}
 
