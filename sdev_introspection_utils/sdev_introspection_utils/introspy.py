@@ -4,6 +4,25 @@ import doctest
 import sys
 
 def nested_attribute(object, attr):
+    """
+    Get the nested attributes of a pyObj
+
+    Parameters
+    ----------
+
+    object : pyObj
+       The object to introspect
+
+    attr : str
+       The string of the nested attribute to introspect
+
+    Returns
+    -------
+
+    None
+        nil
+
+    """
     def get_attr(pyobject, attribute_name=''):
         if not attribute_name:
             return pyobject
@@ -26,8 +45,52 @@ def nested_attribute(object, attr):
 
 
 def get_attributes(mod):
-        attributes = inspect.getmembers(mod, lambda a: not(inspect.isroutine(a)))
-        return [a for a in attributes if not(a[0].startswith('__')  and a[0].endswith('__') or a[0].startswith('_'))]
+    """
+    Get attributes of a pyObj
+
+    Parameters
+    ----------
+
+    mod : pyObj
+       Any python object to introspect
+
+    Returns
+    -------
+
+    List
+        A list of all the attributes of the given {mod}
+    """
+    attributes = inspect.getmembers(mod, lambda a: not(inspect.isroutine(a)))
+    return [a for a in attributes if not(a[0].startswith('__')  and a[0].endswith('__') or a[0].startswith('_'))]
+
+def inspect_module(mod, flag=''):
+    """
+    * Function:
+    * Usage: . . .
+    * -------------------------------
+    * flags: [source, source_lines,  functions, method,
+    *  attributes, signature, doc, comments, fun_types
+    *  list_functions, parent_module, types, all
+    """
+    if flag=='source': return (inspect.getsource(mod).encode().decode('unicode-escape'))
+    if flag=='source_lines': return inspect.getsourcelines(mod)
+    if flag=='functions': return inspect.getmembers(mod, inspect.isfunction)
+    if flag=='func_names': return get_function_names(mod)
+    if flag=='method': return inspect.getmembers(mod, predicate=inspect.ismethod)
+    if flag=='method_names': return get_method_names(mod)
+    if flag=='attributes': return get_attributes(mod)
+    if flag=='attr_names': return get_attribute_names(mod)
+    if flag=='signature': return inspect.signature(mod)
+    if flag=='doc': return inspect.getdoc(mod)
+    if flag=='comments': return inspect.getcomments(mod)
+    if flag=='file': return inspect.getfile(mod)
+    if flag=='doctest': return doctest.run_docstring_examples(mod, globals())
+    if flag == 'list_functions': return list_functions(mod)
+    if flag=='fun_types': return list_functions_types(mod)
+    if flag=='parent_module': return sys.modules[mod.__module__]
+    if flag=='types': return inspect_types(mod)
+    if flag=='all':
+        get_all(mod)
 
 def get_all(mod):
         print('----{functions}-----\n')
@@ -170,32 +233,32 @@ def list_functions(mod):
     return [func.__name__ for func in mod.__dict__.values()
             if is_mod_function(mod, func)]
 
+def get_function_names(mod):
 
-def inspect_module(mod, flag=''):
-    """
-    * Function:
-    * Usage: . . .
-    * -------------------------------
-    * flags: [source, source_lines,  functions, method,
-    *  attributes, signature, doc, comments, fun_types
-    *  list_functions, parent_module, types, all
-    """
-    if flag=='source': return (inspect.getsource(mod).encode().decode('unicode-escape'))
-    if flag=='source_lines': return inspect.getsourcelines(mod)
-    if flag=='functions': return inspect.getmembers(mod, inspect.isfunction)
-    if flag=='method': return inspect.getmembers(mod, predicate=inspect.ismethod)
-    if flag=='attributes': return get_attributes(mod)
-    if flag=='signature': return inspect.signature(mod)
-    if flag=='doc': return inspect.getdoc(mod)
-    if flag=='comments': return inspect.getcomments(mod)
-    if flag=='file': return inspect.getfile(mod)
-    if flag=='doctest': return doctest.run_docstring_examples(mod, globals())
-    if flag == 'list_functions': return list_functions(mod)
-    if flag=='fun_types': return list_functions_types(mod)
-    if flag=='parent_module': return sys.modules[mod.__module__]
-    if flag=='types': return inspect_types(mod)
-    if flag=='all':
-        get_all(mod)
+    functions = inspect.getmembers(mod, inspect.isfunction)
+    names = []
+    for x, y in functions:
+        names.append(x)
+    return names
+
+def get_attribute_names(mod):
+
+    attributes = get_attributes(mod)
+    names = []
+    for x, y in attributes:
+        names.append(x)
+    return names
+
+
+def get_method_names(mod):
+
+    methods = inspect.getmembers(mod, predicate=inspect.ismethod)
+    names = []
+    for x, y in methods:
+        names.append(x)
+    return names
+
+
 
 
 def is_subclass(o, bases):
