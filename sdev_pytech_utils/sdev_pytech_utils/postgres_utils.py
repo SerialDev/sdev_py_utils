@@ -17,6 +17,74 @@ def check_connection(con):
         raise ValueError("Connection was not established at {}".format(con.url))
 
 class postgres_utils(object):
+    """
+    Postgresql sqlalchemy based utililities
+
+    Parameters
+    ----------
+
+    get_engine : ip|str port|str
+       Get an engine object for postgres
+
+    show_tables : engine|pyObj
+       show the tables existing in db {engine} is connected to
+
+    show_running_queries : engine|pyObj
+       Show queries currently running
+
+    kill_running_query : engine|pyObj procpid|str
+       Kill a running query based on its id
+
+    kill_idle_query : engine|pyObj procpid|str
+       Kill an idle query based on its id
+
+    show_database_sizes : engine|pyObj|Show the size of database
+       nil
+
+    show_tables_and_views_usage : engine|pyObj
+       show usage by tables and by views
+
+    show_long_running : engine|pyObj
+       show all long running queries
+
+    count_indexes : engine|pyObj
+       Check how many indexes are in cache
+
+    get_db_encoding : engine|pyObj db_name|str
+       Get the string encoding of a db
+
+    get_locks_info_pd : engine|pyObj
+       Get information on what locks are currently active
+
+    get_db_indexes_pd : engine|pyObj
+       nil
+
+    db_name|str :  get database indexes currently in use
+       nil
+
+    get_table_sizes : engine|pyObj
+       Get a list of all table sizes in connected db
+
+    get_cache_hit_pd : engine|pyObj
+       Get information on cache hits and cache misses for each table
+
+    get_index_usage_pd : engine|pyObj
+       Get information on index usage for a given db
+
+    get_index_cache_hit_pd : engine|pyObj
+       Get information on index usage that is hitting a good cache locality
+
+    drop_table : engine|pyObj table_name|str
+       Drop a table from db
+
+    non_seq_query : engine|pyObj query|str mem|str
+       Do a Non-sequential scan with a given working memory, use to override defaults
+       if they are slow
+    
+    to_sql : df|pd.DataFrame engine|pyObj table|str if_exists|str sep|str encoding|str
+       Highly efficient write to postgresql from pandas
+
+    """
     @staticmethod
     def get_engine(ip, port):
         # engine = sqlalchemy.create_engine(f'postgresql+psycopg2://postgres:postgres@{ip}:{port}')
@@ -129,30 +197,30 @@ FROM
     @staticmethod
     def get_index_usage_pd(engine):
         return pd.read_sql( """
-SELECT 
-  relname, 
-  100 * idx_scan / (seq_scan + idx_scan) percent_of_times_index_used, 
+SELECT
+  relname,
+  100 * idx_scan / (seq_scan + idx_scan) percent_of_times_index_used,
   n_live_tup rows_in_table
-FROM 
+FROM
   pg_stat_user_tables
-WHERE 
-    seq_scan + idx_scan > 0 
-ORDER BY 
+WHERE
+    seq_scan + idx_scan > 0
+ORDER BY
   n_live_tup DESC;
 """, engine)
 
     @staticmethod
     def get_index_cache_hit_pd(engine):
         return pd.read_sql( """
-SELECT 
+SELECT
   sum(idx_blks_read) as idx_read,
   sum(idx_blks_hit)  as idx_hit,
   (sum(idx_blks_hit) - sum(idx_blks_read)) / sum(idx_blks_hit) as ratio
-FROM 
+FROM
   pg_statio_user_indexes;
 """, engine)
-    
-    
+
+
     @staticmethod
     def drop_table(engine, table_name):
         engine.execute("DROP TABLE {table_name}".format(table_name = table_name))
@@ -197,7 +265,3 @@ COMMIT;""".format(mem = mem, query = query))
         cursor.copy_from(output, table, sep=sep, null='')
         connection.commit()
         cursor.close()
-
-
-    
-
