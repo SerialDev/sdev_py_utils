@@ -38,10 +38,35 @@ def compress_list(input):
     -------
 
     Str
-        A string with the , separated contents 
+        A string with the , separated contents
     """
     return ','.join(str(e) for e in input)
 
+
+
+# for "pairs" of any length
+def chunkwise(t, size=2):
+    """
+    Yield successive n-sized chunks casted to an iterator from t
+
+    Parameters
+    ----------
+
+    l : list
+       A list to chunk
+
+    size : int
+       Number of elements per chunk
+
+    Returns
+    -------
+
+    Generator
+        A generator yielding lists of size n
+    """
+
+    it = iter(t)
+    return zip(*[it]*size)
 
 
 def chunks(l, n):
@@ -122,11 +147,6 @@ def uniquify_list(seq): # Dave Kirby
 
 def not_in_list(lst, val):
     return [x for x in lst if val not in x ]
-
-# for "pairs" of any length
-def chunkwise(t, size=2):
-    it = iter(t)
-    return zip(*[it]*size)
 
 def chunkwise_window(t):
     for x, y in zip(t, t[1:]):
