@@ -91,6 +91,21 @@ def pd_split_lazy(df, column):
 # ----------{Tuples to pandas}----------#
 
 def tuples_to_pd(tup):
+    """
+    Convert a list of tuples to a pandas dataframe
+
+    Parameters
+    ----------
+
+    tup : list
+       List of tuples
+
+    Returns
+    -------
+
+    pd.DataFrame
+        A pandas dataframe with tuples[0] as header 
+    """
     temp = pd.DataFrame(tup).T
 
     return pd_row_header(temp)
@@ -121,6 +136,30 @@ def encode_flags(data, flags, col_to_check):
 
 # TODO: cap threads and processes depending on platform/length of initial data
 def np_parallel(func, data, parts=4, verbose=False):
+    """
+    Split and apply a function to numpy array
+
+    Parameters
+    ----------
+
+    func : function
+       A function to apply to the np.array
+
+    data : np.ndarray
+       A numpy array to apply the function to
+
+    parts : int
+       How many parts to split the operation to
+
+    verbose : bool
+       Enable verbose output
+
+    Returns
+    -------
+
+    np.array
+       Re-constructed numpy array with all the parts having function applied
+    """
     def split_length(data, parts=4):
         return np.int(np.ceil(data.shape[0]/parts))
 
@@ -161,6 +200,30 @@ def np_parallel(func, data, parts=4, verbose=False):
 
 
 def get_between(data, col=None, _from=None, _to=None):
+    """
+    Get data between two values
+
+    Parameters
+    ----------
+
+    data : pd.DataFrame | np.array
+        Data to slice using boolean indexing
+
+    col : str(Optional)
+       Column to make the slice based on (Pandas only)
+
+    _from : int|float
+       What value to slice from
+
+    _to : int|float
+       What value to slice to
+
+    Returns
+    -------
+
+    pd.DataFrame|np.array
+         Returns a slice of the data in whichever format it came from
+    """
     def np_get_between(ndarray, _from=None, _to=None):
         if _from == None and _to == None:
             return ndarray[(ndarray >= np.min(ndarray)) & (ndarray <= np.max(ndarray))]
@@ -191,6 +254,42 @@ def get_between(data, col=None, _from=None, _to=None):
 
 
 def timed_slice(data, timeseries= None, weeks=0, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0  ):
+    """
+    Get a timed slice from either a  pandas dataframe or numpy array 
+
+    Parameters
+    ----------
+
+    data : pd.DataFrame|np.array
+       A pandas dataframe to slice based on time
+
+    timeseries : str
+       Column Name of the timeseries to use
+
+    weeks : int
+       How many weeks
+
+    days : int
+       How many days
+
+    minutes : int
+       how many minutes
+
+    seconds : int
+       How many seconds
+
+    milliseconds : int
+       How many milliseconds
+
+    microseconds : int
+       How many microseconds 
+
+    Returns
+    -------
+
+   pd.DataFrame|np.array
+       Sliced data based on timedeltas
+    """
     def np_timed_slice(ndarray, weeks=0, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0  ):
         _weeks = np.timedelta64(weeks, 'W')
         _days = np.timedelta64(days, 'D')
@@ -222,6 +321,21 @@ def timed_slice(data, timeseries= None, weeks=0, days=0, hours=0, minutes=0, sec
 
 
 def inf_nan_tozero(data):
+    """
+    Infinity or NaN to 0
+
+    Parameters
+    ----------
+
+    data : pd.DataFrame
+       The data that will have inf|nans removed
+
+    Returns
+    -------
+
+    pd.DataFrame
+        Data with inf and NaNs removed
+    """
     data[data == -np.inf] = 0
     data[data == np.inf] = 0
     data[data == np.nan] = 0
@@ -230,8 +344,28 @@ def inf_nan_tozero(data):
 
 # {Get a masked slice}#
 
-
 def masked_slice(data, mask, exclude=False):
+    """
+    Get a slice on a boolean mask
+
+    Parameters
+    ----------
+
+    data : np.array
+       Array of data to slice
+
+    mask : np.array
+       array of booleans to mask
+
+    exclude : bool
+       Exclude based on mask or include based on mask
+
+    Returns
+    -------
+
+    np.array
+       Data array matching the mask
+    """
     assert type(data) == np.ndarray, "TypeError: data must be of type np.ndarray!"
     assert type(mask) == np.ndarray, "TypeError: mask must be of type np.ndarray!"
     if exclude:
@@ -244,7 +378,30 @@ def masked_slice(data, mask, exclude=False):
 
 
 def get_subset(data, col=None, cond_value=0, flag=None):
+    """
+    Get a subset of the data based on < > != == <= >= flags
 
+    Parameters
+    ----------
+
+    data : pd.DataFrame|np.array
+       Data to slice
+
+    col : str(Optional)
+       column name if using a pd.DataFrame
+
+    cond_value : int|float
+       Conditional value to compare against
+
+    flag : str(==,!=,<,<=,>,>=)
+       nil
+
+    Returns
+    -------
+
+    pd.DataFrame|np.array
+        Sliced data based on cond_value and flag 
+    """
     def pd_get_subset(df, col, cond_value, flag=None):
         if flag == '==':
             return df[df[col] == cond_value]
@@ -289,6 +446,30 @@ def get_subset(data, col=None, cond_value=0, flag=None):
 
 
 def pd_string_subset(df, df_col, containing , flag='search'):
+    """
+    Get a slice based on a string search
+
+    Parameters
+    ----------
+
+    df : pd.DataFrame
+       Data to slice
+
+    df_col : str
+       Column name to take the slice from
+
+    containing : str
+       String to make the pattern search with
+
+    flag : str(search|match|extract)
+       Pattern search type
+
+    Returns
+    -------
+
+    pd.DataFrame
+        string subset sliced DataFrame 
+    """
     if flag == 'search':
         return df[df[df_col].str.contains(containing, na=False)]
     elif flag == 'match':
