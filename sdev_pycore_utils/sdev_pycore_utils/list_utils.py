@@ -4,28 +4,96 @@
 # import zip_longest
 
 def flatten_list_tuples(list_tuples):
+    """
+    Flatten a list ot tuples [(,)...] -> [...]
+
+    Parameters
+    ----------
+
+    list_tuples : list
+       A list of tuples to flatten
+
+    Returns
+    -------
+
+    List
+        A list with all the values previously inside tuples
+    """
     l = []
     [l.extend(row) for row in list_tuples]
     return l
 
 
-def CompressList(theList):
-    return ','.join(str(e) for e in theList)
+def compress_list(input):
+    """
+    Compress a list into a , separated string sequence
 
+    Parameters
+    ----------
 
-def uniquify_list(seq): # Dave Kirby
-    # Order preserving
-    seen = set()
-    return [x for x in seq if x not in seen and not seen.add(x)]
+    input : list
+       A list with values | Not pyObj
+
+    Returns
+    -------
+
+    Str
+        A string with the , separated contents 
+    """
+    return ','.join(str(e) for e in input)
+
 
 
 def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
+    """
+    Yield successive n-sized chunks from l
+
+    Parameters
+    ----------
+
+    l : list
+       A list to chunk
+
+    n : int
+       Number of elements per chunk
+
+    Returns
+    -------
+
+    Generator
+        A generator yielding lists of size n
+    """
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-def chunks_padded(n, iterable, padvalue=None):
-    "grouper(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')"
+def chunks_padded(iterable, n, padvalue=None):
+    """
+    Generate padded chunks from any iterable
+
+    Parameters
+    ----------
+
+    iterable : iter
+       Any iterable to pad
+
+    n : int
+       Number of elements per chunk
+
+    padvalue : str|int|float
+       What to pad with to meet minimum chunksize
+
+    Returns
+    -------
+
+    Generator
+        A generator yielding a padded list of size n
+
+
+    Doctest
+    -------
+    >>> list(chunks_padded("abcdefg", 3, "x"))
+    [("a","b","c"), ("d","e","f"),("g","x","x")]
+    """
     return zip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
 
 
@@ -68,28 +136,3 @@ def chunkwise_window(t):
 def fastest_argmax(array):
     array = list( array )
     return array.index(max(array))
-
-
-
-def flatten_list_tuples(list_tuples):
-    l = []
-    [l.extend(row) for row in list_tuples]
-    return l
-
-
-
-def uniquify_to_dict(value):
-    result = {}
-    temp = []
-    current = ''
-    for x, y in value:
-        if x == current:
-            temp.append(y)
-        else:
-            result[current] = temp
-            temp = []
-            current = x
-            temp.append(y)
-        result[current] = temp
-
-    return {k: v for k, v in result.items() if k is not ''}
