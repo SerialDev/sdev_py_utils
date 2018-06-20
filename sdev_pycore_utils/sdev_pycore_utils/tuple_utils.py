@@ -32,12 +32,6 @@ def filter_tuples(tups, filter_list, include=True, key=True):
     return result
 
 
-def tuples_to_pd(tup):
-    temp = pd.DataFrame(tup).T
-
-    return pd_row_header(temp)
-
-
 def get_position_tuple_lst(tup_lst, key=None, value=None):
     """
     * type-def :: [Tuples] ->  Key ->  Value
