@@ -186,3 +186,25 @@ def without_keys(d, keys):
     """
     return {x: d[x] for x in d if x not in keys}
 
+def dict_union(*args):
+    """
+    Join multiple dicts together
+
+    Parameters
+    ----------
+
+    args : dict
+       Dictionaries to join
+
+    Returns
+    -------
+
+    Dict
+        A dictionary that is the union of *args dicts
+    """
+    from itertools import chain
+
+    return dict(chain.from_iterable(d.items() for d in args))
+
+
+

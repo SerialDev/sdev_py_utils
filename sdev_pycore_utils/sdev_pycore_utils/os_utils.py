@@ -1,4 +1,5 @@
 """ Python OS std lib utilities"""
+
 import os
 import shutil
 import dill as pickle  # Required to pickle lambda functions
@@ -198,6 +199,9 @@ class file_utils(object):
     from_pickle : path|str flag|str
        Load a pyObj from a pickle file
 
+    unpickle_iter : path|str flag|str
+       Load a pyObj from a pickle file in a streaming fashion
+
     to_json : data|pyObj path|str flag|str
        Serialize object to json
 
@@ -244,6 +248,13 @@ class file_utils(object):
         with open(path, flag) as f:
             temp = pickle.load(f)
         return temp
+
+    @staticmethod
+    def unpickle_iter(path, flag='rb'):
+        import cPickle
+        with open(path, flag) as file:
+            while file.peek(1):
+                yield cPickle.load(file)
 
 
     @staticmethod
