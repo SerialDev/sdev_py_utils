@@ -1,3 +1,4 @@
+
 from scipy.special import gammaln, multigammaln
 import numpy as np
 
@@ -18,5 +19,4 @@ def gaussian_obs_log_likelihood(data, t, s):
     lgA = gammaln((nuT + 1) / 2) - np.log(np.sqrt(np.pi * nuT * scale)) - gammaln(nuT/2)
 
     return np.sum(n * lgA - (nuT + 1)/2 * prob)
-
 

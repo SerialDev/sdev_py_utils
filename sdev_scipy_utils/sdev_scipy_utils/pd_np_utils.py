@@ -827,3 +827,8 @@ def force_numeric_sort(df):
 
     df = df.sort_values(by=['LAG'], ascending=False)
     return df
+
+
+def ndistinct(x):
+    out = len(np.unique(x))
+    print("There are", out, "distinct values.")

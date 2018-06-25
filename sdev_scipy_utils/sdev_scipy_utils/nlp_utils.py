@@ -199,3 +199,41 @@ def word_to_tensor(word, tensor_length=10):
     return word
 
 
+def Build_STDM(docs, **kwargs):
+    """
+    Build Spares Term Document Matrix
+
+    Parameters
+    ----------
+
+    docs : np.array
+       An array with all the documents to convert to a term document matrix
+
+    kwargs : args
+       Arguments to pass to the countvecorizer
+
+    Returns
+    -------
+
+    sparsematrix && list
+         a sparsematrix and a list of vocabulary keys
+    """
+    from sklearn.feature_extraction.text import CountVectorizer
+    import pandas as pd
+    vectorizer = CountVectorizer(**kwargs)
+    sparsematrix= vectorizer.fit_transform(docs)
+    vocab = vectorizer.vocabulary_.keys()
+    return sparsematrix, vocab
+
+
+# Define a topic mining function (non-negative matrix factorization)
+def nmf(M, components=5, iterations=5000):
+    # Initialize to matrices
+    W = np.asmatrix(np.random.random(([M.shape[0], components])))
+    H = np.asmatrix(np.random.random(([components, M.shape[1]])))
+    for n in range(0, iterations): 
+        H = np.multiply(H, (W.T * M) / (W.T * W * H + 0.001))
+        W = np.multiply(W, (M * H.T) / (W * (H * H.T) + 0.001))
+        print "%d/%d" % (n, iterations)    # Note 'logging' module
+    return (W, H)
+

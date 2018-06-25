@@ -9,12 +9,12 @@ import numpy as np
 
 def feature_select(X, Y, names=None, method='all'):
     """
-    * Function: Select features using random forest regressor 
+    * Function: Select features using random forest regressor
     * Usage: feature_select(X, Y)  . . .
     * -------------------------------
     * This function prints
-    *  sorted features by their score based on ['linear', 'L1', 'L2',  
-    *  'impurity', 'acc_loss', 'stability', 'recursive_l', 'recursive_lsvc'] 
+    *  sorted features by their score based on ['linear', 'L1', 'L2',
+    *  'impurity', 'acc_loss', 'stability', 'recursive_l', 'recursive_lsvc']
     """
     def pretty_print_linear(coefs, names = None, sort = False):
         # a Helper method for pretty printing linear models
@@ -50,7 +50,7 @@ def feature_select(X, Y, names=None, method='all'):
         print("Ridge model:", pretty_print_linear(ridge.coef_, names, sort=True))
         print("Features sorted by their 'L2' score:")
         print( sorted( [ ( round( np.mean( score ), 4 ), feat) for
-                        feat, score in scores.items() ], reverse=True ) )        
+                        feat, score in scores.items() ], reverse=True ) )
     elif method == 'impurity':
         if names == None:
             names = np.array(X.columns)
@@ -75,7 +75,7 @@ def feature_select(X, Y, names=None, method='all'):
                 scores[names[i]].append((acc-shuff_acc)/acc)
         print("Features sorted by their 'acc_loss' score:")
         print( sorted( [ ( round( np.mean( score ), 4 ), feat) for
-                        feat, score in scores.items() ], reverse=True ) )        
+                        feat, score in scores.items() ], reverse=True ) )
     elif method == 'stability':
         rlasso = RandomizedLasso(alpha=0.025)
         rlasso.fit(X, Y)
@@ -130,7 +130,7 @@ def feature_select(X, Y, names=None, method='all'):
             feature_select(X, Y, names, method='recursive_lsvc')
         except Exception as e:
             print('recursive_lsvc failed')
-        
+
 
 def root_mean_sqr(x, flag='norm'):
     if flag=='norm':
