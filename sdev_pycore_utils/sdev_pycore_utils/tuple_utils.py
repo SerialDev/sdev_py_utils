@@ -40,13 +40,13 @@ def filter_tuples(tups, filter_list, include=True, key=True):
     * filtered list of tuples . . .
     """
     if include and key == True:
-        result =  [(x, y) for x, y in tups if x in filter_list]
+        result = [(x, y) for x, y in tups if x in filter_list]
     elif include == False and key == True:
         result = [(x, y) for x, y in tups if x not in filter_list]
     elif include == True and key == False:
-        result = [(x, y) for x, y in tups if y  in filter_list]
+        result = [(x, y) for x, y in tups if y in filter_list]
     elif include == False and key == False:
-        result = [(x, y) for x, y in tups if y  not in filter_list]
+        result = [(x, y) for x, y in tups if y not in filter_list]
 
     return result
 
@@ -70,16 +70,16 @@ def get_position_tuple_lst(tup_lst, key=None, value=None):
                 return index
             else:
                 pass
-        raise Exception('KeyNotFound Error')
+        raise Exception("KeyNotFound Error")
     elif value is not None and key is None:
         for index, i in enumerate(iterator):
             if key == i[1]:
                 return index
             else:
                 pass
-        raise Exception('ValueNotFound Error')
+        raise Exception("ValueNotFound Error")
     else:
-        raise Exception('TooManyArguments Error')
+        raise Exception("TooManyArguments Error")
 
 
 def get_key_tuple_lst(tup_lst, position, key=True, value=True):
@@ -99,21 +99,27 @@ def get_key_tuple_lst(tup_lst, position, key=True, value=True):
             try:
                 result = iterator.__next__()
             except StopIteration as e:
-                raise Exception('position greater than list length: {}'.format(len(tup_lst)))
+                raise Exception(
+                    "position greater than list length: {}".format(len(tup_lst))
+                )
     elif key is True and value is False:
         for i in range(position):
             try:
                 temp = iterator.__next__()
                 result = temp[0]
             except StopIteration as e:
-                raise Exception('position greater than list length: {}'.format(len(tup_lst)))
+                raise Exception(
+                    "position greater than list length: {}".format(len(tup_lst))
+                )
     elif value is True and key is False:
         for i in range(position):
             try:
                 temp = iterator.__next__()
                 result = temp[1]
             except StopIteration as e:
-                raise Exception('position greater than list length: {}'.format(len(tup_lst)))
+                raise Exception(
+                    "position greater than list length: {}".format(len(tup_lst))
+                )
     return result
 
 
@@ -130,21 +136,21 @@ def get_matching_tuple_lst(tup_lst, key=None, value=None):
     """
     iterator = iter(tup_lst)
     if key is not None and value is None:
-        for index, i in enumerate (iterator):
+        for index, i in enumerate(iterator):
             if key == i[0]:
                 return i[1]
             else:
                 pass
-        raise Exception('KeyNotFound Error')
+        raise Exception("KeyNotFound Error")
     elif value is not None and key is None:
         for index, i in enumerate(iterator):
             if value == i[1]:
                 return i[0]
             else:
                 pass
-        raise Exception('ValueNotFoundError')
+        raise Exception("ValueNotFoundError")
     else:
-        raise Exception('TooManyArguments Error')
+        raise Exception("TooManyArguments Error")
 
 
 def flatten_list_tuples(list_tuples):

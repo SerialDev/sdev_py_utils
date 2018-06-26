@@ -6,8 +6,11 @@ import pandas as pd
 
 def get_postgres(ip, port):
     # engine = sqlalchemy.create_engine(f'postgresql+psycopg2://postgres:postgres@{ip}:{port}')
-    engine = sqlalchemy.create_engine('postgresql+psycopg2://postgres:postgres@{}:{}'.format(ip,port ))
+    engine = sqlalchemy.create_engine(
+        "postgresql+psycopg2://postgres:postgres@{}:{}".format(ip, port)
+    )
     return engine
+
 
 def check_connection(con):
     try:
@@ -15,6 +18,7 @@ def check_connection(con):
         return True
     except Exception:
         raise ValueError("Connection was not established at {}".format(con.url))
+
 
 class postgres_utils(object):
     """
@@ -80,46 +84,63 @@ class postgres_utils(object):
     non_seq_query : engine|pyObj query|str mem|str
        Do a Non-sequential scan with a given working memory, use to override defaults
        if they are slow
-    
+
     to_sql : df|pd.DataFrame engine|pyObj table|str if_exists|str sep|str encoding|str
        Highly efficient write to postgresql from pandas
 
     """
+
     @staticmethod
     def get_engine(ip, port):
         # engine = sqlalchemy.create_engine(f'postgresql+psycopg2://postgres:postgres@{ip}:{port}')
-        engine = sqlalchemy.create_engine('postgresql+psycopg2://postgres:postgres@{}:{}'.format(ip,port ))
+        engine = sqlalchemy.create_engine(
+            "postgresql+psycopg2://postgres:postgres@{}:{}".format(ip, port)
+        )
         return engine
 
     @staticmethod
     def show_tables(engine):
-        return engine.execute("select * from pg_catalog.pg_tables where schemaname != 'information_schema' and schemaname != 'pg_catalog';").fetchall()
+        return engine.execute(
+            "select * from pg_catalog.pg_tables where schemaname != 'information_schema' and schemaname != 'pg_catalog';"
+        ).fetchall()
 
     @staticmethod
     def show_running_queries(engine):
-        return engine.execute("""SELECT pid, age(query_start, clock_timestamp()), usename, query
+        return engine.execute(
+            """SELECT pid, age(query_start, clock_timestamp()), usename, query
 FROM pg_stat_activity
 WHERE query != '<IDLE>' AND query NOT ILIKE 'pg_stat_activity'
-ORDER BY query_start desc;""").fetchall()
+ORDER BY query_start desc;"""
+        ).fetchall()
 
     @staticmethod
     def show_running_queries_pd(engine):
-        return pd.read_sql("""SELECT pid, age(query_start, clock_timestamp()), usename, query
+        return pd.read_sql(
+            """SELECT pid, age(query_start, clock_timestamp()), usename, query
 FROM pg_stat_activity
 WHERE query != '<IDLE>' AND query NOT ILIKE 'pg_stat_activity'
-ORDER BY query_start desc;""", engine)
+ORDER BY query_start desc;""",
+            engine,
+        )
 
     @staticmethod
     def kill_running_query(engine, procpid):
-        return engine.execute("""SELECT pg_cancel_backend({procpid})""".format(procpid = procpid))
+        return engine.execute(
+            """SELECT pg_cancel_backend({procpid})""".format(procpid=procpid)
+        )
 
     @staticmethod
     def kill_idle_query(engine, procpid):
-        return engine.execute("""SELECT pg_terminate_backend({procpid})""".format(procpid = procpid))
+        return engine.execute(
+            """SELECT pg_terminate_backend({procpid})""".format(procpid=procpid)
+        )
 
     @staticmethod
     def show_tables_pd(engine):
-        return pd.read_sql("select * from pg_catalog.pg_tables where schemaname != 'information_schema' and schemaname != 'pg_catalog';", engine)
+        return pd.read_sql(
+            "select * from pg_catalog.pg_tables where schemaname != 'information_schema' and schemaname != 'pg_catalog';",
+            engine,
+        )
 
     @staticmethod
     def show_database_sizes(engine):
@@ -131,38 +152,59 @@ ORDER BY query_start desc;""", engine)
 
     @staticmethod
     def show_tables_and_views_usage(engine):
-        return engine.execute("""with recursive view_tree(parent_schema, parent_obj, child_schema, child_obj, ind, ord) as (select vtu_parent.view_schema, vtu_parent.view_name, vtu_parent.table_schema, vtu_parent.table_name, '', array[row_number() over (order by view_schema, view_name)]from information_schema.view_table_usage vtu_parent where vtu_parent.view_schema = '<SCHEMA NAME>' and vtu_parent.view_name = '<VIEW NAME>' union all select vtu_child.view_schema, vtu_child.view_name, vtu_child.table_schema, vtu_child.table_name, vtu_parent.ind || '  ', vtu_parent.ord || (row_number() over (order by view_schema, view_name))from view_tree vtu_parent, information_schema.view_table_usage vtu_child where vtu_child.view_schema = vtu_parent.child_schema and vtu_child.view_name = vtu_parent.child_obj) select tree.ind || tree.parent_schema || '.' || tree.parent_obj   || ' depends on ' || tree.child_schema || '.' || tree.child_obj txt, tree.ord from view_tree tree order by ord;""").fetchall()
+        return engine.execute(
+            """with recursive view_tree(parent_schema, parent_obj, child_schema, child_obj, ind, ord) as (select vtu_parent.view_schema, vtu_parent.view_name, vtu_parent.table_schema, vtu_parent.table_name, '', array[row_number() over (order by view_schema, view_name)]from information_schema.view_table_usage vtu_parent where vtu_parent.view_schema = '<SCHEMA NAME>' and vtu_parent.view_name = '<VIEW NAME>' union all select vtu_child.view_schema, vtu_child.view_name, vtu_child.table_schema, vtu_child.table_name, vtu_parent.ind || '  ', vtu_parent.ord || (row_number() over (order by view_schema, view_name))from view_tree vtu_parent, information_schema.view_table_usage vtu_child where vtu_child.view_schema = vtu_parent.child_schema and vtu_child.view_name = vtu_parent.child_obj) select tree.ind || tree.parent_schema || '.' || tree.parent_obj   || ' depends on ' || tree.child_schema || '.' || tree.child_obj txt, tree.ord from view_tree tree order by ord;"""
+        ).fetchall()
 
     @staticmethod
     def show_tables_and_views_usage_pd(engine):
-        return pd.read_sql("""with recursive view_tree(parent_schema, parent_obj, child_schema, child_obj, ind, ord) as (select vtu_parent.view_schema, vtu_parent.view_name, vtu_parent.table_schema, vtu_parent.table_name, '', array[row_number() over (order by view_schema, view_name)]from information_schema.view_table_usage vtu_parent where vtu_parent.view_schema = '<SCHEMA NAME>' and vtu_parent.view_name = '<VIEW NAME>' union all select vtu_child.view_schema, vtu_child.view_name, vtu_child.table_schema, vtu_child.table_name, vtu_parent.ind || '  ', vtu_parent.ord || (row_number() over (order by view_schema, view_name))from view_tree vtu_parent, information_schema.view_table_usage vtu_child where vtu_child.view_schema = vtu_parent.child_schema and vtu_child.view_name = vtu_parent.child_obj) select tree.ind || tree.parent_schema || '.' || tree.parent_obj   || ' depends on ' || tree.child_schema || '.' || tree.child_obj txt, tree.ord from view_tree tree order by ord;""", engine)
-
+        return pd.read_sql(
+            """with recursive view_tree(parent_schema, parent_obj, child_schema, child_obj, ind, ord) as (select vtu_parent.view_schema, vtu_parent.view_name, vtu_parent.table_schema, vtu_parent.table_name, '', array[row_number() over (order by view_schema, view_name)]from information_schema.view_table_usage vtu_parent where vtu_parent.view_schema = '<SCHEMA NAME>' and vtu_parent.view_name = '<VIEW NAME>' union all select vtu_child.view_schema, vtu_child.view_name, vtu_child.table_schema, vtu_child.table_name, vtu_parent.ind || '  ', vtu_parent.ord || (row_number() over (order by view_schema, view_name))from view_tree vtu_parent, information_schema.view_table_usage vtu_child where vtu_child.view_schema = vtu_parent.child_schema and vtu_child.view_name = vtu_parent.child_obj) select tree.ind || tree.parent_schema || '.' || tree.parent_obj   || ' depends on ' || tree.child_schema || '.' || tree.child_obj txt, tree.ord from view_tree tree order by ord;""",
+            engine,
+        )
 
     @staticmethod
     def show_long_running(engine):
-        return engine.execute("""SELECT pid, now() - query_start as "runtime", usename, datname, waiting, state, query FROM  pg_stat_activity WHERE now() - query_start > '2 minutes'::interval and state = 'active' ORDER BY runtime DESC;""").fetchall()
+        return engine.execute(
+            """SELECT pid, now() - query_start as "runtime", usename, datname, waiting, state, query FROM  pg_stat_activity WHERE now() - query_start > '2 minutes'::interval and state = 'active' ORDER BY runtime DESC;"""
+        ).fetchall()
 
     @staticmethod
     def count_indexes(engine):
-        #-- how many indexes are in cache
-        return engine.execute("""SELECT sum(idx_blks_read) as idx_read, sum(idx_blks_hit)  as idx_hit, (sum(idx_blks_hit) - sum(idx_blks_read)) / sum(idx_blks_hit) as ratio FROM pg_statio_user_indexes;""").fetchall()
+        # -- how many indexes are in cache
+        return engine.execute(
+            """SELECT sum(idx_blks_read) as idx_read, sum(idx_blks_hit)  as idx_hit, (sum(idx_blks_hit) - sum(idx_blks_read)) / sum(idx_blks_hit) as ratio FROM pg_statio_user_indexes;"""
+        ).fetchall()
 
     @staticmethod
     def get_db_encoding(engine, db_name):
-        t =  engine.execute("select pg_encoding_to_char(encoding) from pg_database WHERE datname = '{db_name}';".format(db_name = db_name))
+        t = engine.execute(
+            "select pg_encoding_to_char(encoding) from pg_database WHERE datname = '{db_name}';".format(
+                db_name=db_name
+            )
+        )
         return t.fetchall()
 
     @staticmethod
     def get_locks_info_pd(engine):
-        return pd.read_sql("SELECT * FROM pg_locks pl LEFT JOIN pg_stat_activity psa ON pl.pid = psa.pid;", engine)
+        return pd.read_sql(
+            "SELECT * FROM pg_locks pl LEFT JOIN pg_stat_activity psa ON pl.pid = psa.pid;",
+            engine,
+        )
 
     @staticmethod
     def get_db_indexes_pd(engine, db_name):
-        return pd.read_sql("""SELECT * FROM pg_indexes WHERE tablename = '{db_name}';""".format(db_name = db_name), engine)
+        return pd.read_sql(
+            """SELECT * FROM pg_indexes WHERE tablename = '{db_name}';""".format(
+                db_name=db_name
+            ),
+            engine,
+        )
 
     @staticmethod
     def get_table_sizes(engine):
-        df = pd.read_sql("""SELECT
+        df = pd.read_sql(
+            """SELECT
     table_name,
     pg_size_pretty(table_size) AS table_size,
     pg_size_pretty(indexes_size) AS indexes_size,
@@ -179,24 +221,29 @@ FROM (
     ) AS all_tables
     ORDER BY total_size DESC
 ) AS pretty_sizes;
-        """, engine)
+        """,
+            engine,
+        )
         return df
-
 
     @staticmethod
     def get_cache_hit_pd(engine):
-        return pd.read_sql( """
+        return pd.read_sql(
+            """
 SELECT
   sum(heap_blks_read) as heap_read,
   sum(heap_blks_hit)  as heap_hit,
   sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
 FROM
   pg_statio_user_tables;
-""", engine)
+""",
+            engine,
+        )
 
     @staticmethod
     def get_index_usage_pd(engine):
-        return pd.read_sql( """
+        return pd.read_sql(
+            """
 SELECT
   relname,
   100 * idx_scan / (seq_scan + idx_scan) percent_of_times_index_used,
@@ -207,36 +254,43 @@ WHERE
     seq_scan + idx_scan > 0
 ORDER BY
   n_live_tup DESC;
-""", engine)
+""",
+            engine,
+        )
 
     @staticmethod
     def get_index_cache_hit_pd(engine):
-        return pd.read_sql( """
+        return pd.read_sql(
+            """
 SELECT
   sum(idx_blks_read) as idx_read,
   sum(idx_blks_hit)  as idx_hit,
   (sum(idx_blks_hit) - sum(idx_blks_read)) / sum(idx_blks_hit) as ratio
 FROM
   pg_statio_user_indexes;
-""", engine)
-
+""",
+            engine,
+        )
 
     @staticmethod
     def drop_table(engine, table_name):
-        engine.execute("DROP TABLE {table_name}".format(table_name = table_name))
+        engine.execute("DROP TABLE {table_name}".format(table_name=table_name))
 
     @staticmethod
-    def non_seq_query(engine, query, mem='6MB'):
-        result = engine.execute("""BEGIN;
+    def non_seq_query(engine, query, mem="6MB"):
+        result = engine.execute(
+            """BEGIN;
 SET LOCAL enable_seqscan= off;
 SET LOCAL work_mem = '{mem}';
 {query}
-COMMIT;""".format(mem = mem, query = query))
+COMMIT;""".format(
+                mem=mem, query=query
+            )
+        )
         return result
 
-
     @staticmethod
-    def to_sql(df, engine, table, if_exists='fail', sep='\t', encoding='utf8'):
+    def to_sql(df, engine, table, if_exists="fail", sep="\t", encoding="utf8"):
         """
         * -------------{Function}---------------
         * write_to_sql_efficiently . . .
@@ -262,6 +316,6 @@ COMMIT;""".format(mem = mem, query = query))
             cursor = connection.cursor()
         except Exception:
             cursor = engine.cursor()
-        cursor.copy_from(output, table, sep=sep, null='')
+        cursor.copy_from(output, table, sep=sep, null="")
         connection.commit()
         cursor.close()

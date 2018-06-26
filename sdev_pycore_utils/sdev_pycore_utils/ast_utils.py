@@ -1,6 +1,7 @@
 import ast
 
-def try_catch(funcall ):
+
+def try_catch(funcall):
     """
     try-catch wrapper using the AST library to reduce code noise
 

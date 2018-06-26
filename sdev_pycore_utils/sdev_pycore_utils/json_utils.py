@@ -36,4 +36,3 @@ def check_json(content: dict, val: str, complaint: str) -> json:
     except Exception as e:
         raise ValueError(complaint)
     return result
-

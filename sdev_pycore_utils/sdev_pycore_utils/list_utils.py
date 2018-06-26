@@ -1,7 +1,8 @@
 """Python core list datastructure utilitites"""
 
-#from itertools import zip_longest # for Python 3.x
+# from itertools import zip_longest # for Python 3.x
 # import zip_longest
+
 
 def flatten_list_tuples(list_tuples):
     """
@@ -40,8 +41,7 @@ def compress_list(input):
     Str
         A string with the , separated contents
     """
-    return ','.join(str(e) for e in input)
-
+    return ",".join(str(e) for e in input)
 
 
 # for "pairs" of any length
@@ -66,7 +66,7 @@ def chunkwise(t, size=2):
     """
 
     it = iter(t)
-    return zip(*[it]*size)
+    return zip(*[it] * size)
 
 
 def chunks(l, n):
@@ -89,7 +89,8 @@ def chunks(l, n):
         A generator yielding lists of size n
     """
     for i in range(0, len(l), n):
-        yield l[i:i + n]
+        yield l[i : i + n]
+
 
 def chunks_padded(iterable, n, padvalue=None):
     """
@@ -119,12 +120,15 @@ def chunks_padded(iterable, n, padvalue=None):
     >>> list(chunks_padded("abcdefg", 3, "x"))
     [("a","b","c"), ("d","e","f"),("g","x","x")]
     """
-    return zip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
+    return zip_longest(*[iter(iterable)] * n, fillvalue=padvalue)
 
 
-def uniquify_list_transform(seq, idfun=None): # Alex Martelli ******* order preserving
+def uniquify_list_transform(seq, idfun=None):  # Alex Martelli ******* order preserving
     if idfun is None:
-        def idfun(x): return x
+
+        def idfun(x):
+            return x
+
     seen = {}
     result = []
     for item in seq:
@@ -139,14 +143,15 @@ def uniquify_list_transform(seq, idfun=None): # Alex Martelli ******* order pres
     return result
 
 
-def uniquify_list(seq): # Dave Kirby
+def uniquify_list(seq):  # Dave Kirby
     # Order preserving
     seen = set()
     return [x for x in seq if x not in seen and not seen.add(x)]
 
 
 def not_in_list(lst, val):
-    return [x for x in lst if val not in x ]
+    return [x for x in lst if val not in x]
+
 
 def chunkwise_window(t):
     for x, y in zip(t, t[1:]):
@@ -154,5 +159,5 @@ def chunkwise_window(t):
 
 
 def fastest_argmax(array):
-    array = list( array )
+    array = list(array)
     return array.index(max(array))

@@ -7,6 +7,7 @@ import scipy.stats
 
 # -----------{Peak detection}-----------#
 
+
 def detect_peaks(signal, threshold=0.5):
     """ Performs peak detection on three steps: root mean square, peak to
     average ratios and first order logic.
@@ -16,12 +17,16 @@ def detect_peaks(signal, threshold=0.5):
     # compute peak to average ratios
     ratios = np.array([pow(x / root_mean_square, 2) for x in signal])
     # apply first order logic
-    peaks = (ratios > np.roll(ratios, 1)) & (ratios > np.roll(ratios, -1)) & (ratios > threshold)
+    peaks = (
+        (ratios > np.roll(ratios, 1))
+        & (ratios > np.roll(ratios, -1))
+        & (ratios > threshold)
+    )
     # optional: return peak indices
     peak_indexes = []
     for i in range(0, len(peaks)):
-    	if peaks[i]:
-    		peak_indexes.append(i)
+        if peaks[i]:
+            peak_indexes.append(i)
     return peak_indexes
 
 
@@ -33,10 +38,10 @@ def findpeaks(data, spacing=1, limit=None):
     :return:
     """
     len = data.size
-    x = np.zeros(len+2*spacing)
-    x[:spacing] = data[0]-1.e-6
-    x[-spacing:] = data[-1]-1.e-6
-    x[spacing:spacing+len] = data
+    x = np.zeros(len + 2 * spacing)
+    x[:spacing] = data[0] - 1.e-6
+    x[-spacing:] = data[-1] - 1.e-6
+    x[spacing : spacing + len] = data
     peak_candidate = np.zeros(len)
     peak_candidate[:] = True
     for s in range(spacing):
@@ -46,7 +51,9 @@ def findpeaks(data, spacing=1, limit=None):
         h_c = x[start : start + len]  # central
         start = spacing + s + 1
         h_a = x[start : start + len]  # after
-        peak_candidate = np.logical_and(peak_candidate, np.logical_and(h_c > h_b, h_c > h_a))
+        peak_candidate = np.logical_and(
+            peak_candidate, np.logical_and(h_c > h_b, h_c > h_a)
+        )
 
     ind = np.argwhere(peak_candidate)
     ind = ind.reshape(ind.size)
@@ -57,6 +64,7 @@ def findpeaks(data, spacing=1, limit=None):
 
 # ----------{Anomaly detection}---------#
 
+
 def tail_avg(series, num_points):
     """
     This is a utility function used to calculate the average of the last num_points
@@ -65,53 +73,55 @@ def tail_avg(series, num_points):
     to detection.
     """
 
-    t = series[-num_points:].sum()/ num_points
+    t = series[-num_points:].sum() / num_points
     return t
 
+
 def median_absolute_deviation(timeseries, threshold=6):
-     """
+    """
      A timeseries is anomalous if the deviation of its latest datapoint with
      respect to the median is X times larger than the median of deviations.
      """
-     series = timeseries
-     try:
-         median = series.median()
-         demedianed = np.abs(series - median)
-         median_deviation = demedianed.median()
-         # The test statistic is infinite when the median is zero,
-         # so it becomes super sensitive. We play it safe and skip when this happens.
-         if median_deviation == 0:
-             return False
-         test_statistic = demedianed.iloc[-1] / median_deviation
-         # Completely arbitary...triggers if the median deviation is
-         # [threshold]6 times bigger than the median
-         if test_statistic > threshold:
-             return True, test_statistic, threshold
-         else:
-             return False, test_statistic, threshold
+    series = timeseries
+    try:
+        median = series.median()
+        demedianed = np.abs(series - median)
+        median_deviation = demedianed.median()
+        # The test statistic is infinite when the median is zero,
+        # so it becomes super sensitive. We play it safe and skip when this happens.
+        if median_deviation == 0:
+            return False
+        test_statistic = demedianed.iloc[-1] / median_deviation
+        # Completely arbitary...triggers if the median deviation is
+        # [threshold]6 times bigger than the median
+        if test_statistic > threshold:
+            return True, test_statistic, threshold
+        else:
+            return False, test_statistic, threshold
 
-     except AttributeError:
-         median = np.median(series)
-         demedianed = np.abs(series - median)
-         median_deviation = np.median(demedianed)
-         # The test statistic is infinite when the median is zero,
-         # so it becomes super sensitive. We play it safe and skip when this happens.
-         if median_deviation == 0:
-             return False
-         test_statistic = demedianed[-1] / median_deviation
-         # Completely arbitary...triggers if the median deviation is
-         # [threshold]6 times bigger than the median
-         if test_statistic > threshold:
-             return True, test_statistic, threshold
-         else:
-             return False, test_statistic, threshold
+    except AttributeError:
+        median = np.median(series)
+        demedianed = np.abs(series - median)
+        median_deviation = np.median(demedianed)
+        # The test statistic is infinite when the median is zero,
+        # so it becomes super sensitive. We play it safe and skip when this happens.
+        if median_deviation == 0:
+            return False
+        test_statistic = demedianed[-1] / median_deviation
+        # Completely arbitary...triggers if the median deviation is
+        # [threshold]6 times bigger than the median
+        if test_statistic > threshold:
+            return True, test_statistic, threshold
+        else:
+            return False, test_statistic, threshold
+
 
 def grubbs(series):
     """
     A timeseries is anomalous if the Z score is greater than the Grubb's score.
     """
 
-    #series = scipy.array([x[1] for x in timeseries])
+    # series = scipy.array([x[1] for x in timeseries])
     stdDev = scipy.std(series)
     mean = np.mean(series)
     tail_average = tail_avg(series, 30)
@@ -119,10 +129,13 @@ def grubbs(series):
     len_series = len(series)
     threshold = scipy.stats.t.isf(.05 / (2 * len_series), len_series - 2)
     threshold_squared = threshold * threshold
-    grubbs_score = ((len_series - 1) / np.sqrt(len_series)) * np.sqrt(threshold_squared / (len_series - 2 + threshold_squared))
+    grubbs_score = ((len_series - 1) / np.sqrt(len_series)) * np.sqrt(
+        threshold_squared / (len_series - 2 + threshold_squared)
+    )
     result = z_score > grubbs_score
-    result = getattr(result, 'tolist')()
-    return ( result , grubbs_score, z_score)
+    result = getattr(result, "tolist")()
+    return (result, grubbs_score, z_score)
+
 
 def stddev_from_average(timeseries):
     """
@@ -138,6 +151,7 @@ def stddev_from_average(timeseries):
 
     return abs(t - mean) > 3 * stdDev, stdDev
 
+
 def stddev_from_moving_average(timeseries):
     """
     A timeseries is anomalous if the absolute value of the average of the latest
@@ -151,6 +165,7 @@ def stddev_from_moving_average(timeseries):
 
     return abs(series.iloc[-1] - expAverage.iloc[-1]) > 3 * stdDev.iloc[-1]
 
+
 def mean_subtraction_cumulation(timeseries):
     """
     A timeseries is anomalous if the value of the next datapoint in the
@@ -158,10 +173,10 @@ def mean_subtraction_cumulation(timeseries):
     after subtracting the mean from each data point.
     """
 
-    #series = pandas.Series([x[1] if x[1] else 0 for x in timeseries])
+    # series = pandas.Series([x[1] if x[1] else 0 for x in timeseries])
     series = timeseries
-    series = series - series[0:len(series) - 1].mean()
-    stdDev = series[0:len(series) - 1].std()
+    series = series - series[0 : len(series) - 1].mean()
+    stdDev = series[0 : len(series) - 1].std()
     expAverage = series.ewm(com=15).mean()
 
     return abs(series.iloc[-1]) > 3 * stdDev
@@ -206,7 +221,7 @@ def histogram_bins(timeseries):
     means more anomalous.
     """
 
-    #series = scipy.array([x[1] for x in timeseries])
+    # series = scipy.array([x[1] for x in timeseries])
     series = timeseries
     t = tail_avg(timeseries, 30)
     h = np.histogram(series, bins=15)
@@ -221,6 +236,7 @@ def histogram_bins(timeseries):
             elif t >= bins[index] and t < bins[index + 1]:
                 return True
     return False
+
 
 def ks_test(timeseries):
     """
@@ -248,6 +264,7 @@ def ks_test(timeseries):
 
     return False, ks_d, ks_p_value
 
+
 def ks_test_ljung(timeseries):
     """
     A timeseries is anomalous if 2 sample Kolmogorov-Smirnov test indicates
@@ -270,10 +287,11 @@ def ks_test_ljung(timeseries):
 
     if ks_p_value < 0.05 and ks_d > 0.5:
         _, ljp = sm.stats.diagnostic.acorr_ljungbox(reference)
-        if  ljp[-1] > 0.05:
+        if ljp[-1] > 0.05:
             return True, ks_d, ks_p_value
 
     return False, ks_d, ks_p_value
+
 
 def bayesian_anomaly(series):
     """
@@ -285,8 +303,8 @@ def bayesian_anomaly(series):
     """
     index = bayesian_changepoint(series)[1]
     MAD = series.mad()
-    subset = series[index-2:index+5].mean()
-    return (subset>MAD)
+    subset = series[index - 2 : index + 5].mean()
+    return subset > MAD
 
 
 # {Reconstruction error}#
@@ -294,10 +312,17 @@ def bayesian_anomaly(series):
 
 # Establish a reconstruction error baseline (maybe MAD for rec error)
 from sklearn import cluster
-def reconstruction_algo_anomaly(data, segment_length,
-                                slide_length, func=sin_window_func,
-                                clusterer=cluster.KMeans, flag='test',
-                                plot=False):
+
+
+def reconstruction_algo_anomaly(
+    data,
+    segment_length,
+    slide_length,
+    func=sin_window_func,
+    clusterer=cluster.KMeans,
+    flag="test",
+    plot=False,
+):
 
     """
     * Function: Anomaly detection based on reconstruction of clustered data
@@ -307,60 +332,66 @@ def reconstruction_algo_anomaly(data, segment_length,
     * This function returns
     * clusterer: cluster.[KMeans, AffinityPropagation, DBSCAN, SpectralClustering, etc..]
     """
-    segments = sliding_window(data, segment_length, slide_length, flag='chunks')
+    segments = sliding_window(data, segment_length, slide_length, flag="chunks")
     windowed_segments = []
     for segment in segments:
         windowed_segments.append(inf_nan_tozero(func(segment, segment_length)))
-    clusterer = clusterer(n_clusters = 10)
+    clusterer = clusterer(n_clusters=10)
     clusterer.fit(windowed_segments)
     centroids = clusterer.cluster_centers_
-    if flag == 'test':
+    if flag == "test":
         windowed = windowed_segments[0]
         nearest_centroid_idx = clusterer.predict(windowed)[0]
         nearest_centroid = np.copy(centroids[nearest_centroid_idx])
         if plot == True:
             import matplotlib.pyplot as plt
+
             plt.figure()
-            plt.plot(segments[0], label='Original Segment')
-            plt.plot(windowed, label='Windowed segment')
-            plt.plot(nearest_centroid, label='Nearest_centroid')
+            plt.plot(segments[0], label="Original Segment")
+            plt.plot(windowed, label="Windowed segment")
+            plt.plot(nearest_centroid, label="Nearest_centroid")
             plt.legend()
             plt.show()
         return segments[0], windowed, nearest_centroid
     else:
-        #return windowed_segments, clusterer
+        # return windowed_segments, clusterer
         reconstruction = np.zeros(len(data))
         n_plot_samples = 30
         for segment_n, segment in enumerate(windowed_segments):
             segment = np.copy(segment)
-            #segment = inf_nan_tozero(func(segment, 10))
+            # segment = inf_nan_tozero(func(segment, 10))
             nearest_centroid_idx = clusterer.predict(segment)[0]
             centroids = clusterer.cluster_centers_
             nearest_centroid = np.copy(centroids[nearest_centroid_idx])
 
             pos = segment_n * slide_length
-            reconstruction[pos:pos+segment_length] += nearest_centroid
+            reconstruction[pos : pos + segment_length] += nearest_centroid
         error = reconstruction[0:n_plot_samples] - data[0:n_plot_samples]
         error_98th_percentile = np.percentile(error, 98)
         if plot == True:
             import matplotlib.pyplot as plt
+
             plt.figure()
-            plt.plot(data[0:n_plot_samples], label='Original data')
+            plt.plot(data[0:n_plot_samples], label="Original data")
             plt.legend()
             plt.show()
-            plt.plot(reconstruction[0:n_plot_samples], label='Reconstructed_data')
+            plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
             plt.legend()
             plt.show()
-            plt.plot(error[0:n_plot_samples], label='Reconstruction Error')
+            plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
             plt.legend()
             plt.show()
-            plt.plot(data[0:n_plot_samples], label='Original data')
-            plt.plot(reconstruction[0:n_plot_samples], label='Reconstructed_data')
-            plt.plot(error[0:n_plot_samples], label='Reconstruction Error')
+            plt.plot(data[0:n_plot_samples], label="Original data")
+            plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
+            plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
             plt.legend()
             plt.show()
-            print('Maximum reconstruction error was {:0.1f}'.format(error.max()) )
-            print('98th percentile of reconstruction error was {:0.1f} '.format(error_98th_percentile))
+            print("Maximum reconstruction error was {:0.1f}".format(error.max()))
+            print(
+                "98th percentile of reconstruction error was {:0.1f} ".format(
+                    error_98th_percentile
+                )
+            )
         if error.max() > 30:
             return True
         else:
@@ -368,51 +399,52 @@ def reconstruction_algo_anomaly(data, segment_length,
     return reconstruction, error, windowed_segments
 
 
-
-
 # --------{Changepoint Detection}-------#
 
-def bayesian_changepoint( data ):
-    n = len( data )
+
+def bayesian_changepoint(data):
+    n = len(data)
     # dbar = sum( data )/float(n)
-    dbar = np.mean( data )
+    dbar = np.mean(data)
 
     # dsbar = sum (data*data)/float(n)
-    dsbar = np.mean( np.multiply( data, data ) )
+    dsbar = np.mean(np.multiply(data, data))
 
-    fac = dsbar - np.square( dbar )
+    fac = dsbar - np.square(dbar)
 
     summ = 0
     summup = []
-    for z in range( n ):
-        summ+= data[z]
-        summup.append( summ )
+    for z in range(n):
+        summ += data[z]
+        summup.append(summ)
 
     y = []
 
-    for m in range( n-1 ):
+    for m in range(n - 1):
         pos = m + 1
-        mscale = 4 * ( pos ) * ( n - pos )
-        Q = summup[m] - ( summ - summup[m] )
-        U =  -np.square( dbar * ( n - 2 * pos) + Q )/ float( mscale ) + fac
-        y.append( - ( n/float( 2 ) - 1 ) * np.log(n * U / 2 ) - 0.5 * np.log( ( pos *( n - pos) ) ) )
+        mscale = 4 * (pos) * (n - pos)
+        Q = summup[m] - (summ - summup[m])
+        U = -np.square(dbar * (n - 2 * pos) + Q) / float(mscale) + fac
+        y.append(
+            -(n / float(2) - 1) * np.log(n * U / 2) - 0.5 * np.log((pos * (n - pos)))
+        )
 
-    z, zz = np.max( y ), np.argmax( y )
-    mean1 = sum( data[:zz+1] / float( len( data[:zz+1] ) ) )
-    mean2 = sum( data[( zz+1 ):n]) / float( n - 1 - zz)
-    #p = y.argsort()[-3:][::-1]
-    p = sorted(range(len(y)), key= lambda x: y[x])[-5:]
+    z, zz = np.max(y), np.argmax(y)
+    mean1 = sum(data[: zz + 1] / float(len(data[: zz + 1])))
+    mean2 = sum(data[(zz + 1) : n]) / float(n - 1 - zz)
+    # p = y.argsort()[-3:][::-1]
+    p = sorted(range(len(y)), key=lambda x: y[x])[-5:]
     return y, zz, mean1, mean2, p
+
 
 # ------{Digital Signal Processing}-----#
 
 
-def sliding_window(data, segment_length, slide_length, flag='chunks'):
+def sliding_window(data, segment_length, slide_length, flag="chunks"):
     def iter_sliding_window(data, segment_length, slide_length):
         for start_position in range(0, len(data), slide_length):
             end_position = start_position + segment_length
             yield data[start_position:end_position]
-
 
     def bulk_sliding_window(data, segment_length, slide_length):
         segments = []
@@ -424,13 +456,13 @@ def sliding_window(data, segment_length, slide_length, flag='chunks'):
             if len(segment) != segment_length:
                 continue
             segments.append(segment)
-        print('Produced {} waveform segments'.format(len(segments)))
+        print("Produced {} waveform segments".format(len(segments)))
         return segments
 
-    if flag == 'chunks':
-        return    bulk_sliding_window(data, segment_length, slide_length)
-    elif flag == 'lazy':
-        return    iter_sliding_window(data, segment_length, slide_length)
+    if flag == "chunks":
+        return bulk_sliding_window(data, segment_length, slide_length)
+    elif flag == "lazy":
+        return iter_sliding_window(data, segment_length, slide_length)
 
 
 def spectral_centroid(x, samplerate=44100):
@@ -439,19 +471,24 @@ def spectral_centroid(x, samplerate=44100):
     determined using a Fourier transform,
     with their magnitudes as the weights
     """
-    magnitudes = np.abs(np.fft.rfft(x)) # magnitudes of positive frequencies
+    magnitudes = np.abs(np.fft.rfft(x))  # magnitudes of positive frequencies
     length = len(x)
-    freqs = np.abs(np.fft.fftfreq(length, 1.0/samplerate)[:length//2+1]) # positive frequencies
-    return np.sum(magnitudes*freqs) / np.sum(magnitudes) # return weighted mean
+    freqs = np.abs(
+        np.fft.fftfreq(length, 1.0 / samplerate)[: length // 2 + 1]
+    )  # positive frequencies
+    return np.sum(magnitudes * freqs) / np.sum(magnitudes)  # return weighted mean
+
 
 def rectangular_window_func(data, segment_length):
     return data
 
+
 def sin_window_func(data, segment_length):
     window_rads = np.linspace(0, np.pi, segment_length)
-    window = np.sin(window_rads)**2
+    window = np.sin(window_rads) ** 2
     windowed_segment = data * window
     return windowed_segment
+
 
 def inf_nan_tozero(data):
     data[data == -np.inf] = 0
@@ -459,10 +496,12 @@ def inf_nan_tozero(data):
     data = np.nan_to_num(data)
     return data
 
+
 def log10_window_func(data, segment_length):
     window = np.log10(data)
     windowed_segment = data * window
     return inf_nan_tozero(windowed_segment)
+
 
 def gradient_window_func(data, segment_length):
     window = np.gradient(data, 1)
@@ -482,7 +521,7 @@ def find(condition):
 
 
 def freq_from_crossings(signal, fs):
-   """Estimate frequency by counting zero crossings
+    """Estimate frequency by counting zero crossings
 
    Pros: Fast, accurate (increasing with signal length). Works well for long
    low-noise sines, square, triangle, etc.
@@ -491,20 +530,21 @@ def freq_from_crossings(signal, fs):
    low-frequency baseline shift, noise, etc.
 
    """
-   # Find all indices right before a rising-edge zero crossing
-   indices = find((signal[1:] >= 0) & (signal[:-1] < 0))
+    # Find all indices right before a rising-edge zero crossing
+    indices = find((signal[1:] >= 0) & (signal[:-1] < 0))
 
-   # Naive (Measures 1000.185 Hz for 1000 Hz, for instance)
-   # crossings = indices
+    # Naive (Measures 1000.185 Hz for 1000 Hz, for instance)
+    # crossings = indices
 
-   # More accurate, using linear interpolation to find intersample
-   # zero-crossings (Measures 1000.000129 Hz for 1000 Hz, for instance)
-   crossings = [i - signal[i] / (signal[i+1] - signal[i]) for i in indices]
+    # More accurate, using linear interpolation to find intersample
+    # zero-crossings (Measures 1000.000129 Hz for 1000 Hz, for instance)
+    crossings = [i - signal[i] / (signal[i + 1] - signal[i]) for i in indices]
 
-   # Some other interpolation based on neighboring points might be better.
-   # Spline, cubic, whatever
+    # Some other interpolation based on neighboring points might be better.
+    # Spline, cubic, whatever
 
-   return fs  / np.mean(np.diff(crossings))
+    return fs / np.mean(np.diff(crossings))
+
 
 def parabolic(f, x):
     """
@@ -520,12 +560,13 @@ def parabolic(f, x):
     In [4]: parabolic(f, argmax(f))
     Out[4]: (3.2142857142857144, 6.1607142857142856)
     """
-    xv = 1/2. * (f[x-1] - f[x+1]) / (f[x-1] - 2 * f[x] + f[x+1]) + x
-    yv = f[x] - 1/4. * (f[x-1] - f[x+1]) * (xv - x)
+    xv = 1 / 2. * (f[x - 1] - f[x + 1]) / (f[x - 1] - 2 * f[x] + f[x + 1]) + x
+    yv = f[x] - 1 / 4. * (f[x - 1] - f[x + 1]) * (xv - x)
     return (xv, yv)
 
+
 def freq_from_fft(signal, fs):
-   """Estimate frequency from peak of FFT
+    """Estimate frequency from peak of FFT
 
    Pros: Accurate, usually even more so than zero crossing counter
    (1000.000004 Hz for 1000 Hz, for instance). Due to parabolic
@@ -538,19 +579,20 @@ def freq_from_fft(signal, fs):
 
    """
 
-   N = len(signal)
+    N = len(signal)
 
-   # Compute Fourier transform of windowed signal
-   windowed = signal * kaiser(N, 100)
-   f = np.fft.rfft(windowed)
-   # Find the peak and interpolate to get a more accurate peak
-   i_peak = np.argmax(abs(f)) # Just use this value for less-accurate result
-   i_interp = parabolic(np.log(abs(f)), i_peak)[0]
-   # Convert to equivalent frequency
-   return fs * i_interp / N , i_interp  # N Hz
+    # Compute Fourier transform of windowed signal
+    windowed = signal * kaiser(N, 100)
+    f = np.fft.rfft(windowed)
+    # Find the peak and interpolate to get a more accurate peak
+    i_peak = np.argmax(abs(f))  # Just use this value for less-accurate result
+    i_interp = parabolic(np.log(abs(f)), i_peak)[0]
+    # Convert to equivalent frequency
+    return fs * i_interp / N, i_interp  # N Hz
+
 
 def freq_from_autocorr(signal, fs):
-   """Estimate frequency using autocorrelation
+    """Estimate frequency using autocorrelation
 
    Pros: Best method for finding the true fundamental of any repeating wave,
    even with strong harmonics or completely missing fundamental
@@ -559,23 +601,24 @@ def freq_from_autocorr(signal, fs):
    instruments, this implementation has trouble with finding the true peak
 
    """
-   # Calculate autocorrelation (same thing as convolution, but with one input
-   # reversed in time), and throw away the negative lags
-   signal -= np.mean(signal) # Remove DC offset
-   corr = fftconvolve(signal, signal[::-1], mode='full')
-   corr = corr[len(corr)//2:]
+    # Calculate autocorrelation (same thing as convolution, but with one input
+    # reversed in time), and throw away the negative lags
+    signal -= np.mean(signal)  # Remove DC offset
+    corr = fftconvolve(signal, signal[::-1], mode="full")
+    corr = corr[len(corr) // 2 :]
 
-   # Find the first low point
-   d = np.diff(corr)
-   start = find(d > 0)[0]
+    # Find the first low point
+    d = np.diff(corr)
+    start = find(d > 0)[0]
 
-   # Find the next peak after the low point (other than 0 lag). This bit is
-   # not reliable for long signals, due to the desired peak occurring between
-   # samples, and other peaks appearing higher.
-   i_peak = np.argmax(corr[start:]) + start
-   i_interp = parabolic(corr, i_peak)[0]
+    # Find the next peak after the low point (other than 0 lag). This bit is
+    # not reliable for long signals, due to the desired peak occurring between
+    # samples, and other peaks appearing higher.
+    i_peak = np.argmax(corr[start:]) + start
+    i_interp = parabolic(corr, i_peak)[0]
 
-   return fs / i_interp
+    return fs / i_interp
+
 
 def freq_from_hps(signal, fs):
     """Estimate frequency using harmonic product spectrum
@@ -592,17 +635,16 @@ def freq_from_hps(signal, fs):
 
     # Downsample sum logs of spectra instead of multiplying
     hps = np.copy(X)
-    for h in range(2, 9): # TODO: choose a smarter upper limit
+    for h in range(2, 9):  # TODO: choose a smarter upper limit
         dec = decimate(X, h)
-        hps[:len(dec)] += dec
+        hps[: len(dec)] += dec
 
     # Find the peak and interpolate to get a more accurate peak
-    i_peak = np.argmax(hps[:len(dec)])
+    i_peak = np.argmax(hps[: len(dec)])
     i_interp = parabolic(hps, i_peak)[0]
 
     # Convert to equivalent frequency
     return fs * i_interp / N  # Hz
-
 
 
 # {Dynamic time warping}#
@@ -622,14 +664,16 @@ def simple_complexity(data):
     Examples
     --------
     """
-    return np.sqrt(np.sum(np.diff(data)**2))
+    return np.sqrt(np.sum(np.diff(data) ** 2))
+
 
 def complexity_correction_factor(t1, t2):
-    complexities = [simple_complexity(t) for t in [t1,t2]]
-    return max(complexities)/min(complexities)
+    complexities = [simple_complexity(t) for t in [t1, t2]]
+    return max(complexities) / min(complexities)
+
 
 def euclidean(t1, t2, **kwargs):
-    return np.sqrt( np.sum( np.abs( t1**2 - t2**2 ) ) )
+    return np.sqrt(np.sum(np.abs(t1 ** 2 - t2 ** 2)))
 
 
 # ------{From High Energy Physics}------#
@@ -643,9 +687,10 @@ from math import log
 from numpy import array, random
 from scipy.stats import percentileofscore, poisson
 
+
 def evaluate_statistic(data, mc, verbose=False, edges=None):
     # Get search range (first bin with data, last bin with data)
-    nzi, = mc.nonzero() # nzi = non-zero indices
+    nzi, = mc.nonzero()  # nzi = non-zero indices
     search_lo, search_hi = nzi[0], nzi[-1]
 
     def all_windows():
@@ -653,8 +698,9 @@ def evaluate_statistic(data, mc, verbose=False, edges=None):
         # Try windows from one bin in width up to half of the full range
         min_win_size, max_win_size = 1, (search_hi - search_lo) // 2
         for binwidth in range(min_win_size, max_win_size):
-            if verbose: print (" --- binwidth = ", binwidth)
-            step = max(1, binwidth // 2) # Step size <- half binwidth
+            if verbose:
+                print(" --- binwidth = ", binwidth)
+            step = max(1, binwidth // 2)  # Step size <- half binwidth
             for pos in range(search_lo, search_hi - binwidth, step):
                 yield pos, pos + binwidth
 
@@ -665,33 +711,37 @@ def evaluate_statistic(data, mc, verbose=False, edges=None):
             # MC prediction is zero. Not sure what then..
             assert d == 0, "Data = {0} where the prediction is zero..".format(d)
             return 1
-        if d < m: return 1 # "Dips" get ignored.
+        if d < m:
+            return 1  # "Dips" get ignored.
 
         # P(d >= m)
-        p = 1 - poisson.cdf(d-1, m)
+        p = 1 - poisson.cdf(d - 1, m)
 
         if verbose and edges:
-            print ("{0:2} {1:2} [{2:8.3f}, {3:8.3f}] {4:7.0f} {5:7.3f} {6:.5f} {7:.2f}".format(
-                lo, hi, edges[lo], edges[hi], d, m, p, -log(p)))
+            print(
+                "{0:2} {1:2} [{2:8.3f}, {3:8.3f}] {4:7.0f} {5:7.3f} {6:.5f} {7:.2f}".format(
+                    lo, hi, edges[lo], edges[hi], d, m, p, -log(p)
+                )
+            )
 
         return p
 
-    min_pvalue, (lo, hi) = min((pvalue(lo, hi), (lo, hi))
-                               for lo, hi in all_windows())
+    min_pvalue, (lo, hi) = min((pvalue(lo, hi), (lo, hi)) for lo, hi in all_windows())
 
     return -log(min_pvalue), (lo, hi)
+
 
 def make_toys(prediction, n):
     "fluctuate `prediction` input distribution `n` times"
     return random.mtrand.poisson(prediction, size=(n, len(prediction)))
 
+
 def bumphunter(hdata, hmc, n):
     "Compute the bumphunter statistic and run `n` pseudo-experiments"
     data = array([hdata[i] for i in range(1, hdata.GetNbinsX())])
-    mc   = array([hmc[i]   for i in range(1, hmc.GetNbinsX())])
+    mc = array([hmc[i] for i in range(1, hmc.GetNbinsX())])
 
-    pseudo_experiments = [evaluate_statistic(pe, mc)[0]
-                          for pe in make_toys(mc, n)]
+    pseudo_experiments = [evaluate_statistic(pe, mc)[0] for pe in make_toys(mc, n)]
 
     measurement, (lo, hi) = evaluate_statistic(data, mc)
 

@@ -1,11 +1,9 @@
 """Generic SQL related utilities"""
 
-def sql_select_chunker(engine,
-                       cols='*',
-                       table='ticks',
-                       optionals='',
-                       order_by='timestamp',
-                       size=None):
+
+def sql_select_chunker(
+    engine, cols="*", table="ticks", optionals="", order_by="timestamp", size=None
+):
     if size is None:
         size = table_size(engine, table)
     if size > 1e9:
@@ -14,7 +12,7 @@ def sql_select_chunker(engine,
         chunks = 1000
     else:
         chunks = 10
-    chunksize = ceil(size/chunks)
+    chunksize = ceil(size / chunks)
     offset = 0
     for i in range(chunksize):
         query = """select {cols}
@@ -22,12 +20,14 @@ def sql_select_chunker(engine,
         {optionals}
         ORDER BY {order_by}
         LIMIT {chunksize}
-        OFFSET {offset}""".format(cols=cols,
-                                  table=table,
-                                  optionals=optionals,
-                                  order_by=order_by,
-                                  chunksize=chunksize,
-                                  offset=offset)
+        OFFSET {offset}""".format(
+            cols=cols,
+            table=table,
+            optionals=optionals,
+            order_by=order_by,
+            chunksize=chunksize,
+            offset=offset,
+        )
 
         if offset <= size:
             offset += chunksize

@@ -14,9 +14,9 @@ def apply_at(func, pos, iterable):
     """
 
     if type(pos) is int:
-        return (func(x) if i==pos else x for (i, x) in enumerate(iterable))
+        return (func(x) if i == pos else x for (i, x) in enumerate(iterable))
     elif type(pos) is list:
-        return (func(x) if i in pos_lst else x for (i,x) in enumerate(iterable))
+        return (func(x) if i in pos_lst else x for (i, x) in enumerate(iterable))
 
 
 def apply_at_tup(func, pos_lst, iterable, apply_to_value=True):
@@ -60,7 +60,3 @@ def apply_at_tup(func, pos_lst, iterable, apply_to_value=True):
                 else:
                     temp.append(x)
     return temp
-
-
-
-

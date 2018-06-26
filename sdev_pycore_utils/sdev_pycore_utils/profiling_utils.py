@@ -4,6 +4,7 @@ import threading, traceback, sys
 from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
+
 try:
     from reprlib import repr
 except ImportError:
@@ -14,7 +15,6 @@ from datetime import datetime
 import traceback
 import numpy as np
 import time
-
 
 
 def total_size(o, handlers={}, verbose=False):
@@ -29,19 +29,20 @@ def total_size(o, handlers={}, verbose=False):
 
     """
     dict_handler = lambda d: chain.from_iterable(d.items())
-    all_handlers = {tuple: iter,
-                    list: iter,
-                    deque: iter,
-                    dict: dict_handler,
-                    set: iter,
-                    frozenset: iter,
-                   }
-    all_handlers.update(handlers)     # user handlers take precedence
-    seen = set()                      # track which object id's have already been seen
-    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
+    all_handlers = {
+        tuple: iter,
+        list: iter,
+        deque: iter,
+        dict: dict_handler,
+        set: iter,
+        frozenset: iter,
+    }
+    all_handlers.update(handlers)  # user handlers take precedence
+    seen = set()  # track which object id's have already been seen
+    default_size = getsizeof(0)  # estimate sizeof object without __sizeof__
 
     def sizeof(o):
-        if id(o) in seen:       # do not double count the same object
+        if id(o) in seen:  # do not double count the same object
             return 0
         seen.add(id(o))
         s = getsizeof(o, default_size)
@@ -51,15 +52,21 @@ def total_size(o, handlers={}, verbose=False):
 
         for typ, handler in all_handlers.items():
             if isinstance(o, typ):
-                #s += sum(map(sizeof, handler(o)))
+                # s += sum(map(sizeof, handler(o)))
                 break
         else:
-            if not hasattr(o.__class__, '__slots__'):
-                if hasattr(o, '__dict__'):
-                    s+=sizeof(o.__dict__) # no __slots__ *usually* means a __dict__, but some special builtin classes (such as `type(None)`) have neither
+            if not hasattr(o.__class__, "__slots__"):
+                if hasattr(o, "__dict__"):
+                    s += sizeof(
+                        o.__dict__
+                    )  # no __slots__ *usually* means a __dict__, but some special builtin classes (such as `type(None)`) have neither
                 # else, `o` has no attributes at all, so sys.getsizeof() actually returned the correct value
             else:
-                s+=sum(sizeof(getattr(o, x)) for x in o.__class__.__slots__ if hasattr(o, x))
+                s += sum(
+                    sizeof(getattr(o, x))
+                    for x in o.__class__.__slots__
+                    if hasattr(o, x)
+                )
         return s
 
     return sizeof(o)
@@ -69,13 +76,12 @@ def dumpstacks(signal, frame):
     id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
     code = []
     for threadId, stack in sys._current_frames().items():
-        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId,""), threadId))
+        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId, ""), threadId))
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
             if line:
                 code.append("  %s" % (line.strip()))
     print("\n".join(code))
-
 
 
 class Timer(object):
@@ -91,7 +97,7 @@ class Timer(object):
         self.secs = self.end - self.start
         self.msecs = self.secs * 1000  # millisecs
         if self.verbose:
-            print ('elapsed time: %f ms' % self.msecs)
+            print("elapsed time: %f ms" % self.msecs)
 
 
 @decorator
@@ -107,84 +113,85 @@ def timing_function(some_function, *args, **kwargs):
         some_function(*args, **kwargs)
         t2 = time.time()
         return "Time it took to run the function: " + str((t2 - t1)) + "\n"
+
     return wrapper
 
 
 @decorator
 class countcalls(object):
-   "Decorator that keeps track of the number of times a function is called."
+    "Decorator that keeps track of the number of times a function is called."
 
-   __instances = {}
+    __instances = {}
 
-   def __init__(self, f):
-      self.__f = f
-      self.__numCalls = 0
-      countcalls.__instances[f] = self
+    def __init__(self, f):
+        self.__f = f
+        self.__numCalls = 0
+        countcalls.__instances[f] = self
 
-   def __call__(self, *args, **kwargs):
-      self.__numCalls += 1
-      return self.__f(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        self.__numCalls += 1
+        return self.__f(*args, **kwargs)
 
-   @staticmethod
-   def count(f):
-      "Return the number of times the function f was called."
-      return countcalls.__instances[f].__numCalls
+    @staticmethod
+    def count(f):
+        "Return the number of times the function f was called."
+        return countcalls.__instances[f].__numCalls
 
-   @staticmethod
-   def counts():
-      "Return a dict of {function: # of calls} for all registered functions."
-      return dict([(f, countcalls.count(f)) for f in countcalls.__instances])
-
+    @staticmethod
+    def counts():
+        "Return a dict of {function: # of calls} for all registered functions."
+        return dict([(f, countcalls.count(f)) for f in countcalls.__instances])
 
 
 def logged(time_format, name_prefix=""):
     def decorator(func):
-        if hasattr(func, '_logged_decorator') and func._logged_decorator:
+        if hasattr(func, "_logged_decorator") and func._logged_decorator:
             return func
 
         @wraps(func)
         def decorated_func(*args, **kwargs):
             start_time = time.time()
-            print ("- Running '%s' on %s " % (
-                                            name_prefix + func.__name__,
-                                            time.strftime(time_format)
-                                 ))
+            print(
+                "- Running '%s' on %s "
+                % (name_prefix + func.__name__, time.strftime(time_format))
+            )
             result = func(*args, **kwargs)
             end_time = time.time()
-            print ("- Finished '%s', execution time = %0.3fs " % (
-                                            name_prefix + func.__name__,
-                                            end_time - start_time
-                                 ))
+            print(
+                "- Finished '%s', execution time = %0.3fs "
+                % (name_prefix + func.__name__, end_time - start_time)
+            )
 
             return result
+
         decorated_func._logged_decorator = True
         return decorated_func
+
     return decorator
 
+
 def log_method_calls(time_format):
-    #@log_method_calls("%b %d %Y - %H:%M:%S")
+    # @log_method_calls("%b %d %Y - %H:%M:%S")
     def decorator(cls):
         for o in dir(cls):
-            if o.startswith('__'):
+            if o.startswith("__"):
                 continue
             a = getattr(cls, o)
-            if hasattr(a, '__call__'):
+            if hasattr(a, "__call__"):
                 decorated_a = logged(time_format, cls.__name__ + ".")(a)
                 setattr(cls, o, decorated_a)
         return cls
+
     return decorator
 
 
-
 def dump_closure(f):
-   if hasattr(f, "__closure__") and f.__closure__ is not None:
-       print ("- Dumping function closure for %s:" % f.__name__)
-       for i, c in enumerate(f.__closure__):
-           print ("-- cell %d  = %s" % (i, c.cell_contents))
-   else:
-       print (" - %s has no closure!" % f.__name__)
-
-
+    if hasattr(f, "__closure__") and f.__closure__ is not None:
+        print("- Dumping function closure for %s:" % f.__name__)
+        for i, c in enumerate(f.__closure__):
+            print("-- cell %d  = %s" % (i, c.cell_contents))
+    else:
+        print(" - %s has no closure!" % f.__name__)
 
 
 # import sys
@@ -220,48 +227,57 @@ def dump_closure(f):
 #     return x * y
 
 
-
 class countcalls_deco(object):
-   "Decorator that keeps track of the number of times a function is called."
+    "Decorator that keeps track of the number of times a function is called."
 
-   __instances = {}
+    __instances = {}
 
-   def __init__(self, f):
-      self.__f = f
-      self.__numcalls = 0
-      countcalls.__instances[f] = self
+    def __init__(self, f):
+        self.__f = f
+        self.__numcalls = 0
+        countcalls.__instances[f] = self
 
-   def __call__(self, *args, **kwargs):
-      self.__numcalls += 1
-      return self.__f(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        self.__numcalls += 1
+        return self.__f(*args, **kwargs)
 
-   def count(self):
-      "Return the number of times the function f was called."
-      return countcalls.__instances[self.__f].__numcalls
+    def count(self):
+        "Return the number of times the function f was called."
+        return countcalls.__instances[self.__f].__numcalls
 
-   @staticmethod
-   def counts():
-      "Return a dict of {function: # of calls} for all registered functions."
-      return dict([(f.__name__, countcalls.__instances[f].__numcalls) for f in countcalls.__instances])
+    @staticmethod
+    def counts():
+        "Return a dict of {function: # of calls} for all registered functions."
+        return dict(
+            [
+                (f.__name__, countcalls.__instances[f].__numcalls)
+                for f in countcalls.__instances
+            ]
+        )
+
 
 def dump_args(func):
-  "This decorator dumps out the arguments passed to a function before calling it"
-  argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
-  fname = func.func_name
+    "This decorator dumps out the arguments passed to a function before calling it"
+    argnames = func.func_code.co_varnames[: func.func_code.co_argcount]
+    fname = func.func_name
 
-  def echo_func(*args,**kwargs):
-      print (fname, ":", ', '.join(
-          '%s=%r' % entry
-          for entry in zip(argnames,args) + kwargs.items()))
-      return func(*args, **kwargs)
+    def echo_func(*args, **kwargs):
+        print(
+            fname,
+            ":",
+            ", ".join(
+                "%s=%r" % entry for entry in zip(argnames, args) + kwargs.items()
+            ),
+        )
+        return func(*args, **kwargs)
 
-  return echo_func
-
+    return echo_func
 
 
 import sys
 import os
 import linecache
+
 
 def trace(f):
     def globaltrace(frame, why, arg):
@@ -276,9 +292,9 @@ def trace(f):
             lineno = frame.f_lineno
 
             bname = os.path.basename(filename)
-            print ("{}({}): {}".format(  bname,
-                                        lineno,
-                                        linecache.getline(filename, lineno)),)
+            print(
+                "{}({}): {}".format(bname, lineno, linecache.getline(filename, lineno))
+            )
         return localtrace
 
     def _f(*args, **kwds):
@@ -289,12 +305,14 @@ def trace(f):
 
     return _f
 
-  
 
 # FIX THIS
 def log_err(err_str):
     def Log(log_string):
-        log_entry = "[%s] %s" % (datetime.now().strftime("%Y-%m-%d %H:%M.%S"), log_string)
+        log_entry = "[%s] %s" % (
+            datetime.now().strftime("%Y-%m-%d %H:%M.%S"),
+            log_string,
+        )
         print(log_entry)
 
     def log_error_trace(errorstring, exception):
@@ -302,24 +320,24 @@ def log_err(err_str):
         Log("::>>{}".format(traceback.print_exc()))
 
     def real_decorator(func):
-
         def wrapper(*args, **kwargs):
             try:
                 func(*args, **kwargs)
             except Exception as e:
                 log_error_trace("{} :/n".format(err_str), e)
-        return wrapper
-    return real_decorator
 
+        return wrapper
+
+    return real_decorator
 
 
 @decorator
 def print_args(function):
     def wrapper(*args, **kwargs):
-        print('Arguments:', args, kwargs)
+        print("Arguments:", args, kwargs)
         return function(*args, **kwargs)
-    return wrapper
 
+    return wrapper
 
 
 import functools, logging
@@ -328,22 +346,24 @@ import functools, logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
 class log_with(object):
-    '''Logging decorator that allows you to log with a
+    """Logging decorator that allows you to log with a
 specific logger.
-'''
+"""
+
     # Customize these messages
-    ENTRY_MESSAGE = 'Entering {}'
-    EXIT_MESSAGE = 'Exiting {}'
+    ENTRY_MESSAGE = "Entering {}"
+    EXIT_MESSAGE = "Exiting {}"
 
     def __init__(self, logger=None):
         self.logger = logger
 
     def __call__(self, func):
-        '''Returns a wrapper that wraps func.
+        """Returns a wrapper that wraps func.
 The wrapper will log the entry and exit points of the function
 with logging.INFO level.
-'''
+"""
         # set logger if it was not set earlier
         if not self.logger:
             logging.basicConfig()
@@ -351,31 +371,41 @@ with logging.INFO level.
 
         @functools.wraps(func)
         def wrapper(*args, **kwds):
-            self.logger.info(self.ENTRY_MESSAGE.format(func.__name__))  # logging level .info(). Set to .debug() if you want to
+            self.logger.info(
+                self.ENTRY_MESSAGE.format(func.__name__)
+            )  # logging level .info(). Set to .debug() if you want to
             f_result = func(*args, **kwds)
-            self.logger.info(self.EXIT_MESSAGE.format(func.__name__))   # logging level .info(). Set to .debug() if you want to
+            self.logger.info(
+                self.EXIT_MESSAGE.format(func.__name__)
+            )  # logging level .info(). Set to .debug() if you want to
             return f_result
+
         return wrapper
 
 
+# By modifying the decorator, we can keep a reference to the original function
 
-#By modifying the decorator, we can keep a reference to the original function
 
 def time_long_list(func):
     import random
+
     def helper(*args, **kwargs):
         for item in [10, 100, 1000, 10000]:
             list = [random.randint(1, 10) for element in range(item)]
             with Timer() as clock:
                 func(list, func)
-                print(clock.interval/item)
+                print(clock.interval / item)
         return func
+
     helper.original = func
     return helper
-#Then modifying your recursive function so that it always calls the original version of itself, not the modified version
+
+
+# Then modifying your recursive function so that it always calls the original version of itself, not the modified version
+
 
 @time_long_list
-def minimum(lst, undecorated_func = None):
+def minimum(lst, undecorated_func=None):
     if len(lst) == 0:
         return None
     elif len(lst) == 1:
@@ -390,53 +420,54 @@ def minimum(lst, undecorated_func = None):
             return min2
 
 
-    
-
-class MyException(Exception):pass
+class MyException(Exception):
+    pass
 
 
 def handleError(func):
-    errors =[]
+    errors = []
+
     def wrapper(arg1):
         result = func(arg1)
 
         for err in findError(result):
             errors.append(err)
 
-        print (errors)
+        print(errors)
         return result
 
     return wrapper
 
+
 def findError(result):
-    print( result)
+    print(result)
     for k, v in result.iteritems():
         error_nr = v % 2
-        if error_nr ==0:
+        if error_nr == 0:
             pass
         elif error_nr > 0:
             yield MyException
 
+
 @handleError
 def numGen(input):
     from random import randint
-    result= {}
+
+    result = {}
     for i in range(9):
-        j = (randint(0,4))
+        j = randint(0, 4)
         result[i] = input + j
     return result
 
 
-
-
-class debug_context():
+class debug_context:
     """ Debug context to trace any function calls inside the context """
 
     def __init__(self, name):
         self.name = name
 
     def __enter__(self):
-        print('Entering Debug Decorated func')
+        print("Entering Debug Decorated func")
         # Set the trace function to the trace_calls function
         # So all events are now traced
         sys.settrace(self.trace_calls)
@@ -447,7 +478,7 @@ class debug_context():
 
     def trace_calls(self, frame, event, arg):
         # We want to only trace our call to the decorated function
-        if event != 'call':
+        if event != "call":
             return
         elif frame.f_code.co_name != self.name:
             return
@@ -460,26 +491,26 @@ class debug_context():
         # keep the check for the event 'line'
         # If you want to print local variables only on return
         # check only for the 'return' event
-        if event not in ['line', 'return']:
+        if event not in ["line", "return"]:
             return
         co = frame.f_code
         func_name = co.co_name
         line_no = frame.f_lineno
         filename = co.co_filename
         local_vars = frame.f_locals
-        print ('  {0} {1} {2} locals: {3}'.format(func_name,
-                                                  event,
-                                                  line_no,
-                                                  local_vars))
+        print("  {0} {1} {2} locals: {3}".format(func_name, event, line_no, local_vars))
 
 
 def debug_decorator(func):
     """ Debug decorator to call the function within the debug context """
+
     def decorated_func(*args, **kwargs):
         with debug_context(func.__name__):
             return_value = func(*args, **kwargs)
         return return_value
+
     return decorated_func
+
 
 # @debug_decorator
 # def testing() :
@@ -518,8 +549,11 @@ def statemachine(shouldbe, willbe):
                 return f(self, *args, **kw)
             finally:
                 self.state = willbe
+
         return wrapper
+
     return decorator
+
 
 #
 # >>> cm = CoffeeMachine()
@@ -542,39 +576,39 @@ def statemachine(shouldbe, willbe):
 # <CoffeeState.Pumping: 3>
 
 
-
-
 class profile(object):
-    #class variable used as a stack of subs list
+    # class variable used as a stack of subs list
     stack = [[]]
 
     def __init__(self, f):
         self.f = f
 
     def __call__(self, *args, **kw):
-        func = dict(fname = self.f.__name__)
+        func = dict(fname=self.f.__name__)
 
-        #append the current function in the latest pushed subs list
+        # append the current function in the latest pushed subs list
         profile.stack[-1].append(func)
 
-        #push a new subs list in the stack
+        # push a new subs list in the stack
         profile.stack.append([])
 
-        #execution time of the actual call
+        # execution time of the actual call
         t0 = time.time()
         out = self.f(*args, **kw)
-        func['etime'] = time.time() - t0
+        func["etime"] = time.time() - t0
 
-        #pull the subs list from the stack
-        func['subs'] = profile.stack.pop()
+        # pull the subs list from the stack
+        func["subs"] = profile.stack.pop()
 
         return out
 
     @classmethod
     def show(cls):
-        import json #useful to prettify the ouput
+        import json  # useful to prettify the ouput
+
         for func in cls.stack[0]:
-            print (json.dumps(func, sort_keys=True, indent=4))
+            print(json.dumps(func, sort_keys=True, indent=4))
+
 
 #    >>> import klepto
 #    >>> from klepto import lru_cache as memoize
@@ -605,4 +639,3 @@ class profile(object):
 #    called
 #    4
 #
-

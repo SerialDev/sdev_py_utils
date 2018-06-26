@@ -1,5 +1,6 @@
 """Python core dict datastructure utilitites"""
 
+
 def uniquify_to_dict(value):
     """
     Uniquify values in an iterator into a dictionary
@@ -19,7 +20,7 @@ def uniquify_to_dict(value):
     """
     result = {}
     temp = []
-    current = ''
+    current = ""
     for x, y in value:
         if x == current:
             temp.append(y)
@@ -30,7 +31,7 @@ def uniquify_to_dict(value):
             temp.append(y)
         result[current] = temp
 
-    return {k: v for k, v in result.items() if k is not ''}
+    return {k: v for k, v in result.items() if k is not ""}
 
 
 def filter_dict(d, filter_string, remove=True):
@@ -71,13 +72,13 @@ def map_dictionary(function, dictionary, keys=True, vals=True):
     if keys and vals:
         key_map = map(function, dictionary.keys())
         val_map = map(function, dictionary.values())
-        return dict(zip(key_map , val_map))
+        return dict(zip(key_map, val_map))
     if keys and not vals:
         key_map = map(function, dictionary.keys())
-        return dict(zip(key_map , dictionary.values()))
+        return dict(zip(key_map, dictionary.values()))
     if not keys and vals:
         val_map = map(function, dictionary.values())
-        return dict(zip(dictionary.keys() , val_map))
+        return dict(zip(dictionary.keys(), val_map))
 
 
 def merge_dictionaries(dicts, unique_key=False):
@@ -116,8 +117,11 @@ def get_key_position(dictionary, position):
         try:
             key = iterator.__next__()
         except StopIteration as e:
-            raise Exception('position greater than dictionary length: {} '.format(len(dictionary)))
+            raise Exception(
+                "position greater than dictionary length: {} ".format(len(dictionary))
+            )
     return key
+
 
 def get_position_key(dictionary, key):
     """
@@ -135,13 +139,14 @@ def get_position_key(dictionary, key):
 
         else:
             pass
-    raise Exception('KeyNotFound Error')
+    raise Exception("KeyNotFound Error")
 
 
 def _finditem(obj, key):
-    if key in obj: return obj[key]
+    if key in obj:
+        return obj[key]
     for k, v in obj.items():
-        if isinstance(v,dict):
+        if isinstance(v, dict):
             item = _finditem(v, key)
             if item is not None:
                 return item
@@ -182,9 +187,10 @@ def without_keys(d, keys):
     -------
 
     Dictionary
-        Filtered dictionary 
+        Filtered dictionary
     """
     return {x: d[x] for x in d if x not in keys}
+
 
 def dict_union(*args):
     """
@@ -205,6 +211,3 @@ def dict_union(*args):
     from itertools import chain
 
     return dict(chain.from_iterable(d.items() for d in args))
-
-
-

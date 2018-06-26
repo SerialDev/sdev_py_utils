@@ -21,7 +21,7 @@ def check_string_word_list(search_list, long_string):
     Bool
         Whether there was a amtch or not
     """
-    if re.compile('|'.join(search_list),re.IGNORECASE).search(long_string):
+    if re.compile("|".join(search_list), re.IGNORECASE).search(long_string):
         return True
     else:
         return False
@@ -70,10 +70,10 @@ def to_bytes(bytes_or_str):
         Utf-8 encoded bytestring
     """
     if isinstance(bytes_or_str, str):
-        value = bytes_or_str.encode() # uses 'utf-8' for encoding
+        value = bytes_or_str.encode()  # uses 'utf-8' for encoding
     else:
         value = bytes_or_str
-    return value # Instance of bytes
+    return value  # Instance of bytes
 
 
 def to_str(bytes_or_str):
@@ -93,7 +93,7 @@ def to_str(bytes_or_str):
         A decoded string
     """
     if isinstance(bytes_or_str, bytes):
-        value = bytes_or_str.decode() # uses 'utf-8' for encoding
+        value = bytes_or_str.decode()  # uses 'utf-8' for encoding
     else:
         value = bytes_or_str
-    return value # Instance of str
+    return value  # Instance of str
