@@ -2,7 +2,8 @@ import os
 import paramiko
 import subprocess
 
-def get_file(server='', username='', password='', destination_data='', source_data=''):
+
+def get_file(server="", username="", password="", destination_data="", source_data=""):
     ssh = paramiko.SSHClient
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
@@ -10,9 +11,10 @@ def get_file(server='', username='', password='', destination_data='', source_da
     sftp = ssh.open_sftp()
     sftp.get(source_data, destination_data)
 
-    print('File downloaded successfully')
+    print("File downloaded successfully")
 
-def send_file(server='', username='', password='', destination_data='', source_data=''):
+
+def send_file(server="", username="", password="", destination_data="", source_data=""):
     ssh = paramiko.SSHClient
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
@@ -20,37 +22,41 @@ def send_file(server='', username='', password='', destination_data='', source_d
     sftp = ssh.open_sftp()
     sftp.put(source_data, destination_data)
 
-    print('File uploaded successfully')
+    print("File uploaded successfully")
 
-def execute_command_remotely(server='', username='', password='', command=''):
+
+def execute_command_remotely(server="", username="", password="", command=""):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(server, username=username, password=password)
-    stdin, stdout, stderr = ssh.exec_command('getconf PATH')
-    print('PATH: ' , stdout.readlines())
-    print('stderr:', stderr.readlines())
+    stdin, stdout, stderr = ssh.exec_command("getconf PATH")
+    print("PATH: ", stdout.readlines())
+    print("stderr:", stderr.readlines())
     stdin, stdout, stderr = ssh.exec_command(command)
-    print('stdout: ' , stdout.readlines())
-    print('stderr:', stderr.readlines())
+    print("stdout: ", stdout.readlines())
+    print("stderr:", stderr.readlines())
     ssh.close()
     return stdin, stdout, stderr
 
-def ssh_client(server='', username='', password=''):
+
+def ssh_client(server="", username="", password=""):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(server, username=username, password=password)
     return ssh
 
+
 def command_reader(*args):
     result = ""
     for i in args:
         if i.rstrip().endswith(";"):
-            result += (i.strip() + " ")
+            result += i.strip() + " "
         else:
-            result += (i.strip() +"; ")
+            result += i.strip() + "; "
     return result
+
 
 def ssh_commands(ssh, *args):
     # stdin, stdout, stderr = ssh.exec_command('getconf PATH')
@@ -65,13 +71,15 @@ def ssh_commands(ssh, *args):
     return stdin, stdout, stderr
 
 
-def ssh_get_file(ssh, destination_data='', source_data=''):
+def ssh_get_file(ssh, destination_data="", source_data=""):
     sftp = ssh.open_sftp()
     sftp.get(source_data, destination_data)
 
-    print('File downloaded successfully')
+    print("File downloaded successfully")
 
 
-def execute_command_locally(bashCommand = ''):
-    print (subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE).stdout.read())        
-    print('DONE executing local command')        
+def execute_command_locally(bashCommand=""):
+    print(
+        subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE).stdout.read()
+    )
+    print("DONE executing local command")

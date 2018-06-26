@@ -41,7 +41,6 @@ def get_pdf(stream_hist, linspace=1000):
     return probability_density_func
 
 
-
 # -----------------{Viz}----------------#
 
 # TODO make an expandable interface
@@ -53,24 +52,42 @@ def save_figure(con, data, game_id, info, fig_type):
 
 
 def plot_quantiles(dist_data, game_id, info, resolution, con):
-    quantiles = dist_data.quantiles(0.0, 0.05, 0.1, 0.15, 0.2,
-                                    0.25, 0.3, 0.35, 0.4, 0.45,
-                                    0.5, 0.55, 0.6, 0.65, 0.7,
-                                    0.75, 0.8, 0.85, 0.9, 0.95,
-                                    1)
-    x = [i/20 for i in range(0, 21, 1)]
+    quantiles = dist_data.quantiles(
+        0.0,
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95,
+        1,
+    )
+    x = [i / 20 for i in range(0, 21, 1)]
     plt.plot(x, quantiles)
-    if resolution == 'tail':
-        plt.gca().set_xscale('probability', points=x, vmin=0.1)
-    elif resolution == 'head':
-        plt.gca().set_xscale('prob_scale', upper= 1, lower=0.01)
+    if resolution == "tail":
+        plt.gca().set_xscale("probability", points=x, vmin=0.1)
+    elif resolution == "head":
+        plt.gca().set_xscale("prob_scale", upper=1, lower=0.01)
     else:
         pass
     plt.grid(True)
     plt.title(info)
-    plt.legend(('quantiles',), loc='upper right')
+    plt.legend(("quantiles",), loc="upper right")
     figfile = BytesIO()
-    plt.savefig(figfile, format='png')
+    plt.savefig(figfile, format="png")
     figfile.seek(0)
     figfile_png = base64.b64encode(figfile.getvalue())
     save_figure(con, figfile_png, game_id, info, "_quantiles")
@@ -83,10 +100,10 @@ def plot_cdf_pdf(dist_data, game_id, info, linspace, con):
     plt.plot(cumulative_distribution_function)
     plt.plot(probability_density_function)
     plt.title(info)
-    plt.legend(('cumulative dist func', 'prob dens func'), loc='upper right')
+    plt.legend(("cumulative dist func", "prob dens func"), loc="upper right")
 
     figfile = BytesIO()
-    plt.savefig(figfile, format='png')
+    plt.savefig(figfile, format="png")
     figfile.seek(0)
     figfile_png = base64.b64encode(figfile.getvalue())
     save_figure(con, figfile_png, game_id, info, "_cdf")
@@ -100,14 +117,12 @@ def plot_sum_and_density(dist_data, game_id, info, linspace, con):
     plt.plot(sum_at_point)
     plt.plot(density_at_point)
     plt.title(info)
-    plt.legend(('Sum at point', 'Density at point'), loc='upper right')
+    plt.legend(("Sum at point", "Density at point"), loc="upper right")
 
     figfile = BytesIO()
-    plt.savefig(figfile, format='png')
+    plt.savefig(figfile, format="png")
     figfile.seek(0)
     figfile_png = base64.b64encode(figfile.getvalue())
     save_figure(con, figfile_png, game_id, info, "_s_d")
 
     return True
-
-        

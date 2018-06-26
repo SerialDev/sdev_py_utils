@@ -5,9 +5,11 @@ from matplotlib import transforms as mtransforms
 from matplotlib.ticker import Formatter, FixedLocator
 from scipy.optimize import curve_fit
 
+
 def logistic(x, L, k, x0):
     """Logistic function (s-curve)."""
     return L / (1 + np.exp(-k * (x - x0)))
+
 
 class ProbabilityScale(mscale.ScaleBase):
     """
@@ -18,8 +20,7 @@ class ProbabilityScale(mscale.ScaleBase):
     # string used to select the scale.  For example,
     # ``gca().set_yscale("probability")`` would be used to select this
     # scale.
-    name = 'probability'
-
+    name = "probability"
 
     def __init__(self, axis, **kwargs):
         """
@@ -38,12 +39,12 @@ class ProbabilityScale(mscale.ScaleBase):
             raise ValueError("lower_bound must be greater than 0")
         self.lower_bound = lower_bound
         upper_bound_dist = kwargs.pop("upper_bound_dist", lower_bound)
-        self.points = kwargs['points']
-        #determine parameters of logistic function with curve fitting
+        self.points = kwargs["points"]
+        # determine parameters of logistic function with curve fitting
         x = np.linspace(0, 1, len(self.points))
-        #initial guess for parameters
+        # initial guess for parameters
         p0 = [max(self.points), 1, .5]
-        popt, pcov = curve_fit(logistic, x, self.points, p0 = p0)
+        popt, pcov = curve_fit(logistic, x, self.points, p0=p0)
         [self.L, self.k, self.x0] = popt
         self.upper_bound = self.L - upper_bound_dist
 
@@ -55,7 +56,9 @@ class ProbabilityScale(mscale.ScaleBase):
         The ProbabilityTransform class is defined below as a
         nested class of this one.
         """
-        return self.ProbabilityTransform(self.lower_bound, self.upper_bound, self.L, self.k, self.x0)
+        return self.ProbabilityTransform(
+            self.lower_bound, self.upper_bound, self.L, self.k, self.x0
+        )
 
     def set_default_locators_and_formatters(self, axis):
         """
@@ -65,7 +68,6 @@ class ProbabilityScale(mscale.ScaleBase):
         formatters is rather outside the scope of this example, but
         there are many helpful examples in ``ticker.py``.
         """
-
 
         axis.set_major_locator(FixedLocator(self.points))
 
@@ -101,6 +103,7 @@ class ProbabilityScale(mscale.ScaleBase):
             self.k = k
             self.x0 = x0
             self.upper_bound = upper_bound
+
         def transform_non_affine(self, a):
             """
             This transform takes an Nx1 ``numpy`` array and returns a
@@ -121,7 +124,9 @@ class ProbabilityScale(mscale.ScaleBase):
             Override this method so matplotlib knows how to get the
             inverse transform for this transform.
             """
-            return ProbabilityScale.InvertedProbabilityTransform(self.lower_bound, self.upper_bound, self.L, self.k, self.x0)
+            return ProbabilityScale.InvertedProbabilityTransform(
+                self.lower_bound, self.upper_bound, self.L, self.k, self.x0
+            )
 
     class InvertedProbabilityTransform(mtransforms.Transform):
         input_dims = 1
@@ -138,8 +143,12 @@ class ProbabilityScale(mscale.ScaleBase):
 
         def transform_non_affine(self, a):
             return self.L / (1 + np.exp(-self.k * (a - self.x0)))
+
         def inverted(self):
-            return ProbabilityScale.ProbabilityTransform(self.lower_bound, self.upper_bound, self.L, self.k, self.x0)
+            return ProbabilityScale.ProbabilityTransform(
+                self.lower_bound, self.upper_bound, self.L, self.k, self.x0
+            )
+
 
 # Now that the Scale class has been defined, it must be registered so
 # that ``matplotlib`` can find it.
@@ -157,7 +166,6 @@ mscale.register_scale(ProbabilityScale)
 
 #     plt.show()
 
-    
 
 import numpy as np
 from matplotlib import scale as mscale
@@ -189,8 +197,7 @@ class ProbScale(mscale.ScaleBase):
     # string used to select the scale.  For example,
     # ``gca().set_yscale("mercator")`` would be used to select this
     # scale.
-    name = 'prob_scale'
-
+    name = "prob_scale"
 
     def __init__(self, axis, **kwargs):
         """
@@ -202,10 +209,10 @@ class ProbScale(mscale.ScaleBase):
         lower: The probability below which to crop the data.
         """
         mscale.ScaleBase.__init__(self)
-        upper = kwargs.pop("upper", 98) #Default to an upper bound of 98%
+        upper = kwargs.pop("upper", 98)  # Default to an upper bound of 98%
         if upper <= 0 or upper >= 100:
             raise ValueError("upper must be between 0 and 100.")
-        lower = kwargs.pop("lower", 0.2) #Default to a lower bound of .2%
+        lower = kwargs.pop("lower", 0.2)  # Default to a lower bound of .2%
         if lower <= 0 or lower >= 100:
             raise ValueError("lower must be between 0 and 100.")
         if lower >= upper:
@@ -213,15 +220,15 @@ class ProbScale(mscale.ScaleBase):
         self.lower = lower
         self.upper = upper
 
-        #This scale is best described by the CDF of the normal distribution
-        #This distribution is paramaterized by mu and sigma, these default vaules
-        #are provided to work generally well, but can be adjusted by the user if desired
+        # This scale is best described by the CDF of the normal distribution
+        # This distribution is paramaterized by mu and sigma, these default vaules
+        # are provided to work generally well, but can be adjusted by the user if desired
         mu = kwargs.pop("mu", 15)
         sigma = kwargs.pop("sigma", 40)
         self.mu = mu
         self.sigma = sigma
-        #Need to enfore the upper and lower limits on the axes initially
-        axis.axes.set_xlim(lower,upper)
+        # Need to enfore the upper and lower limits on the axes initially
+        axis.axes.set_xlim(lower, upper)
 
     def get_transform(self):
         """
@@ -246,15 +253,28 @@ class ProbScale(mscale.ScaleBase):
         This builds both the major and minor locators, and cuts off any values
         above or below the user defined thresholds: upper, lower
         """
-        #major_ticks = np.asarray([.2,.5,1,2,5,10,20,30,40,50,60,70,80,90,95,98])
-        major_ticks = np.asarray([.2,1,2,5,10,20,30,40,50,60,70,80,90,98]) #removed a couple ticks to make it look nicer
-        major_ticks = major_ticks[np.where( (major_ticks >= self.lower) & (major_ticks <= self.upper) )]
+        # major_ticks = np.asarray([.2,.5,1,2,5,10,20,30,40,50,60,70,80,90,95,98])
+        major_ticks = np.asarray(
+            [.2, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 98]
+        )  # removed a couple ticks to make it look nicer
+        major_ticks = major_ticks[
+            np.where((major_ticks >= self.lower) & (major_ticks <= self.upper))
+        ]
 
-        minor_ticks = np.concatenate( [np.arange(.2, 1, .1), np.arange(1, 2, .2), np.arange(2,20,1), np.arange(20, 80, 2), np.arange(80, 98, 1)] )
-        minor_ticks = minor_ticks[np.where( (minor_ticks >= self.lower) & (minor_ticks <= self.upper) )]
+        minor_ticks = np.concatenate(
+            [
+                np.arange(.2, 1, .1),
+                np.arange(1, 2, .2),
+                np.arange(2, 20, 1),
+                np.arange(20, 80, 2),
+                np.arange(80, 98, 1),
+            ]
+        )
+        minor_ticks = minor_ticks[
+            np.where((minor_ticks >= self.lower) & (minor_ticks <= self.upper))
+        ]
         axis.set_major_locator(FixedLocator(major_ticks))
         axis.set_minor_locator(FixedLocator(minor_ticks))
-
 
     def limit_range_for_scale(self, vmin, vmax, minpos):
         """
@@ -301,10 +321,10 @@ class ProbScale(mscale.ScaleBase):
             remain synchronized with values in the other dimension.
             """
 
-            masked = np.ma.masked_where( (a < self.upper) & (a > self.lower) , a)
-            #Get the CDF of the normal distribution located at mu and scaled by sigma
-            #Multiply these by 100 to put it into a percent scale
-            cdf = norm.cdf(masked, self.mu, self.sigma)*100
+            masked = np.ma.masked_where((a < self.upper) & (a > self.lower), a)
+            # Get the CDF of the normal distribution located at mu and scaled by sigma
+            # Multiply these by 100 to put it into a percent scale
+            cdf = norm.cdf(masked, self.mu, self.sigma) * 100
             return cdf
 
         def inverted(self):
@@ -312,7 +332,9 @@ class ProbScale(mscale.ScaleBase):
             Override this method so matplotlib knows how to get the
             inverse transform for this transform.
             """
-            return ProbScale.InvertedProbTransform(self.lower, self.upper, self.mu, self.sigma)
+            return ProbScale.InvertedProbTransform(
+                self.lower, self.upper, self.mu, self.sigma
+            )
 
     class InvertedProbTransform(mtransforms.Transform):
         input_dims = 1
@@ -327,12 +349,13 @@ class ProbScale(mscale.ScaleBase):
             self.sigma = sigma
 
         def transform_non_affine(self, a):
-            #Need to get the PPF value for a, which is in a percent scale [0,100], so move back to probability range [0,1]
-            inverse = norm.ppf(a/100, self.mu, self.sigma)
+            # Need to get the PPF value for a, which is in a percent scale [0,100], so move back to probability range [0,1]
+            inverse = norm.ppf(a / 100, self.mu, self.sigma)
             return inverse
 
         def inverted(self):
             return ProbScale.ProbTransform(self.lower, self.upper)
+
 
 # Now that the Scale class has been defined, it must be registered so
 # that ``matplotlib`` can find it.

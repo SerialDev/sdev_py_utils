@@ -3,9 +3,10 @@ import sys
 import traceback
 import contextlib, sys
 
+
 def tested(val, process_name):
     for i in range(100):
-            print("{}, {}".format(process_name, time.time()))
+        print("{}, {}".format(process_name, time.time()))
     return val * 2
 
 
@@ -38,7 +39,7 @@ def log_print(file):
 def print_log(filename, manager_queue, *args, **kwargs):
     try:
         # with open(filename, "a") as f:
-        with log_print(open(filename, 'a')):
+        with log_print(open(filename, "a")):
             while True:
                 m = manager_queue.get()
                 print("{}\n".format(m))

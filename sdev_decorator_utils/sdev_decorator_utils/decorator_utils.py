@@ -6,16 +6,18 @@ import time
 
 
 import functools
+
+
 def lazy_property(function):
-    attribute = '_' + function.__name__
+    attribute = "_" + function.__name__
 
     @property
     @functools.wraps(function)
     def wrapper(self):
-       if not hasattr(self, attribute):
-           setattr(self, attribute, function(self))
-           return getattr(self, attribute)
-       return wrapper
+        if not hasattr(self, attribute):
+            setattr(self, attribute, function(self))
+            return getattr(self, attribute)
+        return wrapper
 
 
 import time
@@ -27,25 +29,25 @@ class memoized(object):
     If called later with the same arguments, the cached value is returned, and
     not re-evaluated.
     """
+
     def __init__(self, func):
-       self.func = func
-       self.cache = {}
+        self.func = func
+        self.cache = {}
+
     def __call__(self, *args):
-       try:
-          return self.cache[args]
-       except KeyError:
-          self.cache[args] = value = self.func(*args)
-          return value
-       except TypeError:
-          # uncachable -- for instance, passing a list as an argument.
-          # Better to not cache than to blow up entirely.
-          return self.func(*args)
+        try:
+            return self.cache[args]
+        except KeyError:
+            self.cache[args] = value = self.func(*args)
+            return value
+        except TypeError:
+            # uncachable -- for instance, passing a list as an argument.
+            # Better to not cache than to blow up entirely.
+            return self.func(*args)
+
     def __repr__(self):
-       """Return the function's docstring."""
-       return self.func.__doc__
-
-
-
+        """Return the function's docstring."""
+        return self.func.__doc__
 
 
 def _dynamic_programming(f, *args, **kwargs):
@@ -66,19 +68,19 @@ def dynamic_fn(f):
     f.cache = {}
     f.data = None
 
-
     return decorator(_dynamic_programming, f)
 
 
 import itertools
 
-def retry(delays=(0, 1, 5, 30, 180, 600, 3600),
-          exception=Exception,
-          report=lambda *args: None):
+
+def retry(
+    delays=(0, 1, 5, 30, 180, 600, 3600), exception=Exception, report=lambda *args: None
+):
     def wrapper(function):
         def wrapped(*args, **kwargs):
             problems = []
-            for delay in itertools.chain(delays, [ None ]):
+            for delay in itertools.chain(delays, [None]):
                 try:
                     return function(*args, **kwargs)
                 except exception as problem:
@@ -87,30 +89,34 @@ def retry(delays=(0, 1, 5, 30, 180, 600, 3600),
                         report("retryable failed definitely:", problems)
                         raise
                     else:
-                        report("retryable failed:", problem,
-                            "-- delaying for %ds" % delay)
+                        report(
+                            "retryable failed:", problem, "-- delaying for %ds" % delay
+                        )
                         time.sleep(delay)
+
         return wrapped
+
     return wrapper
+
 
 # Todo FIX@ Mon,  5 Jun 2017, 11:41
 def immutable(mutableclass):
     """ Decorator for making a slot-based class immutable """
 
     if not isinstance(type(mutableclass), type):
-        raise (TypeError('@immutable: must be applied to a new-style class'))
-    if not hasattr(mutableclass, '__slots__'):
-        raise (TypeError('@immutable: class must have __slots__'))
+        raise (TypeError("@immutable: must be applied to a new-style class"))
+    if not hasattr(mutableclass, "__slots__"):
+        raise (TypeError("@immutable: class must have __slots__"))
 
     class immutableclass(mutableclass):
-        __slots__ = ()                      # No __dict__, please
+        __slots__ = ()  # No __dict__, please
 
         def __new__(cls, *args, **kw):
-            new = mutableclass(*args, **kw) # __init__ gets called while still mutable
+            new = mutableclass(*args, **kw)  # __init__ gets called while still mutable
             new.__class__ = immutableclass  # locked for writing now
             return new
 
-        def __init__(self, *args, **kw):    # Prevent re-init after __new__
+        def __init__(self, *args, **kw):  # Prevent re-init after __new__
             pass
 
     # Copy class identity:
@@ -119,15 +125,15 @@ def immutable(mutableclass):
 
     # Make read-only:
     for name, member in mutableclass.__dict__.items():
-        if hasattr(member, '__set__'):
+        if hasattr(member, "__set__"):
             setattr(immutableclass, name, property(member.__get__))
-
 
 
 import threading
 from contextlib import contextmanager
 
 _tls = threading.local()
+
 
 @contextmanager
 def _nested():
@@ -136,6 +142,7 @@ def _nested():
         yield "   " * _tls.level
     finally:
         _tls.level -= 1
+
 
 @contextmanager
 def _recursion_lock(obj):
@@ -149,6 +156,7 @@ def _recursion_lock(obj):
         yield False
     finally:
         _tls.history.pop(-1)
+
 
 def humanize(cls):
     def __repr__(self):
@@ -193,45 +201,57 @@ def humanize(cls):
 
 def typecheck(func):
 
-   if not hasattr(func,'__annotations__'): return method
+    if not hasattr(func, "__annotations__"):
+        return method
 
-   import inspect
-   argspec = inspect.getfullargspec(func)
+    import inspect
 
-   def check( t, T ):
-      if type(T) == type: return isinstance(t,T)   #types
-      else: return T(t)                            #predicates
+    argspec = inspect.getfullargspec(func)
 
-   def wrapper(*args):
+    def check(t, T):
+        if type(T) == type:
+            return isinstance(t, T)  # types
+        else:
+            return T(t)  # predicates
 
-      if len(argspec.args) != len(args):
-         raise (TypeError( "%s() takes exactly %s positional argument (%s given)"
-                           %(func.__name__,len(argspec.args),len(args)) ))
+    def wrapper(*args):
 
-      for argname,t in zip(argspec.args, args):
-         if argname in func.__annotations__:
-            T = func.__annotations__[argname]
-            if not check( t, T  ):
-               raise TypeError(  "%s( %s:%s ) but received %s=%s"
-                                 % (func.__name__, argname,T, argname,repr(t)) )
+        if len(argspec.args) != len(args):
+            raise (
+                TypeError(
+                    "%s() takes exactly %s positional argument (%s given)"
+                    % (func.__name__, len(argspec.args), len(args))
+                )
+            )
 
-      r = func(*args)
+        for argname, t in zip(argspec.args, args):
+            if argname in func.__annotations__:
+                T = func.__annotations__[argname]
+                if not check(t, T):
+                    raise TypeError(
+                        "%s( %s:%s ) but received %s=%s"
+                        % (func.__name__, argname, T, argname, repr(t))
+                    )
 
-      if 'return' in func.__annotations__:
-         T = func.__annotations__['return']
-         if not check( r, T ):
-            raise TypeError( "%s() -> %s but returned %s"%(func.__name__,T,repr(r)) )
+        r = func(*args)
 
-      return r
+        if "return" in func.__annotations__:
+            T = func.__annotations__["return"]
+            if not check(r, T):
+                raise TypeError(
+                    "%s() -> %s but returned %s" % (func.__name__, T, repr(r))
+                )
 
-   return wrapper
+        return r
 
+    return wrapper
 
 
 ##==========================={Multithreading}===================================
 
+
 def run_async(func):
-	"""
+    """
 		run_async(func)
 			function decorator, intended to make "func" run in a separate
 			thread (asynchronously).
@@ -252,36 +272,37 @@ def run_async(func):
 			t1.join()
 			t2.join()
 	"""
-	from threading import Thread
-	from functools import wraps
+    from threading import Thread
+    from functools import wraps
 
-	@wraps(func)
-	def async_func(*args, **kwargs):
-		func_hl = Thread(target = func, args = args, kwargs = kwargs)
-		func_hl.start()
-		return func_hl
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = Thread(target=func, args=args, kwargs=kwargs)
+        func_hl.start()
+        return func_hl
 
-	return async_func
+    return async_func
 
 
 ##==========================={CTypes decorators}================================
 
 
 import ctypes
+
 # TODO FIX
 class C_struct:
-	"""Decorator to convert the given class into a C struct."""
+    """Decorator to convert the given class into a C struct."""
 
-	# contains a dict of all known translatable types
-	types = ctypes.__dict__
+    # contains a dict of all known translatable types
+    types = ctypes.__dict__
 
-	@classmethod
-	def register_type(cls, typename, obj):
-		"""Adds the new class to the dict of understood types."""
-		cls.types[typename] = obj
+    @classmethod
+    def register_type(cls, typename, obj):
+        """Adds the new class to the dict of understood types."""
+        cls.types[typename] = obj
 
-	def __call__(self, cls):
-		"""Converts the given class into a C struct.
+    def __call__(self, cls):
+        """Converts the given class into a C struct.
 
 		Usage:
 			>>> @C_struct()
@@ -304,26 +325,26 @@ class C_struct:
 		will be read in.
 		"""
 
-		# build the field mapping (names -> types)
-		fields = []
-		for k, v in vars(cls).items():
-			# don't wrap private variables
-			if not k.startswith("_"):
-				# if its a pointer
-				if v.startswith("*"):
-					field_type = ctypes.POINTER(self.types[v[1:]])
-				else:
-					field_type = self.types[v]
-				new_field = (k, field_type)
-				fields.append(new_field)
+        # build the field mapping (names -> types)
+        fields = []
+        for k, v in vars(cls).items():
+            # don't wrap private variables
+            if not k.startswith("_"):
+                # if its a pointer
+                if v.startswith("*"):
+                    field_type = ctypes.POINTER(self.types[v[1:]])
+                else:
+                    field_type = self.types[v]
+                new_field = (k, field_type)
+                fields.append(new_field)
 
-		# make our bases tuple
-		bases = (ctypes.Structure,) + tuple((base for base in cls.__bases__))
-		# finish up our wrapping dict
-		class_attrs = {"_fields_": fields, "__doc__": cls.__doc__}
+                # make our bases tuple
+        bases = (ctypes.Structure,) + tuple((base for base in cls.__bases__))
+        # finish up our wrapping dict
+        class_attrs = {"_fields_": fields, "__doc__": cls.__doc__}
 
-		# now create our class
-		return type(cls.__name__, bases, class_attrs)
+        # now create our class
+        return type(cls.__name__, bases, class_attrs)
 
 
 ##==========================={Memoization/Cache}================================
@@ -335,28 +356,29 @@ def cached(timeout, logged=False):
     """Decorator to cache the result of a function call.
     Cache expires after timeout seconds.
     """
+
     def decorator(func):
         if logged:
-            print ("-- Initializing cache for", func.__name__)
+            print("-- Initializing cache for", func.__name__)
         cache = {}
 
         @wraps(func)
         def decorated_function(*args, **kwargs):
             if logged:
-                print ("-- Called function", func.__name__)
+                print("-- Called function", func.__name__)
             key = (args, frozenset(kwargs.items()))
             result = None
             if key in cache:
                 if logged:
-                    print ("-- Cache hit for", func.__name__, key)
+                    print("-- Cache hit for", func.__name__, key)
 
                 (cache_hit, expiry) = cache[key]
                 if time.time() - expiry < timeout:
                     result = cache_hit
                 elif logged:
-                    print ("-- Cache expired for", func.__name__, key)
+                    print("-- Cache expired for", func.__name__, key)
             elif logged:
-                print ("-- Cache miss for", func.__name__, key)
+                print("-- Cache miss for", func.__name__, key)
 
             # No cache hit, or expired
             if result is None:
@@ -370,9 +392,6 @@ def cached(timeout, logged=False):
     return decorator
 
 
-
-
-
 ##==========================={Logging}==========================================
 
 ##==========================={Closures}=========================================
@@ -383,25 +402,26 @@ def cached(timeout, logged=False):
 
 import warnings
 
+
 def ignore_deprecation_warnings(func):
-    '''This is a decorator which can be used to ignore deprecation warnings
-    occurring in a function.'''
+    """This is a decorator which can be used to ignore deprecation warnings
+    occurring in a function."""
+
     def new_func(*args, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             return func(*args, **kwargs)
+
     new_func.__name__ = func.__name__
     new_func.__doc__ = func.__doc__
     new_func.__dict__.update(func.__dict__)
     return new_func
 
 
-
-
-
-#from Queue import Queue
-#import Queue
+# from Queue import Queue
+# import Queue
 from threading import Thread
+
 
 class asynchronous(object):
     def __init__(self, func):
@@ -416,9 +436,9 @@ class asynchronous(object):
         return self.func(*args, **kwargs)
 
     def start(self, *args, **kwargs):
-        #self.queue = Queue()
-        thread = Thread(target=self.threaded, args=args, kwargs=kwargs);
-        thread.start();
+        # self.queue = Queue()
+        thread = Thread(target=self.threaded, args=args, kwargs=kwargs)
+        thread.start()
         return asynchronous.Result(self.queue, thread)
 
     class NotYetDoneException(Exception):
@@ -435,12 +455,15 @@ class asynchronous(object):
 
         def get_result(self):
             if not self.is_done():
-                raise asynchronous.NotYetDoneException('the call has not yet completed its task')
+                raise asynchronous.NotYetDoneException(
+                    "the call has not yet completed its task"
+                )
 
-            if not hasattr(self, 'result'):
+            if not hasattr(self, "result"):
                 self.result = self.queue.get()
 
             return self.result
+
 
 # if __name__ == '__main__':
 #     # sample usage
@@ -472,6 +495,7 @@ class asynchronous(object):
 
 import threading, sys, functools, traceback
 
+
 def lazy_thunkify(f):
     """Make a function immediately return a function of no args which, when called,
     waits for the result, which will start being processed in another thread."""
@@ -490,8 +514,10 @@ def lazy_thunkify(f):
             except Exception as e:
                 exc[0] = True
                 exc[1] = sys.exc_info()
-                print ("Lazy thunk has thrown an exception (will be raised on thunk()):\n%s" % (
-                    traceback.format_exc()))
+                print(
+                    "Lazy thunk has thrown an exception (will be raised on thunk()):\n%s"
+                    % (traceback.format_exc())
+                )
             finally:
                 wait_event.set()
 
@@ -512,29 +538,39 @@ def lazy_thunkify(f):
 import pandas as pd
 from functools import wraps
 
+
 def seriescapable(func):
     """Decorator for turning the first argument from a pandas.Series to a pandas.DataFrame."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         if args and isinstance(args[0], pd.Series):
-            return  func(pd.DataFrame(args[0]), *args[1:], **kwargs)
+            return func(pd.DataFrame(args[0]), *args[1:], **kwargs)
         return func(*args, **kwargs)
+
     return wrapper
+
 
 class ConvertArgumentTypes(object):
     """Converts function arguments to specified types."""
-    def __init__(self,*args, **kw):
+
+    def __init__(self, *args, **kw):
         self.args = args
         self.kw = kw
+
     def __call__(self, f):
         def func(*args, **kw):
             nargs = [x[0](x[1]) for x in zip(self.args, args)]
             invalidkw = [x for x in kw if x not in self.kw]
             if len(invalidkw) > 0:
-                raise TypeError( f.func_name + "() got an unexpected keyword argument '%s'" % invalidkw[0])
-            kw = dict([(x,self.kw[x](kw[x])) for x in kw])
+                raise TypeError(
+                    f.func_name
+                    + "() got an unexpected keyword argument '%s'" % invalidkw[0]
+                )
+            kw = dict([(x, self.kw[x](kw[x])) for x in kw])
             v = f(*nargs, **kw)
             return v
+
         return func
 
 
@@ -562,13 +598,14 @@ def cachedproperty(func):
         with their return value once they are called. "
 
     def cache(*args):
-        self = args[0] # Reference to the class who owns the method
+        self = args[0]  # Reference to the class who owns the method
         funcname = func.__name__
         ret_value = func(self)
-        setattr(self, funcname, ret_value) # Replace the function with its value
-        return ret_value # Return the result of the function
+        setattr(self, funcname, ret_value)  # Replace the function with its value
+        return ret_value  # Return the result of the function
 
     return property(cache)
+
 
 #    class Test:
 #        @cachedproperty
@@ -584,30 +621,30 @@ def cachedproperty(func):
 #    'Return'
 
 
-
-
 ##==========================={Debugging all calls}==============================
 import sys
-
-
 
 
 from threading import Semaphore, Timer
 from functools import wraps
 
+
 def ratelimit(limit, every):
     def limitdecorator(fn):
         semaphore = Semaphore(limit)
+
         @wraps(fn)
         def wrapper(*args, **kwargs):
             semaphore.acquire()
             try:
                 return fn(*args, **kwargs)
-            finally:                    # don't catch but ensure semaphore release
+            finally:  # don't catch but ensure semaphore release
                 timer = Timer(every, semaphore.release)
-                timer.setDaemon(True)   # allows the timer to be canceled on exit
+                timer.setDaemon(True)  # allows the timer to be canceled on exit
                 timer.start()
+
         return wrapper
+
     return limitdecorator
 
 
@@ -663,8 +700,7 @@ class Transformer(NodeTransformer):
         self.visit(_if.test)
         self.src += ") {\n"
         self.render(_if.body)
-        self.src += " "*self.indent + "}\n"
-
+        self.src += " " * self.indent + "}\n"
 
     def visit_Compare(self, comp):
         self.visit(comp.left)
@@ -693,7 +729,6 @@ class Transformer(NodeTransformer):
         self.src += ";\n"
 
 
-
 def dec(f):
     source = getsource(f)
     _ast = parse(source)
@@ -712,7 +747,8 @@ def fibonacci(n):
         return 1
     return fibonacci(n - 1) + fibonacci(n - 2)
 
-#Running the dec function outputs our python as javascript:
+
+# Running the dec function outputs our python as javascript:
 
 # print(dec(fibonacci))
 # var fibonacci = function(n){
@@ -729,6 +765,7 @@ def fibonacci(n):
 
 import functools
 import time
+
 
 def memoize(meth):
     @functools.wraps(meth)
@@ -750,15 +787,17 @@ def memoize(meth):
 
     return wrapped
 
+
 def network_call(user_id):
-    print ("Was called with: %s" % user_id)
+    print("Was called with: %s" % user_id)
     return 1
 
-class NetworkEngine(object):
 
+class NetworkEngine(object):
     @memoize
     def search(self, user_id):
         return network_call(user_id)
+
 
 #
 #    if __name__ == "__main__":
@@ -769,6 +808,8 @@ class NetworkEngine(object):
 
 
 from functools import wraps
+
+
 def retry_if_exception(ex, max_retries):
     def outer(func):
         @wraps(func)
@@ -780,21 +821,26 @@ def retry_if_exception(ex, max_retries):
                     return func(*args, **kwargs)
                 except ex:
                     x -= 1
+
         return wrapper
+
     return outer
+
 
 def load_or_make(filename):
     def decorator(func):
         def wraps(*args, **kwargs):
             try:
-                with open(filename, 'r') as f:
+                with open(filename, "r") as f:
                     return json.load(input_handle)
             except Exception:
                 data = func(*args, **kwargs)
-                with open(filename, 'w') as out:
+                with open(filename, "w") as out:
                     json.dump(data, out)
                 return data
+
         return wraps
+
     return decorator
 
 
@@ -810,10 +856,10 @@ def load_or_make(filename):
 
 
 ##==========================={multithreaded deco}===============================
-#import types
-#from multiprocessing import Pool
+# import types
+# from multiprocessing import Pool
 #
-#class concurrent(object):
+# class concurrent(object):
 #    functions = {}
 #
 #    @staticmethod
@@ -900,7 +946,7 @@ def load_or_make(filename):
 
 
 def run_async_process(func):
-        """
+    """
         	run_async_process(func)
         		function decorator, intended to make "func" run in a separate
         		thread (asynchronously).
@@ -921,19 +967,20 @@ def run_async_process(func):
         		t1.join()
         		t2.join()
         """
-        from functools import wraps
-        from multiprocessing import Process
+    from functools import wraps
+    from multiprocessing import Process
 
-        @wraps(func)
-        def async_func(*args, **kwargs):
-        	func_hl = Process(target = func, args = args, kwargs = kwargs)
-        	func_hl.start()
-        	return func_hl
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = Process(target=func, args=args, kwargs=kwargs)
+        func_hl.start()
+        return func_hl
 
-        return async_func
+    return async_func
+
 
 def run_async_thread(func):
-	"""
+    """
 		run_async(func)
 			function decorator, intended to make "func" run in a separate
 			thread (asynchronously).
@@ -954,28 +1001,29 @@ def run_async_thread(func):
 			t1.join()
 			t2.join()
 	"""
-	from threading import Thread
-	from functools import wraps
+    from threading import Thread
+    from functools import wraps
 
-	@wraps(func)
-	def async_func(*args, **kwargs):
-		func_hl = Thread(target = func, args = args, kwargs = kwargs)
-		func_hl.start()
-		return func_hl
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = Thread(target=func, args=args, kwargs=kwargs)
+        func_hl.start()
+        return func_hl
 
-	return async_func
-
+    return async_func
 
 
 import sys
 
+
 class TailRecurseException:
-  def __init__(self, args, kwargs):
-    self.args = args
-    self.kwargs = kwargs
+    def __init__(self, args, kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
 
 def tail_call_optimized(g):
-  """
+    """
   This function decorates a function with tail call
   optimization. It does this by throwing an exception
   if it is it's own grandparent, and catching such
@@ -984,20 +1032,22 @@ def tail_call_optimized(g):
   This function fails if the decorated
   function recurses in a non-tail context.
   """
-  def func(*args, **kwargs):
-    f = sys._getframe()
-    if f.f_back and f.f_back.f_back \
-        and f.f_back.f_back.f_code == f.f_code:
-      raise TailRecurseException(args, kwargs)
-    else:
-      while 1:
-        try:
-          return g(*args, **kwargs)
-        except TailRecurseException as  e:
-          args = e.args
-          kwargs = e.kwargs
-  func.__doc__ = g.__doc__
-  return func
+
+    def func(*args, **kwargs):
+        f = sys._getframe()
+        if f.f_back and f.f_back.f_back and f.f_back.f_back.f_code == f.f_code:
+            raise TailRecurseException(args, kwargs)
+        else:
+            while 1:
+                try:
+                    return g(*args, **kwargs)
+                except TailRecurseException as e:
+                    args = e.args
+                    kwargs = e.kwargs
+
+    func.__doc__ = g.__doc__
+    return func
+
 
 class NoneSoFar:
 
@@ -1007,15 +1057,17 @@ class NoneSoFar:
     """
 
     def __str__(self):
-        return 'NoneSoFar'
+        return "NoneSoFar"
 
     def __repr__(self):
-        return 'NoneSoFar'
+        return "NoneSoFar"
 
     def __nonzero__(self):
         return 0
 
+
 NoneSoFar = NoneSoFar()
+
 
 def getitem(obj, key):
     """
@@ -1025,6 +1077,7 @@ def getitem(obj, key):
     """
     return obj[key]
 
+
 def setitem(obj, key, value):
     """
     This is a helper function needed in promise objects to pass
@@ -1032,6 +1085,7 @@ def setitem(obj, key, value):
     it uses dictionary style access.
     """
     obj[key] = value
+
 
 def delitem(obj, key):
     """
@@ -1041,6 +1095,7 @@ def delitem(obj, key):
     """
     del obj[key]
 
+
 def getslice(obj, start, stop):
     """
     This is a helper function needed in promise objects to pass
@@ -1048,6 +1103,7 @@ def getslice(obj, start, stop):
     it uses dictionary style access.
     """
     return obj[start:stop]
+
 
 def setslice(obj, start, stop, value):
     """
@@ -1057,6 +1113,7 @@ def setslice(obj, start, stop, value):
     """
     obj[start:stop] = value
 
+
 def delslice(obj, start, stop):
     """
     This is a helper function needed in promise objects to pass
@@ -1064,8 +1121,12 @@ def delslice(obj, start, stop):
     it uses dictionary style access.
     """
     del obj[start:stop]
+
+
 def cmp(a, b):
     return (a > b) - (a < b)
+
+
 def force(value):
     """
     This helper function forces evaluation of a promise. A promise
@@ -1074,9 +1135,12 @@ def force(value):
     method).
     """
 
-    f = getattr(value, '__force__', None)
-    if f: return f()
-    else: return value
+    f = getattr(value, "__force__", None)
+    if f:
+        return f()
+    else:
+        return value
+
 
 class PromiseMetaClass(type):
 
@@ -1099,25 +1163,45 @@ class PromiseMetaClass(type):
     of the promise.
     """
 
-    __magicmethods__ = ['__abs__', '__pos__', '__invert__', '__neg__']
+    __magicmethods__ = ["__abs__", "__pos__", "__invert__", "__neg__"]
 
-    __magicrmethods__ = [('__radd__', '__add__'), ('__rsub__', '__sub__'),
-        ('__rdiv__', '__div__'), ('__rmul__', '__mul__'),
-        ('__rand__', '__and__'), ('__ror__', '__or__'),
-        ('__rxor__', '__xor__'), ('__rlshift__', '__lshift__'),
-        ('__rrshift__', '__rshift__'), ('__rmod__', '__mod__'),
-        ('__rdivmod__', '__divmod__'), ('__rtruediv__', '__truediv__'),
-        ('__rfloordiv__', '__floordiv__'), ('__rpow__', '__pow__')]
+    __magicrmethods__ = [
+        ("__radd__", "__add__"),
+        ("__rsub__", "__sub__"),
+        ("__rdiv__", "__div__"),
+        ("__rmul__", "__mul__"),
+        ("__rand__", "__and__"),
+        ("__ror__", "__or__"),
+        ("__rxor__", "__xor__"),
+        ("__rlshift__", "__lshift__"),
+        ("__rrshift__", "__rshift__"),
+        ("__rmod__", "__mod__"),
+        ("__rdivmod__", "__divmod__"),
+        ("__rtruediv__", "__truediv__"),
+        ("__rfloordiv__", "__floordiv__"),
+        ("__rpow__", "__pow__"),
+    ]
 
-    __magicfunctions__ = [('__cmp__', cmp), ('__str__', str),
-       # ('__unicode__', unicode), ('__complex__', complex),
-        ('__int__', int),  ('__float__', float),
-        ('__oct__', oct), ('__hex__', hex), ('__hash__', hash),
-        ('__len__', len), ('__iter__', iter), ('__delattr__', delattr),
-        ('__setitem__', setitem), ('__delitem__', delitem),
-        ('__setslice__', setslice), ('__delslice__', delslice),
-        ('__getitem__', getitem),
-        ('__getslice__', getslice), ('__nonzero__', bool)]
+    __magicfunctions__ = [
+        ("__cmp__", cmp),
+        ("__str__", str),
+        # ('__unicode__', unicode), ('__complex__', complex),
+        ("__int__", int),
+        ("__float__", float),
+        ("__oct__", oct),
+        ("__hex__", hex),
+        ("__hash__", hash),
+        ("__len__", len),
+        ("__iter__", iter),
+        ("__delattr__", delattr),
+        ("__setitem__", setitem),
+        ("__delitem__", delitem),
+        ("__setslice__", setslice),
+        ("__delslice__", delslice),
+        ("__getitem__", getitem),
+        ("__getslice__", getslice),
+        ("__nonzero__", bool),
+    ]
 
     def __init__(klass, name, bases, attributes):
         for k in klass.__magicmethods__:
@@ -1131,8 +1215,7 @@ class PromiseMetaClass(type):
         for (k, v) in klass.__magicfunctions__:
             if not attributes.has_key(k):
                 setattr(klass, k, klass.__forcedmethodfunc__(v))
-        super(PromiseMetaClass, klass).__init__(name,
-            bases, attributes)
+        super(PromiseMetaClass, klass).__init__(name, bases, attributes)
 
     def __forcedmethodname__(self, method):
         """
@@ -1142,10 +1225,10 @@ class PromiseMetaClass(type):
         """
 
         def wrapped_method(self, *args):
-            #result = force(self)
-            #meth = getattr(result, method)
+            # result = force(self)
+            # meth = getattr(result, method)
             args = [force(arg) for arg in args]
-            #return apply(meth, args)
+            # return apply(meth, args)
 
         return wrapped_method
 
@@ -1185,7 +1268,7 @@ class PromiseMetaClass(type):
 
         def wrapped_method(*args):
             args = [force(arg) for arg in args]
-            #return apply(func, args)
+            # return apply(func, args)
 
         return wrapped_method
 
@@ -1201,10 +1284,11 @@ class PromiseMetaClass(type):
 
         def wrapped_method(*args, **kw):
             klass = args[0].__class__
-            klass = getattr(klass, '__delayclass__', klass)
+            klass = getattr(klass, "__delayclass__", klass)
             return klass(func, args, kw)
 
         return wrapped_method
+
 
 class Promise(object):
 
@@ -1237,52 +1321,55 @@ class Promise(object):
         too.
         """
 
-        #if self.__result is NoneSoFar:
-            #args = [force(arg) for arg in self.__args]
-            #kw = dict([(k, force(v)) for (k, v)
-            #        in self.__kw.items()])
-            #self.__result = apply(self.__func, args, kw)
-        #return self.__result
+        # if self.__result is NoneSoFar:
+        # args = [force(arg) for arg in self.__args]
+        # kw = dict([(k, force(v)) for (k, v)
+        #        in self.__kw.items()])
+        # self.__result = apply(self.__func, args, kw)
+        # return self.__result
+
+
 # I got this from: http://freshmeat.net/projects/lazypy/
 class TailPromise(object):
-  __metaclass__ = PromiseMetaClass
+    __metaclass__ = PromiseMetaClass
 
-  def __init__(self,func,args,kw):
-    self.__func = func
-    self.__args = args
-    self.__kw = kw
+    def __init__(self, func, args, kw):
+        self.__func = func
+        self.__args = args
+        self.__kw = kw
 
-  def __arginfo__(self):
-    return self.__args, self.__kw
+    def __arginfo__(self):
+        return self.__args, self.__kw
 
-  def __func__(self):
-    return self.__func
+    def __func__(self):
+        return self.__func
 
-  def __force__(self):
-    return self.__func(*self.__args,**self.__kw)
+    def __force__(self):
+        return self.__func(*self.__args, **self.__kw)
+
 
 def trampolined(g):
+    def func(*args, **kwargs):
+        old_trampolining = func.currently_trampolining
 
-  def func(*args,**kwargs):
-    old_trampolining = func.currently_trampolining
-
-    # if this is not the first call, and it is a tail call:
-    if (func.currently_trampolining != func):
-      # Set up the trampoline!
-      func.currently_trampolining = func
-      while 1:
-        res = g(*args,**kwargs)
-        if res.__class__ is TailPromise and res.__func__() is g:
-          # A tail recursion!
-          args,kwargs = res.__arginfo__()
+        # if this is not the first call, and it is a tail call:
+        if func.currently_trampolining != func:
+            # Set up the trampoline!
+            func.currently_trampolining = func
+            while 1:
+                res = g(*args, **kwargs)
+                if res.__class__ is TailPromise and res.__func__() is g:
+                    # A tail recursion!
+                    args, kwargs = res.__arginfo__()
+                else:
+                    func.currently_trampolining = old_trampolining
+                    return res
         else:
-          func.currently_trampolining = old_trampolining
-          return res
-    else:
-      return TailPromise(g,args,kwargs)
+            return TailPromise(g, args, kwargs)
 
-  func.currently_trampolining = None
-  return func
+    func.currently_trampolining = None
+    return func
+
 
 def delayed(function, check_pickle=True):
     """Decorator used to capture the arguments of a function.
@@ -1302,6 +1389,7 @@ def delayed(function, check_pickle=True):
 
     def delayed_function(*args, **kwargs):
         return function, args, kwargs
+
     try:
         delayed_function = functools.wraps(function)(delayed_function)
     except AttributeError:
@@ -1311,7 +1399,7 @@ def delayed(function, check_pickle=True):
 
 ##==========================={Using threading library}==========================
 
-#from threading import Thread
+# from threading import Thread
 import queue as Queue
 
 
@@ -1409,14 +1497,14 @@ def run_async_threading(func):
 #         #t.join()
 
 
-
-
 import sys
 
+
 def reraise(tp, value, tb=None):
-        if value.__traceback__ is not tb:
-            raise value.with_traceback(tb)
-        raise value
+    if value.__traceback__ is not tb:
+        raise value.with_traceback(tb)
+    raise value
+
 
 def convert_exception(from_exception, to_exception, *to_args, **to_kw):
     """
@@ -1437,8 +1525,8 @@ def convert_exception(from_exception, to_exception, *to_args, **to_kw):
         except BarError as e:
             assert e.message == 'bar'
     """
-    def wrapper(fn):
 
+    def wrapper(fn):
         def fn_new(*args, **kw):
             try:
                 return fn(*args, **kw)

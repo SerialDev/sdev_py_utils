@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 
 
-def make_soup(url, parser='html.parser'):
+def make_soup(url, parser="html.parser"):
     """
     * type-def ::String :: PyObj -> BeautifulSoup
     * ---------------{Function}---------------

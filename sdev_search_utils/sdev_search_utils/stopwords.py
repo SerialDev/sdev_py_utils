@@ -1,5 +1,6 @@
 stoplists = {
-    "en": frozenset("""
+    "en": frozenset(
+        """
     i me my myself we our ours ourselves you your yours yourself yourselves
     he him his himself she her hers herself it its itself they them their
     theirs themselves what which who whom this that these those am is are
@@ -58,10 +59,10 @@ stoplists = {
     won't, work, worked, working, works, would, wouldn't, x, y,
     year, years, yes, yet, you, you'd, you'll, young, younger,
     youngest, your, you're, yours, yourself, yourselves, you've, z
-    """.split()),
-
-
-    "fr": frozenset("""
+    """.split()
+    ),
+    "fr": frozenset(
+        """
     au aux avec ce ces dans de des du
     elle en et eux il je la le leur lui ma
     mais me même mes moi mon ne nos notre nous on ou par pas pour qu que
@@ -75,8 +76,10 @@ stoplists = {
     auront aurais aurait aurions auriez auraient avais avait avions aviez
     avaient eut eûmes eûtes eurent aie aies ait ayons ayez aient eusse
     eusses eût eussions eussiez eussent
-    """.split()),
-    "ru": frozenset("""
+    """.split()
+    ),
+    "ru": frozenset(
+        """
     c а алло без белый близко более больше большой будем будет
     будете будешь будто буду будут будь бы бывает бывь был была
     были было быть в важная важное важные важный вам вами вас
@@ -132,5 +135,6 @@ stoplists = {
     чего человек чем чему через четвертый четыре четырнадцатый четырнадцать что чтоб
     чтобы чуть шестнадцатый шестнадцать шестой шесть эта эти этим этими этих
     это этого этой этом этому этот эту я являюсь
-    """)
+    """
+    ),
 }

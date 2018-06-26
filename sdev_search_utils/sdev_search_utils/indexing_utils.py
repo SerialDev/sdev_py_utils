@@ -4,13 +4,13 @@
 # from whoosh.fields import Schema, NUMERIC, ID, TEXT
 # from whoosh.analysis import SimpleAnalyzer
 # from whoosh.qparser import QueryParser
-# 
+#
 # def open_index(indexdir, incremental=False):
 #     """
 #     * -------------{Function}---------------
-#     * Opens the index, if dir or index do not exist they are created . . . 
+#     * Opens the index, if dir or index do not exist they are created . . .
 #     * -------------{returns}----------------
-#     * whoos.Index . . . 
+#     * whoos.Index . . .
 #     * -------------{params}-----------------
 #     * : indexdir::str -- name of the index directory
 #     * : incremental::bool -- whether to preserve the index
@@ -19,23 +19,23 @@
 #         os.makedirs(indexdir)
 #     if incremental and index.exists_in(indexdir):
 #         return index.open_dir(indexdir)
-# 
+#
 #     schema = Schema(number=NUMERIC(stored = True),
 #                     filename= ID(stored = True),
 #                     line=TEXT(analyzer = SimpleAnalyzer(), stored = True))
 #     return index.create_in(indexdir, schema)
-# 
+#
 # def update_index(files, ix = 'indexdir', incremental = False,
 #                  batch='False', tmpdir=None, on_next_file = None):
 #     """
 #     * -------------{Function}---------------
-#     * Updates the given index if an index object is not passed it is  
+#     * Updates the given index if an index object is not passed it is
 #     * loaded from (or created in) a directory named 'indexdir' in
-#     * the current working directory  . . . 
+#     * the current working directory  . . .
 #     """
 #     if isinstance(ix, str):
 #         ix = open_index(ix, incremental)
-# 
+#
 #     # Index the file contents
 #     if batch:
 #         writer = ix.writer(dir= tmpdir)
@@ -54,7 +54,7 @@
 #                                 line = line.rstrip('\n'))
 #         if not batch:
 #             writer.commit()
-# 
+#
 # def search(term, ix='indexdir', limit=None):
 #     # Load index
 #     if isinstance(ix, str):
@@ -63,29 +63,29 @@
 #     s = ix.searcher()
 #     parser = QueryParser('line', schema = ix.schema)
 #     q = parser.parse(term)
-# 
+#
 #     # Searcj  and sort the results
 #     mf  = sorting.MultiFacet()
 #     mf.add_field('filename')
 #     mf.add_field('number')
 #     return s.search(q, limit = limit, sortedby = mf)
-# 
+#
 # def search_page(term, ix = 'indexdir', page = None, pagelen = 20):
 #     # Load the index
 #     if isinstance(ix, str):
 #         ix = index.open_dir(ix)
-# 
+#
 #     # Parse the search terms
 #     s = ix.searcher()
 #     parser = QueryParser('line', schema = ix.schema)
 #     q = parser.parse(term)
-# 
+#
 #     # Search and sort the results
 #     mf = sorting.MultiFacet()
 #     mf.add_field('filename')
 #     mf.add_field('number')
 #     return s.search_page(q, page, pagelen = pagelen, sortedby = mf)
-#         
+#
 
 
 import os
@@ -95,15 +95,15 @@ import logging
 from dateutil.parser import parse as string_to_date
 from distutils.util import strtobool as string_to_bool
 
-from whoosh.analysis import (CharsetFilter, LowercaseFilter,
-                             StopFilter, RegexTokenizer)
-from whoosh.fields import (Schema, ID, KEYWORD, TEXT,
-                           DATETIME, NUMERIC, BOOLEAN)
+from whoosh.analysis import CharsetFilter, LowercaseFilter, StopFilter, RegexTokenizer
+from whoosh.fields import Schema, ID, KEYWORD, TEXT, DATETIME, NUMERIC, BOOLEAN
 from whoosh.support.charset import accent_map
 from whoosh.qparser import MultifieldParser
 from whoosh.query import FuzzyTerm, Or
 from .stopwords import stoplists
-#from whoosh import index as whoosh_index
+
+# from whoosh import index as whoosh_index
+
 
 class CustomFuzzyTerm(FuzzyTerm):
     """
@@ -114,17 +114,19 @@ class CustomFuzzyTerm(FuzzyTerm):
         FuzzyTerm.__init__(self, fieldname, text, 1.0, 2)
 
 
-logger = logging.getLogger('indexer' + __name__)
+logger = logging.getLogger("indexer" + __name__)
 
 ##==========================={Index-Schema}=====================================
 
 chfilter = CharsetFilter(accent_map)
-stoplist = stoplists["en"].union(stoplists['ru'])
-analyzer = RegexTokenizer() | LowercaseFilter() | \
-    StopFilter(stoplist = stoplist) | chfilter
+stoplist = stoplists["en"].union(stoplists["ru"])
+analyzer = (
+    RegexTokenizer() | LowercaseFilter() | StopFilter(stoplist=stoplist) | chfilter
+)
 
 # Define the schema
 keywordType = KEYWORD(lowercase=True, scorable=True)
+
 
 def add_fields(schema):
     """
@@ -136,11 +138,12 @@ def add_fields(schema):
     * -------------{params}-----------------
     * : whoosh.fields.Schema
     """
-    schema.add('*_string', TEXT(analyzer=analyzer), glob=True)
-    schema.add('*_date', DATETIME, glob=True)
-    schema.add('*_number', NUMERIC, glob=True)
-    schema.add('*_boolean', BOOLEAN, glob=True)
+    schema.add("*_string", TEXT(analyzer=analyzer), glob=True)
+    schema.add("*_date", DATETIME, glob=True)
+    schema.add("*_number", NUMERIC, glob=True)
+    schema.add("*_boolean", BOOLEAN, glob=True)
     return schema
+
 
 def load_index(directory, indexer):
     """
@@ -154,15 +157,19 @@ def load_index(directory, indexer):
     index = indexer.open_dir(os.path.join(directory, "indexes"))
     return index
 
+
 def get_schema():
-    schema = Schema(content=TEXT(analyzer = analyzer),
-                     doc_type=TEXT,
-                     doc_id=ID(stored=True, unique=True),
-                     tags=keywordType)
+    schema = Schema(
+        content=TEXT(analyzer=analyzer),
+        doc_type=TEXT,
+        doc_id=ID(stored=True, unique=True),
+        tags=keywordType,
+    )
     schema = add_fields(schema)
     return schema
 
-def create_index(directory, indexer, schema = None, ):
+
+def create_index(directory, indexer, schema=None):
     """
     * -------------{Function}---------------
     * Creates the index folder and Whoosh index files if they do not exists
@@ -173,15 +180,20 @@ def create_index(directory, indexer, schema = None, ):
     """
     if schema == None:
         schema = get_schema()
-    
+
     if not os.path.exists(os.path.join(directory, "indexes")):
         os.mkdir(os.path.join(directory, "indexes"))
         index = indexer.create_in(os.path.join(directory, "indexes"), schema)
     else:
-        logger.warning("Index already exists in : {directory} \n loading index instead ".format(directory = directory))
+        logger.warning(
+            "Index already exists in : {directory} \n loading index instead ".format(
+                directory=directory
+            )
+        )
 
         index = load_index(directory, indexer)
     return index
+
 
 def create_doctypes_schema(directory):
     """
@@ -192,9 +204,12 @@ def create_doctypes_schema(directory):
     """
     if not os.path.exists(os.path.join(directory, "doctypes")):
         os.mkdir(os.path.join(directory, "doctypes"))
-    if not os.path.exists(os.path.join(directory, "doctypes","doctypes_schema.json")):
-        with open(os.path.join(directory, "doctypes","doctypes_schema.json"), 'w') as defaultFile:
+    if not os.path.exists(os.path.join(directory, "doctypes", "doctypes_schema.json")):
+        with open(
+            os.path.join(directory, "doctypes", "doctypes_schema.json"), "w"
+        ) as defaultFile:
             defaultFile.write("{}")
+
 
 def load_doctypes_schema(directory):
     """
@@ -209,13 +224,16 @@ def load_doctypes_schema(directory):
     * -------------{params}-----------------
     * : directory -> path for index
     """
-    with open(os.path.join(directory, "doctypes","doctypes_schema.json"), 'r+') as rawJSON:
+    with open(
+        os.path.join(directory, "doctypes", "doctypes_schema.json"), "r+"
+    ) as rawJSON:
         try:
             doctypes_schema = json.load(rawJSON)
         except ValueError:
             rawJSON.write("{}")
             doctypes_schema = {}
     return doctypes_schema
+
 
 def update_doctypes_schema(directory, doctypes_schema, schema_to_update):
     """
@@ -227,8 +245,9 @@ def update_doctypes_schema(directory, doctypes_schema, schema_to_update):
     * : schema_to_update -> update to current schema
     """
     doctypes_schema.update(schema_to_update)
-    with open(os.path.join(directory, "doctypes","doctypes_schema.json"), 'w') as f:
+    with open(os.path.join(directory, "doctypes", "doctypes_schema.json"), "w") as f:
         f.write(json.dumps(doctypes_schema))
+
 
 def clear_index(directory, indexer, schema):
     """
@@ -243,10 +262,14 @@ def clear_index(directory, indexer, schema):
         indexer.create_in(os.path.join(directory, "indexes"), schema)
 
     if os.path.exists(os.path.join(directory, "doctypes")):
-        with open(os.path.join(directory, "doctypes", "doctypes_schema.json"), 'w') as f:
+        with open(
+            os.path.join(directory, "doctypes", "doctypes_schema.json"), "w"
+        ) as f:
             f.write("{}")
 
+
 ##==========================={Indexer}==========================================
+
 
 def get_field_type(field, fields_type):
     """
@@ -255,7 +278,7 @@ def get_field_type(field, fields_type):
     * -------------{returns}----------------
     * field_type . . . 
     """
-    supported_types = ['string', 'numeric', 'date', 'boolean']
+    supported_types = ["string", "numeric", "date", "boolean"]
 
     # Checks if the field type has been passed
     field_type = fields_type.get(field, None)
@@ -264,6 +287,7 @@ def get_field_type(field, fields_type):
     else:
         return "default"
 
+
 def get_typed_field_name(field, field_type):
     """
     * -------------{Function}---------------
@@ -271,23 +295,24 @@ def get_typed_field_name(field, field_type):
     * -------------{returns}----------------
     * type name . . . 
     """
-    typed_field_name = "{field}_{field_type}".format(field = field, field_type = field_type)
+    typed_field_name = "{field}_{field_type}".format(field=field, field_type=field_type)
     return typed_field_name.lower()
+
 
 def get_formatted_data(data, field_type):
     """
     * -------------{Function}---------------
     * Converts data from string to the relevant type . . . 
     """
-    if field_type == 'string':
+    if field_type == "string":
         return data.decode("utf-8")
-    elif field_type == 'date':
+    elif field_type == "date":
         return string_to_date(data)
-    elif field_type == 'boolean':
+    elif field_type == "boolean":
         return string_to_bool(data)
 
 
-def indexed_doc(directory, indexer,  doc_type, doc, fields, fields_type):
+def indexed_doc(directory, indexer, doc_type, doc, fields, fields_type):
     """
     * -------------{Function}---------------
     * Add a doc to index, tag and given fields are also stored . . . 
@@ -313,7 +338,7 @@ def indexed_doc(directory, indexer,  doc_type, doc, fields, fields_type):
     # Extracts and formats every doc_field to be indexed
     for field in fields:
         # Process the field only if it exists and if it's not a special one
-        if field in fields_in_doc and field not in ['id', 'doc_type', 'tags']:
+        if field in fields_in_doc and field not in ["id", "doc_type", "tags"]:
             data = doc[field]
 
             # Field type is needed to convert the data into the proper type
@@ -321,22 +346,30 @@ def indexed_doc(directory, indexer,  doc_type, doc, fields, fields_type):
             field_type = get_field_type(field, fields_type)
 
             if field_type == "default":
-                logger.warning("Field {field} is going to be indexed with default setting ".format(field = field))
+                logger.warning(
+                    "Field {field} is going to be indexed with default setting ".format(
+                        field=field
+                    )
+                )
 
                 # Only strings are supported in BC mode
                 if isinstance(data, str):
                     contents.append(data)
                 else:
-                    logger.warning("Data type not supported for field {field} ({data})".format(field = field, data = data) )
+                    logger.warning(
+                        "Data type not supported for field {field} ({data})".format(
+                            field=field, data=data
+                        )
+                    )
             else:
                 typed_field_name = get_typed_field_name(field, field_type)
                 fields_in_schema.append(typed_field_name)
                 indexed_doc[typed_field_name] = get_formatted_data(data, field_type)
         # Non breaking handle of error cases
         elif field not in fields_in_doc:
-            logger.warning("cannot find field {field} in document".format(field = field))
+            logger.warning("cannot find field {field} in document".format(field=field))
         else:
-            logger.warning("Field {field} is automatically indexed".format(field = field))
+            logger.warning("Field {field} is automatically indexed".format(field=field))
     # Adds the doctype as a tag
     tags = doc["tags"].append(doc_type)
     tags = u" ".join(doc["tags"][0::1])
@@ -347,17 +380,24 @@ def indexed_doc(directory, indexer,  doc_type, doc, fields, fields_type):
     indexed_doc["doc_type"] = doc_type
     indexed_doc["content"] = u"  ".join(contents)
 
-    logger.info("About to index {indexed}".format(indexed = indexed_doc.keys()))
+    logger.info("About to index {indexed}".format(indexed=indexed_doc.keys()))
     writer = index_schema.writer()
     writer.update_document(**indexed_doc)
     writer.commit()
 
-    logger.info("Update schema for doc_type {doc_type} with {fields_in_schema}".format(doc_type = doc_type, fields_in_schema = fields_in_schema))
+    logger.info(
+        "Update schema for doc_type {doc_type} with {fields_in_schema}".format(
+            doc_type=doc_type, fields_in_schema=fields_in_schema
+        )
+    )
 
     schema_to_update = {doc_type: fields_in_schema}
     update_doctypes_schema(directory, doctypes_schema, schema_to_update)
-    
-def search_doc(directory, word, doc_types, num_page=1, num_by_page=10, show_num_results=True):
+
+
+def search_doc(
+    directory, word, doc_types, num_page=1, num_by_page=10, show_num_results=True
+):
     """
     * -------------{Function}---------------
     * Returns a list of docs that contains a given set of words that matches a g
@@ -373,7 +413,6 @@ def search_doc(directory, word, doc_types, num_page=1, num_by_page=10, show_num_
     index_schema = load_index(directory)
     doctypes_schema = load_doctypes_schema(directory)
 
-
     # Retrieves the fields to search from the doctypes schema
     fields_to_search = []
     for doc_type in doc_types:
@@ -382,11 +421,11 @@ def search_doc(directory, word, doc_types, num_page=1, num_by_page=10, show_num_
             schema = doctypes_schema[doc_type]
             fields_to_search = fields_to_search + schema
         except:
-            logger.warning("Schema not found for {doc_type}".format(doc_type = doc_type))
+            logger.warning("Schema not found for {doc_type}".format(doc_type=doc_type))
 
     # By default we search "content" (for BC) and "tags"
-    fields = ['content', 'tags'] + fields_to_search
-    logger.info("search will be performed on fields {fields}".format(fields = fields))
+    fields = ["content", "tags"] + fields_to_search
+    logger.info("search will be performed on fields {fields}".format(fields=fields))
 
     # Creates the query parser
     # MultifieldParser allows search on multiple fields
@@ -404,16 +443,18 @@ def search_doc(directory, word, doc_types, num_page=1, num_by_page=10, show_num_
 
     # Processes the search(request the index, whoosh magic)
     with index_schema.searcher() as searcher:
-        results = searcher.search_page(query, num_page,
-                                       pagelen= num_by_page, filter=doc_type_filter )
+        results = searcher.search_page(
+            query, num_page, pagelen=num_by_page, filter=doc_type_filter
+        )
         results_id = [result["doc_id"] for result in results]
-        logger.info("Results: {results_id}".format(results_id = results_id))
+        logger.info("Results: {results_id}".format(results_id=results_id))
 
         # Ensures BC if the number of results is not requested
         if show_num_results:
-            return {'ids': results_id, 'num_results':len(results)}
+            return {"ids": results_id, "num_results": len(results)}
         else:
-            return {'ids': results_id}
+            return {"ids": results_id}
+
 
 def remove_doc(directory, id):
     """
@@ -425,6 +466,7 @@ def remove_doc(directory, id):
     writer.delete_by_term("doc_id", id)
     writer.commit()
 
+
 def remove_all(directory, indexer):
     schema = get_schema()
-    clear_index(directory, indexer , schema )
+    clear_index(directory, indexer, schema)

@@ -3,24 +3,29 @@
 import numpy as np
 from random import shuffle
 import pandas as pd
-#from detections.aimbotlstm.utils.enums import Logging
-#from detections.aimbotlstm.utils.pandas_utils import get_subset
+
+# from detections.aimbotlstm.utils.enums import Logging
+# from detections.aimbotlstm.utils.pandas_utils import get_subset
 import math
 import json
 import types
 import textwrap
 import collections
+
 iterator_types = (types.GeneratorType, collections.Iterable)
 
 
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
+
     def __iter__(self):
         for attr, value in self.__dict__.items():
             yield attr, value
 
+
 ##==========================={Running mean|variance|stdev}======================
+
 
 class RunningStats:
     """
@@ -35,8 +40,8 @@ class RunningStats:
         self.new_m = 0
         self.old_s = 0
         self.new_s = 0
-        self.min_ = float('+inf')
-        self.max_ = float('-inf')
+        self.min_ = float("+inf")
+        self.max_ = float("-inf")
 
     def clear(self):
         self.n = 0
@@ -64,12 +69,16 @@ class RunningStats:
 
     def standard_deviation(self):
         return math.sqrt(self.variance())
+
     def max_num(self):
         return self.max_
+
     def min_num(self):
         return self.min_
 
+
 ##==========================={Running mean|variance|stdev|kurtosis|skewness}====
+
 
 class RunningStatsSK:
     """
@@ -97,9 +106,11 @@ class RunningStatsSK:
         self.delta_n2 = self.delta_n * self.delta_n
         self.term1 = self.delta * self.delta_n * self.n1
         self.M1 += self.delta_n
-        self.M4 += self.term1 * self.delta_n2 * \
-                     (self.n * self.n - 3 * self.n + 3) \
-                     + 6 * self.delta_n2 * self.M2 - 4 * self.delta_n * self.M3
+        self.M4 += (
+            self.term1 * self.delta_n2 * (self.n * self.n - 3 * self.n + 3)
+            + 6 * self.delta_n2 * self.M2
+            - 4 * self.delta_n * self.M3
+        )
         self.M3 += self.term1 * self.delta_n * (self.n - 2) - 3 * self.delta_n * self.M2
         self.M2 = self.term1
 
@@ -113,20 +124,23 @@ class RunningStatsSK:
         return self.M2 / (self.n - 1.0)
 
     def standard_deviation(self):
-        return np.sqrt( self.variance() )
+        return np.sqrt(self.variance())
 
     def skewness(self):
-        return np.sqrt( self.n ) * self.M3 / np.power(self.M2, 1.5)
+        return np.sqrt(self.n) * self.M3 / np.power(self.M2, 1.5)
 
     def kurtosis(self):
         return self.n * self.M4 / (self.M2 * self.M2) - 3.0
 
+
 ##==========================={Median from bins O(1) space}======================
+
 
 class BinMedian:
     """
     adapted from http://www.stat.cmu.edu/~ryantibs/median/binmedian.f
     """
+
     def __init__(self, data):
         n = len(data)
         x = data
@@ -139,14 +153,14 @@ class BinMedian:
         mu = sum / n
         sum = 0
         for i in range(n):
-            sum += (x[i] - mu) * (x[i]-mu)
-        sigma = np.sqrt(sum/n)
+            sum += (x[i] - mu) * (x[i] - mu)
+        sigma = np.sqrt(sum / n)
         ## Bin x across the interval [mu-sigma, mu+sigma]
         bottomcount = 0
-        bincounts= list(np.zeros(1001, int))
-        scalefactor = 1000/(2*sigma)
+        bincounts = list(np.zeros(1001, int))
+        scalefactor = 1000 / (2 * sigma)
         leftend = mu - sigma
-        rightend =  mu + sigma
+        rightend = mu + sigma
         for i in range(n):
             if x[i] < leftend:
                 bottomcount += 1
@@ -161,7 +175,7 @@ class BinMedian:
             # int oldbin                                #
             # float temp                                #
             #############################################
-            k = (n + 1 )// 2
+            k = (n + 1) // 2
             r = 0
             while True:
                 # Find the bin that contains the median, and the order
@@ -170,7 +184,7 @@ class BinMedian:
                 for i in range(1001):
                     count += bincounts[i]
                     if count >= k:
-                        medbin= i
+                        medbin = i
                         k = k - (count - bincounts[i])
                         break
                 bottomcount = 0
@@ -179,8 +193,8 @@ class BinMedian:
                 oldscalefactor = scalefactor
                 oldleftend = leftend
                 scalefactor = 1000 * oldscalefactor
-                leftend = medbin/oldscalefactor + oldleftend
-                rightend = (medbin + 1)/ oldscalefactor + oldleftend
+                leftend = medbin / oldscalefactor + oldleftend
+                rightend = (medbin + 1) / oldscalefactor + oldleftend
 
                 # Determine which points map to medbin and put them in
                 # spots r,...n-1
@@ -196,7 +210,7 @@ class BinMedian:
                         if x[i] < leftend:
                             bottomcount += 1
                         elif x[i] < rightend:
-                            bin = int((x[i]-leftend) * scalefactor)
+                            bin = int((x[i] - leftend) * scalefactor)
                             bincounts[bin] += 1
                     else:
                         i += 1
@@ -206,7 +220,7 @@ class BinMedian:
                 i = r + 1
                 while i < n:
 
-                    if(x[i] != x[r]):
+                    if x[i] != x[r]:
                         samepoints = 0
                         break
                     if samepoints:
@@ -217,7 +231,7 @@ class BinMedian:
                     i += 1
                 # Perform insertion sort on the remaining points
                 # and then pick the kth smallest
-                i = r+1
+                i = r + 1
                 while i < n:
                     a = x[i]
                     j = i - 1
@@ -225,21 +239,21 @@ class BinMedian:
                         j -= 1
                         if x[j] > a:
                             break
-                        x[j+1] = x[j]
-                    x[j+1] = a
+                        x[j + 1] = x[j]
+                    x[j + 1] = a
                     i += 1
 
-                #return k, r , x
-                return x[r-1 + k]
+                # return k, r , x
+                return x[r - 1 + k]
 
         else:
             x.append(0)
-            #return 0
-            return self.binmedian(n+1, x)
-
+            # return 0
+            return self.binmedian(n + 1, x)
 
 
 ##==========================={t-digest quantiles}===============================
+
 
 class TDigest(object):
     def __init__(self, delta=0.01, compression=20):
@@ -273,8 +287,8 @@ class TDigest(object):
     def __repr__(self):
         return str(self.tdc)
 
-class Centroid(object):
 
+class Centroid(object):
     def __init__(self, x, w, id):
         self.mean = float(x)
         self.count = float(w)
@@ -295,6 +309,7 @@ class Centroid(object):
 
     def __repr__(self):
         return "Centroid{mean=%.1f, count=%d}" % (self.mean, self.count)
+
 
 class TDigestCore(object):
     def __init__(self, delta):
@@ -333,12 +348,22 @@ class TDigestCore(object):
             current_weight = self.centroid_list[nr].count
             if cumulated_weight + current_weight > q:
                 if nr == 0:
-                    delta = self.centroid_list[nr + 1].mean - self.centroid_list[nr].mean
+                    delta = (
+                        self.centroid_list[nr + 1].mean - self.centroid_list[nr].mean
+                    )
                 elif nr == m - 1:
-                    delta = self.centroid_list[nr].mean - self.centroid_list[nr - 1].mean
+                    delta = (
+                        self.centroid_list[nr].mean - self.centroid_list[nr - 1].mean
+                    )
                 else:
-                    delta = (self.centroid_list[nr + 1].mean -  self.centroid_list[nr - 1].mean) / 2
-                return self.centroid_list[nr].mean + ((q - cumulated_weight) / (current_weight) - 0.5) * delta
+                    delta = (
+                        self.centroid_list[nr + 1].mean
+                        - self.centroid_list[nr - 1].mean
+                    ) / 2
+                return (
+                    self.centroid_list[nr].mean
+                    + ((q - cumulated_weight) / (current_weight) - 0.5) * delta
+                )
             cumulated_weight += current_weight
         return self.centroid_list[nr].mean
 
@@ -378,7 +403,8 @@ class TDigestCore(object):
         return len(self.centroid_list)
 
     def __repr__(self):
-        return '[ %s ]' % ', '.join([str(c) for c in self.centroid_list])
+        return "[ %s ]" % ", ".join([str(c) for c in self.centroid_list])
+
 
 ##==========================={Stream Histogram}=================================
 
@@ -386,36 +412,45 @@ class TDigestCore(object):
 ##-------------{Stream functions}-------
 from math import sqrt
 
+
 def argmin(array):
     # http://lemire.me/blog/archives/2008/12/17/fast-argmax-in-python/
     return array.index(min(array))
 
+
 def bin_diff(array, weighted=False):
     return [_diff(a, b, weighted) for a, b in zip(array[:-1], array[1:])]
+
 
 def _diff(a, b, weighted):
     diff = b.value - a.value
     if weighted:
-     diff *= log(_E + min(a.count, b.count))
+        diff *= log(_E + min(a.count, b.count))
     return diff
 
+
 def bin_sums(array, less=None):
-    return [(a.count + b.count)/2. for a, b in zip(array[:-1], array[1:])
-            if less is None or b.value <= less]
+    return [
+        (a.count + b.count) / 2.
+        for a, b in zip(array[:-1], array[1:])
+        if less is None or b.value <= less
+    ]
+
 
 def accumulate(iterable):
-       it = iter(iterable)
-       total = next(it)
-       yield total
-       for element in it:
-           total += element
-           yield total
+    it = iter(iterable)
+    total = next(it)
+    yield total
+    for element in it:
+        total += element
+        yield total
+
 
 def roots(a, b, c):
     """Super simple quadratic solver."""
-    d = b**2.0 - (4.0 * a * c)
+    d = b ** 2.0 - (4.0 * a * c)
     if d < 0:
-        raise(ValueError("This equation has no real solution!"))
+        raise (ValueError("This equation has no real solution!"))
     elif d == 0:
         x = (-b + sqrt(d)) / (2.0 * a)
         return (x, x)
@@ -446,8 +481,8 @@ class StreamHist(object):
         self.maxbins = maxbins  # A useful property
         self.total = 0
         self.weighted = weighted
-        self._min = None   # A useful property
-        self._max = None   # A useful property
+        self._min = None  # A useful property
+        self._max = None  # A useful property
         self.freeze = freeze
         self.missing_count = 0
 
@@ -501,7 +536,7 @@ class StreamHist(object):
             if self.freeze is not None and self.total >= self.freeze:
                 index = self.bins.bisect(Bin(n, count))
                 if index:
-                    prev_dist = n - self.bins[index-1].value
+                    prev_dist = n - self.bins[index - 1].value
                 else:
                     prev_dist = sys.float_info.max
                 if index and index < len(self.bins):
@@ -509,7 +544,7 @@ class StreamHist(object):
                 else:
                     next_dist = sys.float_info.max
                 if prev_dist < next_dist:
-                    self.bins[index-1].count += count
+                    self.bins[index - 1].count += count
                 else:
                     self.bins[index].count += count
             else:
@@ -546,9 +581,9 @@ class StreamHist(object):
                 return self.quantiles(0.5)[0]
             else:
                 # Return the 'exact' median when possible
-                mid = (self.total)/2
+                mid = (self.total) / 2
                 if self.total % 2 == 0:
-                    return (self.bins[mid-1] + self.bins[mid]).value
+                    return (self.bins[mid - 1] + self.bins[mid]).value
                 return self.bins[mid].value
         except:
             return None
@@ -569,7 +604,7 @@ class StreamHist(object):
         s = 0.0
         m = self.mean()  # Mean
         for b in self.bins:
-            s += (b.count * (b.value - m)**2)
+            s += b.count * (b.value - m) ** 2
         return s / float(self.total)
 
     def min(self):
@@ -610,10 +645,12 @@ class StreamHist(object):
         bins = list()
         for b in self.bins:
             bins.append({"mean": b.value, "count": b.count})
-        info = dict(missing_count=self.missing_count,
-                    maxbins=self.maxbins,
-                    weighted=self.weighted,
-                    freeze=self.freeze)
+        info = dict(
+            missing_count=self.missing_count,
+            maxbins=self.maxbins,
+            weighted=self.weighted,
+            freeze=self.freeze,
+        )
         return dict(bins=bins, info=info)
 
     @classmethod
@@ -660,7 +697,7 @@ class StreamHist(object):
         """Merge another StreamHist object into this one.
         This method implements Algorithm 2 (Merge) in ref [1].
         """
-        if other == 0:   # Probably using sum here...
+        if other == 0:  # Probably using sum here...
             return self  # This is a little hacky...
         for b in other.bins:
             self.bins.add(b)
@@ -697,7 +734,7 @@ class StreamHist(object):
         data = [self.count(), self.mean(), self.var(), self.min()]
         data += self.quantiles(*quantiles) + [self.max()]
         names = ["count", "mean", "var", "min"]
-        names += ["%i%%" % round(q*100., 0) for q in quantiles] + ["max"]
+        names += ["%i%%" % round(q * 100., 0) for q in quantiles] + ["max"]
         return dict(zip(names, data))
 
     def compute_breaks(self, n=50):
@@ -707,7 +744,7 @@ class StreamHist(object):
         bounds = linspace(*self.bounds(), num=n)
         for e in bounds[1:]:
             new = self.sum(e)
-            counts.append(new-last)
+            counts.append(new - last)
             last = new
         return counts, bounds
 
@@ -716,7 +753,7 @@ class StreamHist(object):
         string = ""
         for c, b in zip(*self.compute_breaks(num)):
             bar = str()
-            for i in range(int(c/float(self.total)*200)):
+            for i in range(int(c / float(self.total) * 200)):
                 bar += "."
             string += str(b) + "\t" + bar + "\n"
         print(string)
@@ -759,7 +796,7 @@ class StreamHist(object):
         if p < self._min or p > self._max:
             dd = 0.0
         elif p == self._min and p == self._max:
-            dd = float('inf')
+            dd = float("inf")
         elif Bin(value=p, count=0) in self.bins:
             high = next_after(p, float("inf"))
             low = next_after(p, -float("inf"))
@@ -792,14 +829,14 @@ class StreamHist(object):
                 index = bisect_left(sums, target_sum)
                 bin_i = self.bins[index]
                 if index < len(sums):
-                    bin_i1 = self.bins[index+1]
+                    bin_i1 = self.bins[index + 1]
                 else:
                     bin_i1 = self.bins[index]
                 if index:
-                    prev_sum = sums[index-1]
+                    prev_sum = sums[index - 1]
                 else:
                     prev_sum = 0.0
-                qq = _compute_quantile(target_sum, bin_i, bin_i1, prev_sum+1)
+                qq = _compute_quantile(target_sum, bin_i, bin_i1, prev_sum + 1)
             result.append(qq)
         return result
 
@@ -854,7 +891,7 @@ def _compute_quantile(x, bin_i, bin_i1, prev_sum):
             b = 2.0 * bin_i.count
             c = -2.0 * d
             z = _find_z(a, b, c)
-            u = (bin_i.value + (bin_i1.value - bin_i.value) * z)
+            u = bin_i.value + (bin_i1.value - bin_i.value) * z
         return u
     except:
         return None
@@ -865,7 +902,7 @@ def _compute_sum(x, bin_i, bin_i1, prev_sum):
     p_diff = bin_i1.value - bin_i.value
     bp_ratio = b_diff / p_diff
 
-    i1Term = 0.5 * bp_ratio**2.0
+    i1Term = 0.5 * bp_ratio ** 2.0
     iTerm = bp_ratio - i1Term
 
     first = prev_sum + bin_i.count * iTerm
@@ -890,7 +927,8 @@ class Bin(object):
     methods, and the ability to export and import from dictionaries . The Bin
     class should be used in conjunction with the StreamHist.
     """
-    __slots__ = ['value', 'count']
+
+    __slots__ = ["value", "count"]
 
     def __init__(self, value, count=1):
         """Create a Bin with a given mean and count.
@@ -992,7 +1030,7 @@ class Bin(object):
         count = float(self.count + obj.count)  # Summed heights
         if count:
             # Weighted average
-            value = (self.value*float(self.count) + obj.value*float(obj.count))
+            value = self.value * float(self.count) + obj.value * float(obj.count)
             value /= count
         else:
             value = 0.0
@@ -1009,7 +1047,9 @@ class Bin(object):
         self = out
         return self
 
+
 ##-------------{Bin Histogram}----------
+
 
 class Bin(object):
     """Histogram bin object.
@@ -1018,7 +1058,8 @@ class Bin(object):
     methods, and the ability to export and import from dictionaries . The Bin
     class should be used in conjunction with the StreamHist.
     """
-    __slots__ = ['value', 'count']
+
+    __slots__ = ["value", "count"]
 
     def __init__(self, value, count=1):
         """Create a Bin with a given mean and count.
@@ -1120,7 +1161,7 @@ class Bin(object):
         count = float(self.count + obj.count)  # Summed heights
         if count:
             # Weighted average
-            value = (self.value*float(self.count) + obj.value*float(obj.count))
+            value = self.value * float(self.count) + obj.value * float(obj.count)
             value /= count
         else:
             value = 0.0
@@ -1136,7 +1177,10 @@ class Bin(object):
         out = self + obj
         self = out
         return self
+
+
 ##==========================={Initialize statistics}============================
+
 
 def init_stats_welford():
     p_PosX = RunningStats()
@@ -1151,7 +1195,7 @@ def init_stats_welford():
     p_dRotX = RunningStats()
     p_dRotY = RunningStats()
     p_dRotZ = RunningStats()
-    p_dt    = RunningStats()
+    p_dt = RunningStats()
 
     n_PosX = RunningStats()
     n_PosY = RunningStats()
@@ -1167,20 +1211,38 @@ def init_stats_welford():
     n_dRotZ = RunningStats()
     n_dT = RunningStats()
 
-    features_dict = {'p_PosX' : p_PosX, 'p_PosY' : p_PosY , 'p_PosZ' : p_PosZ ,
-'p_dPosX' : p_dPosX, 'p_dPosY' : p_dPosY, 'p_dPosZ' : p_dPosZ,
-'p_RotX' : p_RotX , 'p_RotY' : p_RotY , 'p_RotZ' : p_RotZ ,
-'p_dRotX' : p_dRotX, 'p_dRotY' : p_dRotY, 'p_dRotZ' : p_dRotZ,
-'p_dt' : p_dt   ,
-
-'n_PosX' : n_PosX , 'n_PosY' : n_PosY , 'n_PosZ' : n_PosZ ,
-'n_dPosX' : n_dPosX, 'n_dPosY' : n_dPosY, 'n_dPosZ' : n_dPosZ,
-'n_RotX' : n_RotX , 'n_RotY' : n_RotY , 'n_RotZ' : n_RotZ ,
-'n_dRotX' : n_dRotX, 'n_dRotY' : n_dRotY, 'n_dRotZ' : n_dRotZ,
-'n_dT' : n_dT        }
+    features_dict = {
+        "p_PosX": p_PosX,
+        "p_PosY": p_PosY,
+        "p_PosZ": p_PosZ,
+        "p_dPosX": p_dPosX,
+        "p_dPosY": p_dPosY,
+        "p_dPosZ": p_dPosZ,
+        "p_RotX": p_RotX,
+        "p_RotY": p_RotY,
+        "p_RotZ": p_RotZ,
+        "p_dRotX": p_dRotX,
+        "p_dRotY": p_dRotY,
+        "p_dRotZ": p_dRotZ,
+        "p_dt": p_dt,
+        "n_PosX": n_PosX,
+        "n_PosY": n_PosY,
+        "n_PosZ": n_PosZ,
+        "n_dPosX": n_dPosX,
+        "n_dPosY": n_dPosY,
+        "n_dPosZ": n_dPosZ,
+        "n_RotX": n_RotX,
+        "n_RotY": n_RotY,
+        "n_RotZ": n_RotZ,
+        "n_dRotX": n_dRotX,
+        "n_dRotY": n_dRotY,
+        "n_dRotZ": n_dRotZ,
+        "n_dT": n_dT,
+    }
 
     Welford_Struct = Struct(**features_dict)
     return Welford_Struct
+
 
 def init_stats_tdigest():
     tp_PosX = TDigest()
@@ -1195,7 +1257,7 @@ def init_stats_tdigest():
     tp_dRotX = TDigest()
     tp_dRotY = TDigest()
     tp_dRotZ = TDigest()
-    tp_dt    = TDigest()
+    tp_dt = TDigest()
 
     tn_PosX = TDigest()
     tn_PosY = TDigest()
@@ -1211,24 +1273,42 @@ def init_stats_tdigest():
     tn_dRotZ = TDigest()
     tn_dT = TDigest()
 
-    features_dict = {'tp_PosX' : tp_PosX, 'tp_PosY' : tp_PosY , 'tp_PosZ' : tp_PosZ ,
-'tp_dPosX' : tp_dPosX, 'tp_dPosY' : tp_dPosY, 'tp_dPosZ' : tp_dPosZ,
-'tp_RotX' : tp_RotX , 'tp_RotY' : tp_RotY , 'tp_RotZ' : tp_RotZ ,
-'tp_dRotX' : tp_dRotX, 'tp_dRotY' : tp_dRotY, 'tp_dRotZ' : tp_dRotZ,
-'tp_dt' : tp_dt   ,
-
-'tn_PosX' : tn_PosX , 'tn_PosY' : tn_PosY , 'tn_PosZ' : tn_PosZ ,
-'tn_dPosX' : tn_dPosX, 'tn_dPosY' : tn_dPosY, 'tn_dPosZ' : tn_dPosZ,
-'tn_RotX' : tn_RotX , 'tn_RotY' : tn_RotY , 'tn_RotZ' : tn_RotZ ,
-'tn_dRotX' : tn_dRotX, 'tn_dRotY' : tn_dRotY, 'tn_dRotZ' : tn_dRotZ,
-'tn_dT' : tn_dT        }
+    features_dict = {
+        "tp_PosX": tp_PosX,
+        "tp_PosY": tp_PosY,
+        "tp_PosZ": tp_PosZ,
+        "tp_dPosX": tp_dPosX,
+        "tp_dPosY": tp_dPosY,
+        "tp_dPosZ": tp_dPosZ,
+        "tp_RotX": tp_RotX,
+        "tp_RotY": tp_RotY,
+        "tp_RotZ": tp_RotZ,
+        "tp_dRotX": tp_dRotX,
+        "tp_dRotY": tp_dRotY,
+        "tp_dRotZ": tp_dRotZ,
+        "tp_dt": tp_dt,
+        "tn_PosX": tn_PosX,
+        "tn_PosY": tn_PosY,
+        "tn_PosZ": tn_PosZ,
+        "tn_dPosX": tn_dPosX,
+        "tn_dPosY": tn_dPosY,
+        "tn_dPosZ": tn_dPosZ,
+        "tn_RotX": tn_RotX,
+        "tn_RotY": tn_RotY,
+        "tn_RotZ": tn_RotZ,
+        "tn_dRotX": tn_dRotX,
+        "tn_dRotY": tn_dRotY,
+        "tn_dRotZ": tn_dRotZ,
+        "tn_dT": tn_dT,
+    }
     td_Struct = Struct(**features_dict)
 
     return td_Struct
 
+
 ##==========================={Feed data for streaming-metrics}==================
 
-#def feed_stream(stream, data, weight= 1, col=None, val=0, flag=None):
+# def feed_stream(stream, data, weight= 1, col=None, val=0, flag=None):
 #    if type(stream) == TDigest:
 #        if type(data) == pd.core.frame.DataFrame:
 #            assert col is not None, 'Provide column for pandas dataframe or data as a numpy ndarray'
@@ -1246,8 +1326,6 @@ def init_stats_tdigest():
 #            [stream.push(x) for x in get_subset(data, val, flag)]
 #        else:
 #            raise TypeError('Provide a pandas dataframe or numpy array instead of {}'.format(type(data)))
-
-
 
 
 import ctypes as _ctypes
@@ -1283,14 +1361,14 @@ _E = 2.718281828459045
 __all__ = ["next_after", "bin_sums", "argmin", "bin_diff", "accumulate"]
 
 if _platform == "linux" or _platform == "linux2":
-    _libm = _ctypes.cdll.LoadLibrary('libm.so.6')
-    _funcname = 'nextafter'
+    _libm = _ctypes.cdll.LoadLibrary("libm.so.6")
+    _funcname = "nextafter"
 elif _platform == "darwin":
-    _libm = _ctypes.cdll.LoadLibrary('libSystem.dylib')
-    _funcname = 'nextafter'
+    _libm = _ctypes.cdll.LoadLibrary("libSystem.dylib")
+    _funcname = "nextafter"
 elif _platform == "win32":
-    _libm = _ctypes.cdll.LoadLibrary('msvcrt.dll')
-    _funcname = '_nextafter'
+    _libm = _ctypes.cdll.LoadLibrary("msvcrt.dll")
+    _funcname = "_nextafter"
 else:
     # these are the ones I have access to...
     # fill in library and function name for your system math dll
@@ -1310,10 +1388,10 @@ def next_after(x, y):
 
 
 def _diff(a, b, weighted):
-        diff = b.value - a.value
-        if weighted:
-            diff *= log(_E + min(a.count, b.count))
-        return diff
+    diff = b.value - a.value
+    if weighted:
+        diff *= log(_E + min(a.count, b.count))
+    return diff
 
 
 def bin_diff(array, weighted=False):
@@ -1327,8 +1405,11 @@ def argmin(array):
 
 
 def bin_sums(array, less=None):
-    return [(a.count + b.count)/2. for a, b in _izip(array[:-1], array[1:])
-            if less is None or b.value <= less]
+    return [
+        (a.count + b.count) / 2.
+        for a, b in _izip(array[:-1], array[1:])
+        if less is None or b.value <= less
+    ]
 
 
 def linspace(start, stop, num):
@@ -1336,15 +1417,15 @@ def linspace(start, stop, num):
     if num == 1:
         return stop
     h = (stop - start) / float(num)
-    values = [start + h * i for i in range(num+1)]
+    values = [start + h * i for i in range(num + 1)]
     return values
 
 
 def roots(a, b, c):
     """Super simple quadratic solver."""
-    d = b**2.0 - (4.0 * a * c)
+    d = b ** 2.0 - (4.0 * a * c)
     if d < 0:
-        raise(ValueError("This equation has no real solution!"))
+        raise (ValueError("This equation has no real solution!"))
     elif d == 0:
         x = (-b + sqrt(d)) / (2.0 * a)
         return (x, x)

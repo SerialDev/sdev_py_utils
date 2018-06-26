@@ -10,39 +10,43 @@ import numpy as np
 
 # --{Parallel Numpy}-#
 
+
 def np_parallel(func, data, parts=4):
     def split_array(data, parts=4):
-        split_len = np.int(np.ceil(data.shape[0]/parts))
+        split_len = np.int(np.ceil(data.shape[0] / parts))
         split_array = []
         for index, i in enumerate(range(parts), 1):
             if index == 1:
                 array = data[0:split_len]
                 split_array.append((array))
             else:
-                array = data[(split_len * (i - 1)):(split_len * i)]
+                array = data[(split_len * (i - 1)) : (split_len * i)]
                 split_array.append((array))
         return np.array(split_array)
 
     def concatenation_string(parts):
-        temp = ''
+        temp = ""
         for i in range(parts):
-            temp += 'applied[{}], '.format(i)
-        return 'applied = np.concatenate(({}), axis=0)'.format(temp[:-2])
+            temp += "applied[{}], ".format(i)
+        return "applied = np.concatenate(({}), axis=0)".format(temp[:-2])
+
     def np_multithreaded(func, data, parts=4):
         split = split_array(data, parts)
         pool = Pool(parts)
         applied = np.array(pool.map(func, split))
         exec(concatenation_string(parts))
         return applied
+
     def np_multiprocessing(func, data, parts=4):
         split = split_array(data, parts)
         pool = Pool()
         applied = np.array(pool.map(func, split))
         exec(concatenation_string(parts))
         return applied
-    if Pool.__module__ == 'multiprocessing.dummy':
+
+    if Pool.__module__ == "multiprocessing.dummy":
         return np_multithreaded(func, data, parts)
-    elif Pool.__module__ == 'multiprocessing':
+    elif Pool.__module__ == "multiprocessing":
         return np_multiprocessing(func, data, parts)
 
 
@@ -50,15 +54,21 @@ def await_children_done(verbose=True):
     if verbose:
         print("Awaiting for {}".format(multiprocessing.active_children()))
         start_time = time.clock()
-        while multiprocessing.active_children(): time.sleep(1)
+        while multiprocessing.active_children():
+            time.sleep(1)
         end_time = time.clock()
-        print('DONE: waited for {round(end_time - start_time, 3)}'.format(round(end_time - start_time, 3)))
+        print(
+            "DONE: waited for {round(end_time - start_time, 3)}".format(
+                round(end_time - start_time, 3)
+            )
+        )
     else:
-        while multiprocessing.active_children(): time.sleep(1)
-
+        while multiprocessing.active_children():
+            time.sleep(1)
 
 
 # --{Ast utilities}--#
+
 
 def unindent(source_lines):
     for i, line in enumerate(source_lines):
@@ -92,7 +102,8 @@ class SchedulerRewriter(NodeTransformer):
         if type(node) is ast.Name:
             return type(node.ctx) is ast.Load and node.id in self.arguments
         for field in node._fields:
-            if field == "body": continue
+            if field == "body":
+                continue
             value = getattr(node, field)
             if not hasattr(value, "__iter__"):
                 value = [value]
@@ -101,7 +112,9 @@ class SchedulerRewriter(NodeTransformer):
         return False
 
     def not_implemented_error(self, node, message):
-        return NotImplementedError(self.filename + "(" + str(node.lineno + self.line_offset) + ") " + message)
+        return NotImplementedError(
+            self.filename + "(" + str(node.lineno + self.line_offset) + ") " + message
+        )
 
     @staticmethod
     def top_level_name(node):
@@ -112,15 +125,24 @@ class SchedulerRewriter(NodeTransformer):
         return None
 
     def is_concurrent_call(self, node):
-        return type(node) is ast.Call and type(node.func) is ast.Name and node.func.id in self.concurrent_funcs
+        return (
+            type(node) is ast.Call
+            and type(node.func) is ast.Name
+            and node.func.id in self.concurrent_funcs
+        )
 
     def is_valid_assignment(self, node):
         if not (type(node) is ast.Assign and self.is_concurrent_call(node.value)):
             return False
         if len(node.targets) != 1:
-            raise self.not_implemented_error(node, "Concurrent assignment does not support multiple assignment targets")
+            raise self.not_implemented_error(
+                node,
+                "Concurrent assignment does not support multiple assignment targets",
+            )
         if not type(node.targets[0]) is ast.Subscript:
-            raise self.not_implemented_error(node, "Concurrent assignment only implemented for index based objects")
+            raise self.not_implemented_error(
+                node, "Concurrent assignment only implemented for index based objects"
+            )
         return True
 
     def encounter_call(self, call):
@@ -131,16 +153,25 @@ class SchedulerRewriter(NodeTransformer):
                 self.arguments.add(arg_name)
 
     def get_waits(self):
-        return [ast.Expr(Call(ast.Attribute(ast.Name(fname, ast.Load()), 'wait', ast.Load()))) for fname in self.encountered_funcs]
+        return [
+            ast.Expr(
+                Call(ast.Attribute(ast.Name(fname, ast.Load()), "wait", ast.Load()))
+            )
+            for fname in self.encountered_funcs
+        ]
 
     def visit_Call(self, node):
         if self.is_concurrent_call(node):
-            raise self.not_implemented_error(node, "The usage of the @concurrent function is unsupported")
+            raise self.not_implemented_error(
+                node, "The usage of the @concurrent function is unsupported"
+            )
         node = self.generic_visit(node)
         return node
 
     def generic_visit(self, node):
-        if (isinstance(node, ast.stmt) and self.references_arg(node)) or isinstance(node, ast.Return):
+        if (isinstance(node, ast.stmt) and self.references_arg(node)) or isinstance(
+            node, ast.Return
+        ):
             return self.get_waits() + [node]
         return NodeTransformer.generic_visit(self, node)
 
@@ -151,9 +182,16 @@ class SchedulerRewriter(NodeTransformer):
                 self.encounter_call(call)
                 return node
             elif any([self.is_concurrent_call(arg) for arg in call.args]):
-                conc_args = [(i, arg) for i, arg in enumerate(call.args) if self.is_concurrent_call(arg)]
+                conc_args = [
+                    (i, arg)
+                    for i, arg in enumerate(call.args)
+                    if self.is_concurrent_call(arg)
+                ]
                 if len(conc_args) > 1:
-                    raise self.not_implemented_error(call, "Functions with multiple @concurrent parameters are unsupported")
+                    raise self.not_implemented_error(
+                        call,
+                        "Functions with multiple @concurrent parameters are unsupported",
+                    )
                 conc_call = conc_args[0][1]
                 self.encounter_call(conc_call)
                 call.args[conc_args[0][0]] = ast.Name("__value__", ast.Load())
@@ -161,9 +199,22 @@ class SchedulerRewriter(NodeTransformer):
                     args = [ast.arg("__value__", None)]
                 else:
                     args = [ast.Name("__value__", ast.Param())]
-                call_lambda = ast.Lambda(ast.arguments(args = args, defaults = [], kwonlyargs = [], kw_defaults = []), call)
-                return copy_location(ast.Expr(ast.Call(func = ast.Attribute(conc_call.func, 'call', ast.Load()),
-                    args = [call_lambda] + conc_call.args, keywords = [])), node)
+                call_lambda = ast.Lambda(
+                    ast.arguments(
+                        args=args, defaults=[], kwonlyargs=[], kw_defaults=[]
+                    ),
+                    call,
+                )
+                return copy_location(
+                    ast.Expr(
+                        ast.Call(
+                            func=ast.Attribute(conc_call.func, "call", ast.Load()),
+                            args=[call_lambda] + conc_call.args,
+                            keywords=[],
+                        )
+                    ),
+                    node,
+                )
         return self.generic_visit(node)
 
     def visit_Assign(self, node):
@@ -173,7 +224,7 @@ class SchedulerRewriter(NodeTransformer):
             name = node.targets[0].value
             self.arguments.add(SchedulerRewriter.top_level_name(name))
             index = node.targets[0].slice.value
-            call.func = ast.Attribute(call.func, 'assign', ast.Load())
+            call.func = ast.Attribute(call.func, "assign", ast.Load())
             call.args = [ast.Tuple([name, index], ast.Load())] + call.args
             return copy_location(ast.Expr(call), node)
         return self.generic_visit(node)
@@ -201,6 +252,7 @@ class synchronized(object):
     def func(*args):
         call(concurrent_decorated functions)
     """
+
     def __init__(self, f):
         callerframerecord = inspect.stack()[1][0]
         info = inspect.getframeinfo(callerframerecord)
@@ -210,7 +262,9 @@ class synchronized(object):
         self.ast = None
 
     def __get__(self, *args):
-        raise NotImplementedError("Decorators from deco cannot be used on class methods")
+        raise NotImplementedError(
+            "Decorators from deco cannot be used on class methods"
+        )
 
     def __call__(self, *args, **kwargs):
         if self.f is None:
@@ -235,13 +289,16 @@ class concurrent(object):
     functions = {}
 
     @staticmethod
-    def custom(constructor = None, apply_async = None):
+    def custom(constructor=None, apply_async=None):
         @staticmethod
         def _custom_concurrent(*args, **kwargs):
             conc = concurrent(*args, **kwargs)
-            if constructor is not None: conc.conc_constructor = constructor
-            if apply_async is not None: conc.apply_async = apply_async
+            if constructor is not None:
+                conc.conc_constructor = constructor
+            if apply_async is not None:
+                conc.apply_async = apply_async
             return conc
+
         return _custom_concurrent
 
     def __init__(self, *args, **kwargs):
@@ -258,11 +315,15 @@ class concurrent(object):
         self.calls = []
         self.arg_proxies = {}
         self.conc_constructor = Pool
-        self.apply_async = lambda self, function, args: self.concurrency.apply_async(function, args)
+        self.apply_async = lambda self, function, args: self.concurrency.apply_async(
+            function, args
+        )
         self.concurrency = None
 
     def __get__(self, *args):
-        raise NotImplementedError("Decorators from deco cannot be used on class methods")
+        raise NotImplementedError(
+            "Decorators from deco cannot be used on class methods"
+        )
 
     def replaceWithProxies(self, args):
         args_iter = args.items() if type(args) is dict else enumerate(args)
@@ -288,11 +349,15 @@ class concurrent(object):
             return self
         self.in_progress = True
         if self.concurrency is None:
-            self.concurrency = self.conc_constructor(*self.conc_args, **self.conc_kwargs)
+            self.concurrency = self.conc_constructor(
+                *self.conc_args, **self.conc_kwargs
+            )
         args = list(args)
         self.replaceWithProxies(args)
         self.replaceWithProxies(kwargs)
-        result = ConcurrentResult(self.apply_async(self, concWrapper, [self.f_name, args, kwargs]))
+        result = ConcurrentResult(
+            self.apply_async(self, concWrapper, [self.f_name, args, kwargs])
+        )
         self.results.append(result)
         return result
 
@@ -330,9 +395,15 @@ class ConcurrentResult(object):
     def result(self):
         return self.get()[0]
 
+
 def concWrapper(f, args, kwargs):
     result = concurrent.functions[f](*args, **kwargs)
-    operations = [inner for outer in args + list(kwargs.values()) if type(outer) is argProxy for inner in outer.operations]
+    operations = [
+        inner
+        for outer in args + list(kwargs.values())
+        if type(outer) is argProxy
+        for inner in outer.operations
+    ]
     return result, operations
 
 
@@ -340,7 +411,7 @@ def concWrapper(f, args, kwargs):
 
 
 def run_async_thread(func):
-        """
+    """
                 run_async(func)
                         function decorator, intended to make "func" run in a separate
                         thread (asynchronously).
@@ -361,16 +432,16 @@ def run_async_thread(func):
                         t1.join()
                         t2.join()
         """
-        from threading import Thread
-        from functools import wraps
+    from threading import Thread
+    from functools import wraps
 
-        @wraps(func)
-        def async_func(*args, **kwargs):
-                func_hl = Thread(target = func, args = args, kwargs = kwargs)
-                func_hl.start()
-                return func_hl
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = Thread(target=func, args=args, kwargs=kwargs)
+        func_hl.start()
+        return func_hl
 
-        return async_func
+    return async_func
 
 
 def run_async(func):

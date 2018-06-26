@@ -13,6 +13,7 @@ from multiprocessing.util import Finalize
 
 from time import sleep
 
+
 class SafePool(Pool):
     """
     SafePool
@@ -26,8 +27,8 @@ class SafePool(Pool):
     A 'Smarter' Pool which has knowledge of which child processes are working on
     what if they crash.
     """
-    def __init__(self, processes=None, initializer=None, initargs=(),
-                 polltime=1):
+
+    def __init__(self, processes=None, initializer=None, initargs=(), polltime=1):
 
         self.__stopping = False
         self.polltime = polltime
@@ -51,11 +52,12 @@ class SafePool(Pool):
         super(SafePool, self)._setup_queues()
 
         real_get = self._inqueue.get
+
         def get():
             "A process is about to start working on something. Remember what."
             p = current_process()
             if not hasattr(p, "current_job"):
-                print ("I am not an augmented worker process. Exiting." )
+                print("I am not an augmented worker process. Exiting.")
                 raise SystemExit
 
             work = real_get()
@@ -70,6 +72,7 @@ class SafePool(Pool):
     def start_monitor_thread(self):
         "Run check_subprocesses in a seperate thread. Kill it gracefully."
         from threading import Thread
+
         t = Thread(target=self.check_subprocesses)
         t.setDaemon(True)
         t.start()
@@ -88,6 +91,7 @@ class SafePool(Pool):
         """
 
         from multiprocessing import Value
+
         current_job, current_i = Value("i"), Value("i")
 
         def hijacked_initializer(*args):
@@ -96,13 +100,12 @@ class SafePool(Pool):
             if callable(self.initializer):
                 return self.initializer(*args)
 
-        args = (self._inqueue, self._outqueue, hijacked_initializer,
-                self.initargs)
+        args = (self._inqueue, self._outqueue, hijacked_initializer, self.initargs)
 
         p = self.Process(target=worker, args=args)
         p.current_job, p.current_i = current_job, current_i
         p.current_job = current_job
-        p.name = p.name.replace('Process', 'PoolWorker')
+        p.name = p.name.replace("Process", "PoolWorker")
         p.daemon = True
         p.is_from_safepool = True
         p.start()
@@ -119,9 +122,9 @@ class SafePool(Pool):
             # Remove the bad processes from the pool, remember the good ones.
 
             good_processes = [p for p in self._pool if p.is_alive()]
-            bad_processes  = [p for p in self._pool if not p.is_alive()]
+            bad_processes = [p for p in self._pool if not p.is_alive()]
 
-            self._pool[:] = good_processes # in place replace
+            self._pool[:] = good_processes  # in place replace
 
             # We have bad processes. Restart them.
             for p in bad_processes:
