@@ -7,6 +7,25 @@ def map_tuple_gen(func, tup):
     return tuple(func(itup) for itup in tup)
 
 
+def tuple_to_string(tup):
+    """
+    Map tuples to a string casting any numeric values
+
+    Parameters
+    ----------
+
+    tup : tuple
+       A tuple to stringify
+
+    Returns
+    -------
+
+    str
+        A string with all the contents from the tuple
+    """
+    return "".join(map(str, tup))
+
+
 def filter_tuples(tups, filter_list, include=True, key=True):
     """
     * type-def ::[Tup] ::[x'∈X] ::Bool ::Bool -> [Tup]'
