@@ -1,16 +1,16 @@
 """ Python OS std lib utilities"""
 
-import os
-import shutil
-import dill as pickle  # Required to pickle lambda functions
 import fnmatch
-import subprocess
 import glob
-import re
-import ntpath
-from datetime import date
-from datetime import timedelta
 import json
+import ntpath
+import os
+import re
+import shutil
+import subprocess
+from datetime import date, timedelta
+
+import dill as pickle  # Required to pickle lambda functions
 
 # import comtypes.client
 # #Generates wrapper for a given library
@@ -200,8 +200,17 @@ class file_utils(object):
     save_file : data|pyObj path|str
        save a file
 
-    to_pickle : data|pyObj path|str flag|str
+    to_np : data|pyObj path|str flag|str
        Serialize object to pickle
+
+    to_npz : data|pyObj path|str flag|str
+       Serialize multiple np arrays to  to npz file
+
+    from_np : path|str flag|str
+       Load a np.array from np or npz file
+
+    to_pickle : data|pyObj path|str flag|str
+       Serialize np.array to npz file
 
     from_pickle : path|str flag|str
        Load a pyObj from a pickle file
@@ -242,6 +251,30 @@ class file_utils(object):
         with open(path, flag) as f:
             f.write(data)
         return True
+
+    @staticmethod
+    def to_np(data, path, flag="wb"):
+        import numpy as np
+
+        with open(path, flag) as f:
+            np.save(f, data, allow_pickle=True, fix_imports=True)
+        return True
+
+    @staticmethod
+    def to_npz(data, path, *args, flag="wb"):
+        import numpy as np
+
+        with open(path, flag) as f:
+            np.savez(f, data, *args)
+        return True
+
+    @staticmethod
+    def from_np(path, flag="rb"):
+        import numpy as np
+
+        with open(path, flag) as f:
+            temp = np.load(f)
+        return temp
 
     @staticmethod
     def to_pickle(data, path, flag="wb"):
