@@ -1,36 +1,42 @@
+
 from nltk.tokenize import word_tokenize
 from nltk.util import ngrams
 import pandas as pd
 import numpy as np
 
-def get_ngrams(text, n, flag='nltk' ):
+
+def get_ngrams(text, n, flag='nltk'):
     n_grams = ngrams(word_tokenize(text), n)
-    if flag=='gensim':
+    if flag == 'gensim':
         try:
-            return np.array([ '_'.join(grams) for grams in n_grams])
+            return np.array(['_'.join(grams) for grams in n_grams])
         except Exception as e:
             print(e)
             return []
-    elif flag=='nltk':
+    elif flag == 'nltk':
         try:
-            return np.array([ ' '.join(grams) for grams in n_grams])
+            return np.array([' '.join(grams) for grams in n_grams])
         except Exception as e:
             print(e)
             return []
 
+
 def find_ngrams(input_list, n):
-  return zip(*[input_list[i:] for i in range(n)])
+    return zip(*[input_list[i:] for i in range(n)])
+
 
 def rank_ngrams(df_series, n):
     return df_series.apply(pd.Series).stack().groupby(level=0).apply(lambda x: x.drop_duplicates()).value_counts()[:n]
 
+
 def get_max_len(series):
-    length= 0
+    length = 0
     for index, i in enumerate(series):
         if len(i) > length:
             length = len(i)
             indexed = index
     return length, indexed
+
 
 def _w2v_word_model(word, num_features, model):
     """
@@ -49,8 +55,9 @@ def _w2v_word_model(word, num_features, model):
     else:
         return empty_word
 
+
 def extract_ngrams_np(ngrams):
-    tmp= []
+    tmp = []
     for i in ngrams:
         for j in i:
             tmp.append(j)
@@ -73,6 +80,7 @@ all_letters = ''.join([chr(i) for i in range(128)])
 all_letters = string.printable
 
 n_letters = len(all_letters)
+
 
 def unicode_to_ascii(s):
     """
@@ -137,7 +145,7 @@ def letter_to_tensor(letter):
     return tensor
 
 
-def line_to_tensor(line, length = None):
+def line_to_tensor(line, length=None):
     """
     Turn a line into a <line_length x 1 x n_letters>,
     or an array of one-hot letter vectors
@@ -163,7 +171,7 @@ def line_to_tensor(line, length = None):
     tensor = np.zeros((length, 1, n_letters))
     for li, letter in enumerate(line):
         tensor[li][0][letter_to_index(letter)] = 1
-    result =  tensor.reshape(1, tensor.shape[0], tensor.shape[1], tensor.shape[2])
+    result = tensor.reshape(1, tensor.shape[0], tensor.shape[1], tensor.shape[2])
     return result.reshape(1, length, n_letters)
 
 
@@ -193,7 +201,7 @@ def word_to_tensor(word, tensor_length=10):
     word = word.reshape(word.shape[0], word.shape[1] * word.shape[2])
 
     if length < tensor_length:
-        result = np.concatenate((word[0], np.zeros(100 * (tensor_length - length) )))
+        result = np.concatenate((word[0], np.zeros(100 * (tensor_length - length))))
         result = result.reshape(1, result.shape[0])
         return result
     return word
@@ -236,4 +244,20 @@ def nmf(M, components=5, iterations=5000):
         W = np.multiply(W, (M * H.T) / (W * (H * H.T) + 0.001))
         print "%d/%d" % (n, iterations)    # Note 'logging' module
     return (W, H)
+
+
+# TODO Vectorized numpy implementation of this
+def pad_sentences(sentences, padding_word="<PAD/>"):
+    """
+    Pads all sentences to the same length. The length is defined by the longest sentence.
+    Returns padded sentences.
+    """
+    sequence_length = max(len(x) for x in sentences)
+    padded_sentences = []
+    for i in range(len(sentences)):
+        sentence = sentences[i]
+        num_padding = sequence_length - len(sentence)
+        new_sentence = sentence + [padding_word] * num_padding
+        padded_sentences.append(new_sentence)
+    return padded_sentences
 
