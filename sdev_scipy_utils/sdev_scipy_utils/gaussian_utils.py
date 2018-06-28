@@ -1,6 +1,6 @@
 
-from scipy.special import gammaln, multigammaln
 import numpy as np
+from scipy.special import gammaln, multigammaln
 
 
 def gaussian_obs_log_likelihood(data, t, s):
@@ -24,3 +24,8 @@ def gaussian_obs_log_likelihood(data, t, s):
     )
 
     return np.sum(n * lgA - (nuT + 1) / 2 * prob)
+
+
+def addNoise(xs, std=0.05):
+    "Add gaussian noise"
+    return xs + np.random.normal(0, std, xs.shape)
