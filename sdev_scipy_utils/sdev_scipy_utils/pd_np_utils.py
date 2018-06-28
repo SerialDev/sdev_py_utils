@@ -178,7 +178,7 @@ def np_parallel(func, data, parts=4, verbose=False):
                 array = data[0:split_len]
                 split_array.append((array))
             else:
-                array = data[(split_len * (i - 1)) : (split_len * i)]
+                array = data[(split_len * (i - 1)): (split_len * i)]
                 split_array.append((array))
         return np.array(split_array)
 
@@ -688,7 +688,7 @@ def data_chunker(data, chunks=None, max_len=None):
             if chunk_num == 0:
                 yield data[val:chunk_size]
             val += chunk_size
-            yield data[val : (val + chunk_size)]
+            yield data[val: (val + chunk_size)]
 
     elif max_len is not None and chunks is None:
         val = 0
@@ -697,7 +697,7 @@ def data_chunker(data, chunks=None, max_len=None):
                 val += max_len
                 yield data[0:(val)]
             val += max_len
-            yield data[(val - max_len) : val]
+            yield data[(val - max_len): val]
 
 
 def sliding_window(data, segment_length, slide_length, flag="chunks"):
@@ -800,12 +800,12 @@ def tosql(df, *args, **kargs):
     for i in range((len(df) - INITIAL_CHUNK) // CHUNKSIZE):
         t = threading.Thread(
             target=lambda: df.iloc[
-                INITIAL_CHUNK + i * CHUNKSIZE : INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
+                INITIAL_CHUNK + i * CHUNKSIZE: INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
             ].to_sql(*args, **kargs)
         )
         t.start()
         workers.append(t)
-        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE :, :].to_sql(*args, **kargs)
+        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE:, :].to_sql(*args, **kargs)
     [t.join() for t in workers]
 
 
@@ -850,7 +850,7 @@ def fast_np_fillna(a):
     ind = np.where(~pd.isnull(a))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1 :] = a[last]
+    a[last + 1:] = a[last]
     return a
 
 
@@ -945,3 +945,50 @@ def force_numeric_sort(df):
 def ndistinct(x):
     out = len(np.unique(x))
     print("There are", out, "distinct values.")
+
+
+
+def debug_pandas_apply(func_to_apply, df, col_name, increments=1000):
+    """
+    Utility fuction to debug pandas.apply calls and retrieve the rows yielding the error
+
+    Parameters
+    ----------
+
+    func_to_apply : func
+       A function to apply to each row
+
+    df : pd.DataFrame
+       Pandas dataframe to apply function to
+
+    col_name : str
+       Name of the column
+
+    increments : int
+       stride length also df size on return
+
+    Returns
+    -------
+
+    pd.DataFrame
+         A pandas dataframe of size={increments} containing the rows that yielded an error
+
+    Raises
+    ------
+
+    Exception
+        The exception that led to the function failing application[printed as a side effect]
+    """
+    from math import ceil
+    lb = 0
+    ub = increments
+    its = ceil(aller_ids.shape[0]/increments)
+    for i in range(its):
+        sample = df[lb:ub]
+        lb += increments
+        ub += increments
+        try:
+            sample[col_name].apply(func_to_apply)
+        except Exception as e:
+            print(e)
+            return sample
