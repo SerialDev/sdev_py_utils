@@ -1,6 +1,8 @@
 """Python core profiling & debugging utilitites"""
 
-import threading, traceback, sys
+import threading
+import traceback
+import sys
 from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
@@ -15,6 +17,29 @@ from datetime import datetime
 import traceback
 import numpy as np
 import time
+
+
+def lsos(all_obj=globals(), n=10):
+    # Usage lsos(globals())
+
+    import sys
+
+    object_name = list(all_obj)
+    object_size = [round(sys.getsizeof(all_obj[x])/1024.0/1024.0, 4) for x in object_name]
+    object_id = [id(all_obj[x]) for x in object_name]
+
+    d = [(a, b, c) for a, b, c in zip(object_name, object_size, object_id)]
+    d.sort(key=lambda x: (x[1], x[2]), reverse=True)
+    dprint = d[0:min(len(d), n)]
+
+    # print formating
+    name_width_max = max([len(x[0]) for x in dprint])
+    print(("{:<" + str(name_width_max + 2) + "}{:11}{}").format("name", "size_Mb", "id"))
+    fmt = '{{:<{}}}'.format(name_width_max+2) + "  " + "{: 5.4f}" + "  " + "{:d}"
+    for line in dprint:
+        print(fmt.format(*line))
+
+    return d
 
 
 def total_size(o, handlers={}, verbose=False):
