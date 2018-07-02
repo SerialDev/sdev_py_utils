@@ -1,3 +1,4 @@
+
 from numpy import zeros, array
 from math import sqrt, log
 import numpy as np
@@ -20,9 +21,7 @@ def jsdiv(P, Q):
 
     M = 0.5 * (P + Q)
 
-    return 0.5 * (_kldiv(P, M) +_kldiv(Q, M))
-
-
+    return 0.5 * (_kldiv(P, M) + _kldiv(Q, M))
 
 
 class JSD(object):
@@ -48,4 +47,4 @@ if __name__ == '__main__':
     J = JSD()
     p = [1.0/10, 1.0/10, 0]
     q = [0, 1.0/10, 9.0/10]
-    print J.Jensen_Shannon_divergence(p, q)
+    print(J.Jensen_Shannon_divergence(p, q))

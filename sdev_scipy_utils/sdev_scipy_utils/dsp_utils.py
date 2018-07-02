@@ -41,14 +41,14 @@ def findpeaks(data, spacing=1, limit=None):
     x = np.zeros(len + 2 * spacing)
     x[:spacing] = data[0] - 1.e-6
     x[-spacing:] = data[-1] - 1.e-6
-    x[spacing : spacing + len] = data
+    x[spacing: spacing + len] = data
     peak_candidate = np.zeros(len)
     peak_candidate[:] = True
     for s in range(spacing):
         start = spacing - s - 1
-        h_b = x[start : start + len]  # before
+        h_b = x[start: start + len]  # before
         start = spacing
-        h_c = x[start : start + len]  # central
+        h_c = x[start: start + len]  # central
         start = spacing + s + 1
         h_a = x[start : start + len]  # after
         peak_candidate = np.logical_and(
@@ -314,89 +314,89 @@ def bayesian_anomaly(series):
 from sklearn import cluster
 
 
-def reconstruction_algo_anomaly(
-    data,
-    segment_length,
-    slide_length,
-    func=sin_window_func,
-    clusterer=cluster.KMeans,
-    flag="test",
-    plot=False,
-):
+# def reconstruction_algo_anomaly(
+#     data,
+#     segment_length,
+#     slide_length,
+#     func=sin_window_func,
+#     clusterer=cluster.KMeans,
+#     flag="test",
+#     plot=False,
+# ):
 
-    """
-    * Function: Anomaly detection based on reconstruction of clustered data
-    * Usage: . . .
-    * function is a windowing function that takes in a segment and lenght func(segment, len)
-    * -------------------------------
-    * This function returns
-    * clusterer: cluster.[KMeans, AffinityPropagation, DBSCAN, SpectralClustering, etc..]
-    """
-    segments = sliding_window(data, segment_length, slide_length, flag="chunks")
-    windowed_segments = []
-    for segment in segments:
-        windowed_segments.append(inf_nan_tozero(func(segment, segment_length)))
-    clusterer = clusterer(n_clusters=10)
-    clusterer.fit(windowed_segments)
-    centroids = clusterer.cluster_centers_
-    if flag == "test":
-        windowed = windowed_segments[0]
-        nearest_centroid_idx = clusterer.predict(windowed)[0]
-        nearest_centroid = np.copy(centroids[nearest_centroid_idx])
-        if plot == True:
-            import matplotlib.pyplot as plt
+#     """
+#     * Function: Anomaly detection based on reconstruction of clustered data
+#     * Usage: . . .
+#     * function is a windowing function that takes in a segment and lenght func(segment, len)
+#     * -------------------------------
+#     * This function returns
+#     * clusterer: cluster.[KMeans, AffinityPropagation, DBSCAN, SpectralClustering, etc..]
+#     """
+#     segments = sliding_window(data, segment_length, slide_length, flag="chunks")
+#     windowed_segments = []
+#     for segment in segments:
+#         windowed_segments.append(inf_nan_tozero(func(segment, segment_length)))
+#     clusterer = clusterer(n_clusters=10)
+#     clusterer.fit(windowed_segments)
+#     centroids = clusterer.cluster_centers_
+#     if flag == "test":
+#         windowed = windowed_segments[0]
+#         nearest_centroid_idx = clusterer.predict(windowed)[0]
+#         nearest_centroid = np.copy(centroids[nearest_centroid_idx])
+#         if plot == True:
+#             import matplotlib.pyplot as plt
 
-            plt.figure()
-            plt.plot(segments[0], label="Original Segment")
-            plt.plot(windowed, label="Windowed segment")
-            plt.plot(nearest_centroid, label="Nearest_centroid")
-            plt.legend()
-            plt.show()
-        return segments[0], windowed, nearest_centroid
-    else:
-        # return windowed_segments, clusterer
-        reconstruction = np.zeros(len(data))
-        n_plot_samples = 30
-        for segment_n, segment in enumerate(windowed_segments):
-            segment = np.copy(segment)
-            # segment = inf_nan_tozero(func(segment, 10))
-            nearest_centroid_idx = clusterer.predict(segment)[0]
-            centroids = clusterer.cluster_centers_
-            nearest_centroid = np.copy(centroids[nearest_centroid_idx])
+#             plt.figure()
+#             plt.plot(segments[0], label="Original Segment")
+#             plt.plot(windowed, label="Windowed segment")
+#             plt.plot(nearest_centroid, label="Nearest_centroid")
+#             plt.legend()
+#             plt.show()
+#         return segments[0], windowed, nearest_centroid
+#     else:
+#         # return windowed_segments, clusterer
+#         reconstruction = np.zeros(len(data))
+#         n_plot_samples = 30
+#         for segment_n, segment in enumerate(windowed_segments):
+#             segment = np.copy(segment)
+#             # segment = inf_nan_tozero(func(segment, 10))
+#             nearest_centroid_idx = clusterer.predict(segment)[0]
+#             centroids = clusterer.cluster_centers_
+#             nearest_centroid = np.copy(centroids[nearest_centroid_idx])
 
-            pos = segment_n * slide_length
-            reconstruction[pos : pos + segment_length] += nearest_centroid
-        error = reconstruction[0:n_plot_samples] - data[0:n_plot_samples]
-        error_98th_percentile = np.percentile(error, 98)
-        if plot == True:
-            import matplotlib.pyplot as plt
+#             pos = segment_n * slide_length
+#             reconstruction[pos : pos + segment_length] += nearest_centroid
+#         error = reconstruction[0:n_plot_samples] - data[0:n_plot_samples]
+#         error_98th_percentile = np.percentile(error, 98)
+#         if plot == True:
+#             import matplotlib.pyplot as plt
 
-            plt.figure()
-            plt.plot(data[0:n_plot_samples], label="Original data")
-            plt.legend()
-            plt.show()
-            plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
-            plt.legend()
-            plt.show()
-            plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
-            plt.legend()
-            plt.show()
-            plt.plot(data[0:n_plot_samples], label="Original data")
-            plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
-            plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
-            plt.legend()
-            plt.show()
-            print("Maximum reconstruction error was {:0.1f}".format(error.max()))
-            print(
-                "98th percentile of reconstruction error was {:0.1f} ".format(
-                    error_98th_percentile
-                )
-            )
-        if error.max() > 30:
-            return True
-        else:
-            return False
-    return reconstruction, error, windowed_segments
+#             plt.figure()
+#             plt.plot(data[0:n_plot_samples], label="Original data")
+#             plt.legend()
+#             plt.show()
+#             plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
+#             plt.legend()
+#             plt.show()
+#             plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
+#             plt.legend()
+#             plt.show()
+#             plt.plot(data[0:n_plot_samples], label="Original data")
+#             plt.plot(reconstruction[0:n_plot_samples], label="Reconstructed_data")
+#             plt.plot(error[0:n_plot_samples], label="Reconstruction Error")
+#             plt.legend()
+#             plt.show()
+#             print("Maximum reconstruction error was {:0.1f}".format(error.max()))
+#             print(
+#                 "98th percentile of reconstruction error was {:0.1f} ".format(
+#                     error_98th_percentile
+#                 )
+#             )
+#         if error.max() > 30:
+#             return True
+#         else:
+#             return False
+#     return reconstruction, error, windowed_segments
 
 
 # --------{Changepoint Detection}-------#

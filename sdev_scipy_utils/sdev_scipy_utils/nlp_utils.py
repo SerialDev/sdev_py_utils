@@ -229,7 +229,7 @@ def Build_STDM(docs, **kwargs):
     from sklearn.feature_extraction.text import CountVectorizer
     import pandas as pd
     vectorizer = CountVectorizer(**kwargs)
-    sparsematrix= vectorizer.fit_transform(docs)
+    sparsematrix = vectorizer.fit_transform(docs)
     vocab = vectorizer.vocabulary_.keys()
     return sparsematrix, vocab
 
@@ -242,7 +242,7 @@ def nmf(M, components=5, iterations=5000):
     for n in range(0, iterations): 
         H = np.multiply(H, (W.T * M) / (W.T * W * H + 0.001))
         W = np.multiply(W, (M * H.T) / (W * (H * H.T) + 0.001))
-        print "%d/%d" % (n, iterations)    # Note 'logging' module
+        print("%d/%d" % (n, iterations))    # Note 'logging' module
     return (W, H)
 
 
