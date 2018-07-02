@@ -1,26 +1,54 @@
 """Pandas & np  utility functions"""
 
 import base64
-import json
-import pandas as pd
-import inspect
 import datetime
+import inspect
+import json
 import math
 import threading
+from io import StringIO
+from math import ceil, floor
+from multiprocessing.dummy import Pool as ThreadPool
+
 import numpy as np
 import pandas as pd
-import inspect
-from io import StringIO
-from math import floor
-from multiprocessing.dummy import Pool as ThreadPool
-from math import ceil
 
 
 def pd_to_base64(df):
+    """
+    base64 encode a pandas dataframe
+
+    Parameters
+    ----------
+
+    df : pd.DataFrame
+       A pandas dataframe to encode
+
+    Returns
+    -------
+
+    bytes
+        Base64 encoded pandas dataframe
+    """
     return base64.b64encode(df.to_json().encode("utf-8")).decode("ascii")
 
 
 def pd_series_from_base64(encoded):
+    """
+    Read a base64 encoded message to yield a pandas dataframe
+
+    Parameters
+    ----------
+
+    encoded : bytes
+       base 64 encoded message
+
+    Returns
+    -------
+
+    pd.DataFrame
+        A pandas dataframe with the content present in the base64 encoded dataset
+    """
     return pd.DataFrame(
         list(json.loads(base64.b64decode(encoded.encode("ascii"))).values()),
         columns="Values",
@@ -178,7 +206,7 @@ def np_parallel(func, data, parts=4, verbose=False):
                 array = data[0:split_len]
                 split_array.append((array))
             else:
-                array = data[(split_len * (i - 1)): (split_len * i)]
+                array = data[(split_len * (i - 1)) : (split_len * i)]
                 split_array.append((array))
         return np.array(split_array)
 
@@ -688,7 +716,7 @@ def data_chunker(data, chunks=None, max_len=None):
             if chunk_num == 0:
                 yield data[val:chunk_size]
             val += chunk_size
-            yield data[val: (val + chunk_size)]
+            yield data[val : (val + chunk_size)]
 
     elif max_len is not None and chunks is None:
         val = 0
@@ -697,7 +725,7 @@ def data_chunker(data, chunks=None, max_len=None):
                 val += max_len
                 yield data[0:(val)]
             val += max_len
-            yield data[(val - max_len): val]
+            yield data[(val - max_len) : val]
 
 
 def sliding_window(data, segment_length, slide_length, flag="chunks"):
@@ -800,12 +828,12 @@ def tosql(df, *args, **kargs):
     for i in range((len(df) - INITIAL_CHUNK) // CHUNKSIZE):
         t = threading.Thread(
             target=lambda: df.iloc[
-                INITIAL_CHUNK + i * CHUNKSIZE: INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
+                INITIAL_CHUNK + i * CHUNKSIZE : INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
             ].to_sql(*args, **kargs)
         )
         t.start()
         workers.append(t)
-        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE:, :].to_sql(*args, **kargs)
+        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE :, :].to_sql(*args, **kargs)
     [t.join() for t in workers]
 
 
@@ -850,7 +878,7 @@ def fast_np_fillna(a):
     ind = np.where(~pd.isnull(a))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1:] = a[last]
+    a[last + 1 :] = a[last]
     return a
 
 
@@ -859,7 +887,7 @@ def fast_np_fillna(a):
     ind = np.where(~np.equal(a, None))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1:] = a[last]
+    a[last + 1 :] = a[last]
     return a
 
 
@@ -877,20 +905,6 @@ def greater_than_zero(data):
         return 0
 
 
-def concat_list_dict(list_dict):
-    for i in range(len(list_dict)):
-        if i == 0:
-            df = pd_load_tuple(list(list_dict[i].items()))
-        else:
-            df = df.append(pd_load_tuple(list(list_dict[i].items())))
-    return df
-
-
-def pd_load_tuple(tuple_list):
-    df = pd.DataFrame(tuple_list).T
-    df.columns = df.iloc[0]
-    df = df.reindex(df.index.drop(0))
-    return df
 
 
 def sql_select_chunker(
@@ -949,9 +963,10 @@ def ndistinct(x):
 
 def incremental_bounds_df(size, increments):
     from math import ceil
+
     lb = 0
     ub = increments
-    its = ceil(size/increments)
+    its = ceil(size / increments)
     return (lb, ub, its)
 
 
@@ -987,6 +1002,7 @@ def pd_apply_debug(func_to_apply, df, col_name, increments=1000):
         The exception that led to the function failing application[printed as a side effect]
     """
     from tqdm import tqdm
+
     tqdm.pandas()
     lb, ub, its = incremental_bounds_df(df.shape[0], increments)
     for i in range(its):
@@ -1003,9 +1019,10 @@ def pd_apply_debug(func_to_apply, df, col_name, increments=1000):
 def pd_to_klepto_stream(df, path, increments=1000):
     import gc
     import klepto
+
     lb, ub, its = incremental_bounds_df(df.shape[0], increments)
     d = klepto.archives.dir_archive(path, cached=True, serialized=True)
-    df['_idx_'] = df.index
+    df["_idx_"] = df.index
     for i in range(its):
         sample = df[lb:ub]
         d[i] = sample
@@ -1019,35 +1036,38 @@ def pd_to_klepto_stream(df, path, increments=1000):
 def pd_from_klepto_stream(path):
     import gc
     import klepto
+
     d = klepto.archives.dir_archive(path, cached=True, serialized=True)
-    slices = len(d.__dict__['__archive__'])
+    slices = len(d.__dict__["__archive__"])
     for i in range(slices):
         if i == 0:
-            df = d.__dict__['__archive__'][i]
+            df = d.__dict__["__archive__"][i]
         else:
-            temp = d.__dict__['__archive__'][i]
+            temp = d.__dict__["__archive__"][i]
             df = pd.concat((temp, df))
-            del(temp)
+            del (temp)
             gc.collect()
     df.set_index("_idx_", inplace=True, drop=True)
     df.sort_index(inplace=True)
     return df
 
 
-def pd_stream_apply(df, col_name, func, increments=1000, progress=False, keep='False'):
+def pd_stream_apply(df, col_name, func, increments=1000, progress=False, keep="False"):
     import gc
     import klepto
     from hashlib import sha256
     from os import remove
     import shutil
+
     if progress:
         from tqdm import tqdm
+
         tqdm.pandas()
 
     lb, ub, its = incremental_bounds_df(df.shape[0], increments)
     path = sha256(str(increments).encode()).hexdigest()
 
-    df['_idx_'] = df.index
+    df["_idx_"] = df.index
 
     d = klepto.archives.dir_archive(path, cached=True, serialized=True)
     for i in range(its):
@@ -1070,8 +1090,9 @@ def pd_stream_apply(df, col_name, func, increments=1000, progress=False, keep='F
     return df
 
 
-def pd_stream_parallel_apply(df, col_name, func, increments=1000,
-                             keep='False', pool_size=4):
+def pd_stream_parallel_apply(
+    df, col_name, func, increments=1000, keep="False", pool_size=4
+):
     import gc
     import klepto
     import shutil
@@ -1084,7 +1105,7 @@ def pd_stream_parallel_apply(df, col_name, func, increments=1000,
     lb, ub, its = incremental_bounds_df(df.shape[0], increments)
     path = sha256(str(increments).encode()).hexdigest()
 
-    df['_idx_'] = df.index
+    df["_idx_"] = df.index
 
     d = klepto.archives.dir_archive(path, cached=True, serialized=True)
     for i in range(its):
@@ -1107,3 +1128,16 @@ def pd_stream_parallel_apply(df, col_name, func, increments=1000,
     if keep == False:
         shutil.rmtree(path)
     return df
+
+
+def pd_parallel_apply(data, col_name, func, num_partitions=10):
+    # WARNING: Only works currently with non-nested data in a pd.series
+    # FROM:http://blog.adeel.io/2016/11/06/parallelize-pandas-map-or-apply/
+    import multiprocessing
+
+    data_split = np.array_split(data[col_name], num_partitions)
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
+    data[col_name] = pd.concat(pool.map(func, data_split))
+    pool.close()
+    pool.join()
+    return data
