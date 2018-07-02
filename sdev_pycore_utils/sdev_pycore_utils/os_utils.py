@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import gzip
 from datetime import date, timedelta
 
 import dill as pickle  # Required to pickle lambda functions
@@ -218,6 +219,12 @@ class file_utils(object):
     unpickle_iter : path|str flag|str
        Load a pyObj from a pickle file in a streaming fashion
 
+    to_zipped_pickle : data|pyObj path|str flag|str
+       Serialize and compress a pickle file
+
+    from_zipped_pickle : path|str flag|str
+       Load a pyObj from a compressed pickle file
+
     to_json : data|pyObj path|str flag|str
        Serialize object to json
 
@@ -294,6 +301,21 @@ class file_utils(object):
         with open(path, flag) as file:
             while file.peek(1):
                 yield cPickle.load(file)
+
+    @staticmethod
+    def to_zipped_pickle(obj, filename, protocol=-1):
+        with gzip.open(filename, 'wb') as f:
+            pickle.dump(obj, f, protocol)
+
+    @staticmethod
+    def from_zipped_pickle(path):
+        try:
+            with gzip.open(path, 'rb') as f:
+                loaded_object = pickle.load(f)
+                return loaded_object
+        except IOError:
+            print("Warning: IO Error returning empty dict.")
+            return dict()
 
     @staticmethod
     def to_json(data, path, flag="wb"):
