@@ -859,7 +859,7 @@ def fast_np_fillna(a):
     ind = np.where(~np.equal(a, None))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1 :] = a[last]
+    a[last + 1:] = a[last]
     return a
 
 
@@ -947,8 +947,15 @@ def ndistinct(x):
     print("There are", out, "distinct values.")
 
 
+def incremental_bounds_df(size, increments):
+    from math import ceil
+    lb = 0
+    ub = increments
+    its = ceil(size/increments)
+    return (lb, ub, its)
 
-def debug_pandas_apply(func_to_apply, df, col_name, increments=1000):
+
+def pd_apply_debug(func_to_apply, df, col_name, increments=1000):
     """
     Utility fuction to debug pandas.apply calls and retrieve the rows yielding the error
 
@@ -979,16 +986,124 @@ def debug_pandas_apply(func_to_apply, df, col_name, increments=1000):
     Exception
         The exception that led to the function failing application[printed as a side effect]
     """
-    from math import ceil
-    lb = 0
-    ub = increments
-    its = ceil(aller_ids.shape[0]/increments)
+    from tqdm import tqdm
+    tqdm.pandas()
+    lb, ub, its = incremental_bounds_df(df.shape[0], increments)
     for i in range(its):
         sample = df[lb:ub]
         lb += increments
         ub += increments
         try:
-            sample[col_name].apply(func_to_apply)
+            sample[col_name].progress_apply(func_to_apply)
         except Exception as e:
             print(e)
             return sample
+
+
+def pd_to_klepto_stream(df, path, increments=1000):
+    import gc
+    import klepto
+    lb, ub, its = incremental_bounds_df(df.shape[0], increments)
+    d = klepto.archives.dir_archive(path, cached=True, serialized=True)
+    df['_idx_'] = df.index
+    for i in range(its):
+        sample = df[lb:ub]
+        d[i] = sample
+        d.dump()
+        d.clear()
+        gc.collect()
+        lb += increments
+        ub += increments
+
+
+def pd_from_klepto_stream(path):
+    import gc
+    import klepto
+    d = klepto.archives.dir_archive(path, cached=True, serialized=True)
+    slices = len(d.__dict__['__archive__'])
+    for i in range(slices):
+        if i == 0:
+            df = d.__dict__['__archive__'][i]
+        else:
+            temp = d.__dict__['__archive__'][i]
+            df = pd.concat((temp, df))
+            del(temp)
+            gc.collect()
+    df.set_index("_idx_", inplace=True, drop=True)
+    df.sort_index(inplace=True)
+    return df
+
+
+def pd_stream_apply(df, col_name, func, increments=1000, progress=False, keep='False'):
+    import gc
+    import klepto
+    from hashlib import sha256
+    from os import remove
+    import shutil
+    if progress:
+        from tqdm import tqdm
+        tqdm.pandas()
+
+    lb, ub, its = incremental_bounds_df(df.shape[0], increments)
+    path = sha256(str(increments).encode()).hexdigest()
+
+    df['_idx_'] = df.index
+
+    d = klepto.archives.dir_archive(path, cached=True, serialized=True)
+    for i in range(its):
+        sample = df[lb:ub]
+
+        if progress:
+            sample[col_name] = sample[col_name].progress_apply(func)
+        else:
+            sample[col_name] = sample[col_name].apply(func)
+        d[i] = sample
+        d.dump()
+        d.clear()
+        gc.collect()
+        lb += increments
+        ub += increments
+
+    df = pd_from_klepto_stream(path)
+    if keep == False:
+        shutil.rmtree(path)
+    return df
+
+
+def pd_stream_parallel_apply(df, col_name, func, increments=1000,
+                             keep='False', pool_size=4):
+    import gc
+    import klepto
+    import shutil
+    import multiprocessing
+    from hashlib import sha256
+    from os import remove
+
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
+
+    lb, ub, its = incremental_bounds_df(df.shape[0], increments)
+    path = sha256(str(increments).encode()).hexdigest()
+
+    df['_idx_'] = df.index
+
+    d = klepto.archives.dir_archive(path, cached=True, serialized=True)
+    for i in range(its):
+        sample = df[lb:ub]
+
+        results = pool.map(func, list(sample[col_name]))
+
+        sample[col_name] = results
+        d[i] = sample
+        d.dump()
+        d.clear()
+        gc.collect()
+        lb += increments
+        ub += increments
+
+    pool.close()
+    pool.join()
+
+    df = pd_from_klepto_stream(path)
+    if keep == False:
+        shutil.rmtree(path)
+    return df
