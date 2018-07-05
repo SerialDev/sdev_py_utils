@@ -70,7 +70,7 @@ class aws_utils(object):
         else:
             path = os.path.join(os.getcwd(), name)
 
-        with open(path), 'ab') as f:
+        with open(path, 'ab') as f:
             obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
             for i in obj:
                 f.write(i)
@@ -97,7 +97,7 @@ class aws_utils(object):
         else:
             path = os.path.join(os.getcwd(), name)
 
-        with open(path), 'rb') as f:
+        with open(path, 'rb') as f:
             obj = f.read()
         return obj
 
