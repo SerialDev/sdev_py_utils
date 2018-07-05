@@ -64,7 +64,7 @@ class aws_utils(object):
 
 
 
-    def from_bin_file_streaming(name, bucket_name, key_name, full_path=False):
+    def from_bin_file_streaming(self, name, bucket_name, key_name, full_path=False):
         if full_path:
             path = name
         else:
@@ -76,7 +76,7 @@ class aws_utils(object):
                 f.write(i)
 
 
-    def from_bin_streaming(bucket_name, key_name):
+    def from_bin_streaming(self, bucket_name, key_name):
         out_buffer = io.BytesIO()
         obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
         for i in obj:
@@ -84,14 +84,14 @@ class aws_utils(object):
         out_buffer.seek(0)
         return out_buffer
 
-    def to_bin_streaming(data, bucket_name, key_name):
+    def to_bin_streaming(self, data, bucket_name, key_name):
         out_buffer = io.BytesIO()
         out_buffer.write(data)
         result = self.get_s3_client().upload_fileobj(out_buffer, bucket_name, key_name)
         return result
 
 
-    def read_bin(name, full_path=False):
+    def read_bin(self, name, full_path=False):
         if full_path:
             path = name
         else:
