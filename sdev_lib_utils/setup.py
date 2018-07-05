@@ -11,6 +11,7 @@ setup(name = 'sdev_lib_utils',
       packages=['sdev_lib_utils'],
       install_requires=[
           'boto3',
+          'dill',
           ],
       zip_safe=False)
         
