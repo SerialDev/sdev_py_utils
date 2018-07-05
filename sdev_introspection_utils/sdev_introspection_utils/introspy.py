@@ -368,6 +368,10 @@ def get_method_names(mod):
     return names
 
 
+def get_arity(fn):
+    return len(inspect.getargspec(fn)[0])
+
+
 def is_subclass(o, bases):
     """
     Similar to the ``issubclass`` builtin, but does not raise a ``TypeError``

@@ -9,5 +9,8 @@ setup(name = 'sdev_lib_utils',
       author_email='carlos.mariscal.melgar@gmail.com',
       license='MIT',
       packages=['sdev_lib_utils'],
+      install_requires=[
+          'boto3',
+          ],
       zip_safe=False)
         
