@@ -12,6 +12,8 @@ setup(name = 'sdev_lib_utils',
       install_requires=[
           'boto3',
           'dill',
+          'bs4',
+          'paramiko',
           ],
       zip_safe=False)
         

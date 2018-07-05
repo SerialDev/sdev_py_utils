@@ -43,7 +43,7 @@ class aws_utils(object):
 
     def get_bucket_info(self, prefix):
         if hasattr(self, 'current_bucket'):
-            for obj in bucket.objects.filter(Prefix=prefix):
+            for obj in self.current_bucket.objects.filter(Prefix=prefix):
                 print(obj.key, obj.size)
                 o = obj
             return o
