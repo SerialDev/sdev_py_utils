@@ -2,7 +2,7 @@
 
 # from itertools import zip_longest # for Python 3.x
 # import zip_longest
-
+from collections import Counter
 
 def flatten_list_tuples(list_tuples):
     """
@@ -161,3 +161,78 @@ def chunkwise_window(t):
 def fastest_argmax(array):
     array = list(array)
     return array.index(max(array))
+
+
+def compare_hashable(s, t):
+    """
+    Compare two unordered lists that are hashable in O(n)
+
+    Parameters
+    ----------
+
+    s : list
+       A unordered list to compare
+
+    t : list
+       Unordered list to compare to
+
+    Returns
+    -------
+
+    bool
+        Whether both lists are equal
+
+    """
+    return Counter(s) == Counter(t)
+
+
+def compare_orderable(s, t):
+    """
+    Compare two unordered lists that are Orderable in O(n log n)
+
+    Parameters
+    ----------
+
+    s : list
+       A unordered list to compare
+
+    t : list
+       Unordered list to compare to
+
+    Returns
+    -------
+
+    bool
+        Whether both lists are equal
+
+    """
+    return sorted(s) == sorted(t)
+
+def compare_equality(s, t):
+    """
+    Compare two unordered lists that are
+    Not Hashable or Orderable in O(n * n)
+
+    Parameters
+    ----------
+
+    s : list
+       A unordered list to compare
+
+    t : list
+       Unordered list to compare to
+
+    Returns
+    -------
+
+    bool
+        Whether both lists are equal
+
+    """
+    t = list(t)   # make a mutable copy
+    try:
+        for elem in s:
+            t.remove(elem)
+    except ValueError:
+        return False
+    return not t
