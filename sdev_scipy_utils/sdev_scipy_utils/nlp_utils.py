@@ -234,6 +234,7 @@ def Build_STDM(docs, **kwargs):
     return sparsematrix, vocab
 
 
+
 # Define a topic mining function (non-negative matrix factorization)
 def nmf(M, components=5, iterations=5000):
     # Initialize to matrices
@@ -290,3 +291,36 @@ def ibwt(r,indexlist):
         s = s + r[x]
         x = indexlist[x]
     return s
+
+
+
+def count_vectorizer_vocab(data, nb_top_words=50000):
+    vectorizer = CountVectorizer(
+        analyzer="word",
+        tokenizer=None,
+        preprocessor=None,
+        stop_words=None,
+        max_features=nb_top_words - 1,
+    )
+    train_split_data_features = vectorizer.fit_transform(data)
+    # Convert to an array for easier handling instead of a sparse matrix
+    train_split_data_features = train_split_data_features.toarray()
+    vocab = vectorizer.get_feature_names()
+    freq = np.sum(train_split_data_features, axis=0)
+
+    df_vocab = pd.DataFrame(list(zip(vocab, freq)), columns=['vocab', 'freq'])
+    # sort by frequency rank
+    df_vocab = df_vocab.sort_values(by="freq", ascending=False)
+    df_vocab.reset_index(drop=True, inplace=True)
+    df_vocab.index = df_vocab.index + 1 # Increase this to make room for null character
+
+    # Invert word/int pairs to get our lookup with word as key#Invert
+    vocab_idx = {key:value for (key, value) in zip(df_vocab["vocab"], df_vocab.index)}
+    return vocab_idx, df_vocab
+
+
+
+def words_to_index(wordlist, vocab=None):
+    """Minifunction for pandas.apply(). Replaces each word with respective index.
+    If it's not in the vocab, replace with 0"""
+    return [vocab[word] if word in vocab else 0 for word in wordlist]
