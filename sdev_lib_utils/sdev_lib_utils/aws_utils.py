@@ -37,11 +37,11 @@ class aws_utils(object):
 
 
     def get_bucket_key_json(self):
-        if hasattr(self, 'current_bucket_key'):
-            for i in self.current_bucket_key['Body'].iter_lines():
-                yield json.loads(i.decode())
-        else:
-            print("No current bucket object initialized")
+            if hasattr(self, 'current_bucket_key'):
+                for i in self.current_bucket_key['Body'].iter_lines():
+                    yield json.loads(i.decode())
+            else:
+                print("No current bucket object initialized")
 
 
     def get_bucket_info(self, prefix):
@@ -117,3 +117,4 @@ class aws_utils(object):
 
         if temp_list != []:
             self.to_s3(bucket_name, temp_list, key_name + "_{}".format(file_num + 1))
+
