@@ -121,9 +121,8 @@ class aws_utils(object):
 
         with open(path, 'ab') as f:
             obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
-
-                for i in obj:
-                    f.write(i)
+            for i in obj:
+                f.write(i)
 
 
     def from_bin_streaming(self, bucket_name, key_name):
