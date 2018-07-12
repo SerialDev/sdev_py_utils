@@ -54,7 +54,7 @@ class aws_utils(object):
     iter_to_s3 : bucket_name|str iterable|iter key_name|str increments|int
        Stores any iterable into s3 in different increments to allow for reconstruction/function application
 
-    """    
+    """
     def __init__(self, key, secret):
 
         self.key = key
@@ -123,7 +123,7 @@ class aws_utils(object):
             obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
 
                 for i in obj:
-                f.write(i)
+                    f.write(i)
 
 
     def from_bin_streaming(self, bucket_name, key_name):
