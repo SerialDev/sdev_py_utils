@@ -6,6 +6,55 @@ import zlib
 import io
 
 class aws_utils(object):
+    """
+    Aws Utility class for interfacing with S3
+
+    Parameters
+    ----------
+
+    __init__ : key|string secret|string
+       Initialize the class with AWS key and secret
+
+    get_s3_client : None
+       Returns an S3 Client object for the low level API
+
+    get_s3_res : None
+       Returns a S3 Resource object for the high level API
+
+    get_bucket : bucket_name|string
+       Returns a bucket from S3
+
+    get_bucket_key : bucket_name|string key_name|string
+       Returns a key object from inside a bucket [file]
+
+    get_bucket_key_json : None
+       Use initialised bucket/key and creates an iterator to stream Json results line by line to not consume memory
+
+    get_bucket_info : prefix|string
+       Returns info of all objects with prefix from the current bucket
+
+    to_s3 : bucket_name|string key_name|string
+       Stores a python object as a compressed pickle
+
+    from_s3 : bucket_name|str key_name|str
+       Retrieves a pickle object from S3 uncompresses it and loads it as a python object
+
+    from_bin_file_streaming : name|str[file_path] bucket_name|str key_name|str full_path|bool
+       Takes a binary object from S3 and saves it on the filesystem under <name>
+
+    from_bin_streaming : bucket_name|str key_name|str
+       Returns a File buffer from a binary file in S3
+
+    to_bin_streaming : data|Binary bucket_name|str key_name|str
+       Binary Streaming data into S3 uses low memory
+
+    read_bin : name|str[path] full_path|bool
+       reads a binary file from filesystem using the same logic as from_bin_file_streaming
+
+    iter_to_s3 : bucket_name|str iterable|iter key_name|str increments|int
+       Stores any iterable into s3 in different increments to allow for reconstruction/function application
+
+    """    
     def __init__(self, key, secret):
 
         self.key = key
@@ -72,7 +121,8 @@ class aws_utils(object):
 
         with open(path, 'ab') as f:
             obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
-            for i in obj:
+
+                for i in obj:
                 f.write(i)
 
 
