@@ -324,3 +324,243 @@ def words_to_index(wordlist, vocab=None):
     """Minifunction for pandas.apply(). Replaces each word with respective index.
     If it's not in the vocab, replace with 0"""
     return [vocab[word] if word in vocab else 0 for word in wordlist]
+
+
+
+def arithmetize(text,basis=2**16):
+    """ convert substring to number using basis powers
+    employs Horner rule """
+    partial_sum=0
+    for ch in text:
+        partial_sum = partial_sum*basis+ord(ch) # Horner
+    return partial_sum
+
+
+def arithmetize_text(text,m,basis=2**16):
+     """ computes arithmization of all m long substrings
+     of text, using basis powers """
+     t=[] # will store list of numbers representing
+     # consecutive substrings
+     for s in range(0,len(text)-m+1):
+         t = t+[arithmetize(text[s:s+m],basis)]
+         # append the next number to existing t
+     return t
+
+
+#Something is Off here TODO text2 and efficient
+def arithmetize_text2(text,m,basis=2**16):
+    """ efficiently computes arithmetization of all m long
+    substrings of text, using basis powers """
+    b_power=basis**(m-1)
+    t=[arithmetize(text[0:m],basis)]
+    # t[0] equals first word arithmetization
+    for s in range(1,len(text)-m+1):
+        new_number=(t[s-1]-ord(text[s-1])*b_power)*basis
+        +ord(text[s+m-1])
+        t=t+[new_number] # append new_number to existing
+    return t
+    # t stores list of numbers representing m long words of text 
+
+ 
+def arithmetize_text_efficient(text, m, basis=2**6):
+    """
+    efficiently computes arithmetization of all m long
+    substrings of text, using basis powers
+    """
+
+    b_power=basis**(m-1)
+    t=[arithmetize(text[0:m], basis)]
+    # t[0] equals first word arithmetization
+    for s in range(1, len(text) -m +1):
+        new_number = (t[s-1] - ord(text[s-1]) * b_power) * basis + ord(text[s+m-1])
+        t = t + [new_number] # Append new_number to existing
+    return t # t stores list of umbers representing m long words of text
+
+
+def find_matches_arithmetize(pattern,text,basis=2**16):
+     """ find all occurrences of pattern in text
+     using efficient arithmetization of text """
+     assert(len(pattern) <= len(text))
+     p=arithmetize(pattern,basis)
+     t=arithmetize_text2(text,len(pattern),basis)
+     matches=[]
+     for s in range(len(t)):
+         if p==t[s]: matches=matches+[s]
+     return matches
+
+
+def fingerprint(text,basis=2**16,r=2**32-3):
+    """ used to compute karp-rabin fingerprint of the pattern
+    employs Horner method (modulo r) """
+    partial_sum=0
+    for ch in text:
+        partial_sum=(partial_sum*basis+ord(ch)) % r
+    return partial_sum
+
+
+def text_fingerprint(text,m,basis=2**16,r=2**32-3):
+    """ used to computes karp-rabin fingerprint of the text """
+    f=[]
+    b_power=pow(basis,m-1,r)
+    list.append(f, fingerprint(text[0:m], basis, r))
+    # f[0] equals first text fingerprint
+    for s in range(1,len(text)-m+1):
+        new_fingerprint=((f[s-1]-ord(text[s-1])*b_power)*basis
+        +ord(text[s+m-1])) % r
+        # compute f[s], based on f[s-1]
+        list.append(f,new_fingerprint)# append f[s] to existing f
+    return f
+
+
+def find_matches_KR(pattern,text,basis=2**16,r=2**32-3):
+    """ find all occurrences of pattern in text
+    using coin flipping Karp-Rabin algorithm """
+
+    if len(pattern) > len(text):
+        return []
+    p = fingerprint(pattern,basis,r)
+    f = text_fingerprint(text,len(pattern),basis,r)
+    matches = [s for s, f_s in enumerate(f) if f_s == p]
+    # list comprehension
+    return matches
+
+
+def sanitize(text):
+    """Removes irrelevant features such as spaces and commas.
+    :param text: A string of (index, character) tuples.
+    """
+
+    import re
+
+    # NOTE: \p{L} or \p{Letter}: any kind of letter from any language.
+    # http://www.regular-expressions.info/unicode.html
+    p = re.compile(r'\w', re.UNICODE)
+
+    def f(c):
+        return p.match(c[1]) is not None
+
+    return filter(f, map(lambda x: (x[0], x[1].lower()), text))
+
+def kgrams(text, k=5):
+    """Derives k-grams from text."""
+
+    text = list(text)
+    n = len(text)
+
+    if n < k:
+        yield text
+    else:
+        for i in range(n - k + 1):
+            yield text[i:i+k]
+
+
+def winnowing_hash(kgram):
+    """
+    :param kgram: e.g., [(0, 'a'), (2, 'd'), (3, 'o'), (5, 'r'), (6, 'u')]
+    """
+    kgram = zip(*kgram)
+    kgram = list(kgram)
+
+    # FIXME: What should we do when kgram is shorter than k?
+    text = ''.join(kgram[1]) if len(kgram) > 1 else ''
+
+    hash_function = default_hash
+    hs = hash_function(text)
+
+    # FIXME: What should we do when kgram is shorter than k?
+    return (kgram[0][0] if len(kgram) > 1 else -1, hs)
+
+
+def default_hash(text):
+    import hashlib
+
+    hs = hashlib.sha1(text.encode('utf-8'))
+    hs = hs.hexdigest()[-4:]
+    hs = int(hs, 16)
+
+    return hs
+
+
+def select_min(window):
+    """In each window select the minimum hash value. If there is more than one
+    hash with the minimum value, select the rightmost occurrence. Now save all
+    selected hashes as the fingerprints of the document.
+    :param window: A list of (index, hash) tuples.
+    """
+
+    #print window, min(window, key=lambda x: x[1])
+
+    return min(window, key=lambda x: x[1])
+
+
+def winnow_f(text, k=5):
+    n = len(list(text))
+
+    text = zip(range(n), text)
+    text = sanitize(text)
+
+    hashes = map(lambda x: winnowing_hash(x), kgrams(text, k))
+
+    windows = kgrams(hashes, 4)
+
+    return set(map(select_min, windows))
+
+
+def get_shingles(s, k=5):
+    """
+    Shingle and discard the last k as there are just the last n<k characters from the document
+
+    Parameters
+    ----------
+
+    s : string
+       Document to shingle
+
+    k : int
+       Shingle length
+
+    Returns
+    -------
+
+    list
+        A list with all the shingles in the document
+
+    """
+
+    shingles = [s[i:i+k] for i in range(len(s))][:-5]
+    return shingles
+
+def jaccard_distance(set_a, set_b):
+    """
+    Get the Jaccard distance between two sets [ size of set intersection divided by the size of set union ]
+
+    Parameters
+    ----------
+
+    set_a : set|list
+        A set or list to compare
+
+    set_b : set|list
+        A set or list to compare to
+
+    Returns
+    -------
+
+    floag
+        The value of the Jaccard distance between these two sets
+
+    """
+    if type(set_a) or type(set_b) == type([]):
+        set_a = set(set_a)
+        set_b = set(set_b)
+    size_intersection = len(set_a & set_b)
+    size_union = len(set_a | set_b)
+    try:
+        jaccard_distance = size_intersection / size_union
+    except:
+        jaccard_distance = 0
+    return jaccard_distance
+
+
+
+
