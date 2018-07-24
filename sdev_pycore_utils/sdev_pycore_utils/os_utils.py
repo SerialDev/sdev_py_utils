@@ -870,3 +870,19 @@ class open_atomic(object):
 
     def __getattr__(self, attr):
         return getattr(self.file, attr)
+
+
+def load_or_create(data, path, force = False):
+    if force == True:
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
+        return data
+    try:
+        with open(path, 'rb') as f:
+            result = pickle.load(f)
+        return result
+    except Exception:
+        with open(path, "wb") as f:
+                pickle.dump(data, f)
+        return data
+
