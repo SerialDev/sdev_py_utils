@@ -886,3 +886,21 @@ def load_or_create(data, path, force = False):
                 pickle.dump(data, f)
         return data
 
+
+def load_or_create_locked(data, path, force=False, timeout=1):
+    from filelock import Timeout, FileLock
+
+    lock = FileLock(path + ".lock")
+
+    if force == True:
+        with lock.acquire(timeout=timeout):
+            open(path, 'wb').write(pickle.dumps(data))
+        return data
+    try:
+        with open(path, "rb") as f:
+            result = pickle.load(f)
+        return result
+    except Exception:
+        with lock.acquire(timeout=timeout):
+            open(path, "wb").write(pickle.dumps(data))
+        return data
