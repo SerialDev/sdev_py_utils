@@ -295,6 +295,7 @@ def ibwt(r,indexlist):
 
 
 def count_vectorizer_vocab(data, nb_top_words=50000):
+    from sklearn.feature_extraction.text import CountVectorizer
     vectorizer = CountVectorizer(
         analyzer="word",
         tokenizer=None,
