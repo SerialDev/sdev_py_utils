@@ -303,6 +303,7 @@ class ec2_utils(object):
                         subnet_id="*4d*",
                         image_name="*Ubuntu*",
                         image_ami="ami-8a392060",
+                        availability_zone="eu-west-1b",
                         volume_size=200,):
 
         self.resource.create_instances(
@@ -317,5 +318,5 @@ class ec2_utils(object):
             MaxCount = 1,
             MinCount = 1,
             TagSpecifications = [{"ResourceType":"instance", "Tags":[{"Key": "Name", "Value": instance_tag }]}],
-            Placement={"AvailabilityZone": "eu-west-1b",},
+            Placement={"AvailabilityZone": availability_zone,},
         )
