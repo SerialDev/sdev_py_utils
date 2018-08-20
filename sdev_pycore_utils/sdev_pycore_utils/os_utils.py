@@ -188,6 +188,22 @@ def truncated_path(path, lval=None, rval=None):
     return "{}".format(os.sep).join(os.getcwd().split(os.sep)[lval:rval])
 
 
+def to_bytes_io(data):
+    from io import BytesIO
+    out_buffer = BytesIO()
+    out_buffer.write(data)
+    out_buffer.seek(0)
+    return out_buffer
+
+
+def to_str_io(data):
+    from io import StringIO
+    out__buffer = StringIO()
+    out_buffer.write(data)
+    out_buffer.seek(0)
+    return out_buffer
+
+
 class file_utils(object):
     """
     File manipulation utilities
