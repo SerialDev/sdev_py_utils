@@ -136,6 +136,7 @@ class aws_utils(object):
     def to_bin_streaming(self, data, bucket_name, key_name):
         out_buffer = io.BytesIO()
         out_buffer.write(data)
+        out_buffer.seek(0)
         result = self.get_s3_client().upload_fileobj(out_buffer, bucket_name, key_name)
         return result
 
