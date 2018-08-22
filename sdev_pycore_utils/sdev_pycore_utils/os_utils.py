@@ -920,3 +920,11 @@ def load_or_create_locked(data, path, force=False, timeout=1):
         with lock.acquire(timeout=timeout):
             open(path, "wb").write(pickle.dumps(data))
         return data
+
+
+def file_exists(path):
+    return os.path.isfile(path)
+
+
+def file_is_readable(path):
+    return os.access(path, os.R_OK)
