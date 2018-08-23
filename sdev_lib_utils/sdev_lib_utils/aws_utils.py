@@ -168,3 +168,9 @@ class aws_utils(object):
         if temp_list != []:
             self.to_s3(bucket_name, temp_list, key_name + "_{}".format(file_num + 1))
 
+
+    def iter_bucket(self, bucket_name):
+        for i in self.get_s3_res().Bucket(bucket_name).objects.all():
+            yield i
+
+
