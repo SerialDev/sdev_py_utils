@@ -173,4 +173,11 @@ class aws_utils(object):
         for i in self.get_s3_res().Bucket(bucket_name).objects.all():
             yield i
 
+    def get_s3_objects_containing(self, bucket_name, containing_string):
+        buckets = self.iter_bucket(bucket_name)
+
+        buckets = [i for i in buckets if containing_string in i.key]
+        return buckets
+
+
 
