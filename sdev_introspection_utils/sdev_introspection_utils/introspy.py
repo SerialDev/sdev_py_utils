@@ -400,3 +400,20 @@ def is_subclass(o, bases):
 
     bases = tuple(b for b in bases if isinstance(b, type))
     return _issubclass(o, bases)
+
+
+def retrieve_name(var):
+    """
+    Gets the name of var. Does it from the out most frame inner-wards.
+    :param var: variable to get name from.
+    :return: string
+    """
+    result_name = [k for k, v in locals().items() if v is var][0]
+
+    for fi in reversed(inspect.stack()):
+        names = [var_name for var_name, var_val in fi.frame.f_locals.items() if var_val is var]
+        if len(names) > 0:
+            if len(names) > len(result_name):
+                return names[0]
+            else:
+                return result_name

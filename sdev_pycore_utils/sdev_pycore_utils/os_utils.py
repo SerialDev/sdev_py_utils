@@ -888,7 +888,7 @@ class open_atomic(object):
         return getattr(self.file, attr)
 
 
-def load_or_create(data, path, force = False):
+def load_or_create(data, path, force=False):
     if force == True:
         with open(path, "wb") as f:
             pickle.dump(data, f)
@@ -899,7 +899,7 @@ def load_or_create(data, path, force = False):
         return result
     except Exception:
         with open(path, "wb") as f:
-                pickle.dump(data, f)
+            pickle.dump(data, f)
         return data
 
 
@@ -928,3 +928,35 @@ def file_exists(path):
 
 def file_is_readable(path):
     return os.access(path, os.R_OK)
+
+
+def try_makedir(name):
+    try:
+        os.mkdir(os.path.join(os.getcwd(), name))
+    except FileExistsError:
+        print("{} folder already exists".format(name))
+
+
+def local_caching(data, name, force=False):
+
+    name = name + ".plk"
+    filepath = os.path.join(os.getcwd(), "cached", name)
+    try_makedir("cache")
+
+    if force == True:
+        with open(filepath, 'wb') as f:
+            print("Force dump, dumping..")
+            pickle.dump(data, f)
+        return data
+
+    try:
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+            print("{} found loading..".format(name))
+        return data
+    except FileNotFoundError:
+        print("{} was not found, dumping".format(name))
+
+        with open(filepath, 'wb') as f:
+            pickle.dump(data, f)
+        return data

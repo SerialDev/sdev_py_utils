@@ -905,8 +905,6 @@ def greater_than_zero(data):
         return 0
 
 
-
-
 def sql_select_chunker(
     engine, cols="*", table="ticks", optionals="", order_by="timestamp", size=None
 ):
@@ -1143,22 +1141,43 @@ def pd_parallel_apply(data, col_name, func, num_partitions=10):
     return data
 
 
-
 def np_parallel_apply_along(data, function, axis=1, parts=4, threads=4):
-    #WARNING TODO: use ast to use only the given parts/threads
+    # WARNING TODO: use ast to use only the given parts/threads
 
     split_array = np.array_split(data, parts)
     pool = Pool(threads)
     ast_string = []
     ast_final = ""
     for i in range(parts):
-        temp = "(function, {}, split_array[{}].reshape((split_array[{}].shape[0], 1)))".format(axis, i, i)
+        temp = "(function, {}, split_array[{}].reshape((split_array[{}].shape[0], 1)))".format(
+            axis, i, i
+        )
         ast_string.append(temp)
         ast_final += "eval(ast_string[{}]),".format(i)
 
-    result = pool.starmap(np.apply_along_axis, [eval(ast_string[0]),
-                                                eval(ast_string[1]),
-                                                eval(ast_string[2]),
-                                                eval(ast_string[3]) ])
+    result = pool.starmap(
+        np.apply_along_axis,
+        [
+            eval(ast_string[0]),
+            eval(ast_string[1]),
+            eval(ast_string[2]),
+            eval(ast_string[3]),
+        ],
+    )
     result = np.concatenate(([*result]), axis=0)
+    return result
+
+
+def split_dataframe(df, sections=10):
+    from math import ceil
+
+    part_size = ceil(df_u.shape[0] // sections)
+    result = []
+    lb = 0
+    ub = part_size
+    for i in range(sections):
+        temp_df = df[lb:ub].copy()
+        result.append(temp_df)
+        lb = lb + part_size
+        ub = ub + part_size
     return result
