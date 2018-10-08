@@ -132,3 +132,7 @@ class RecentlyUsedContainer(MutableMapping):
     def keys(self):
         with self._lock:
             return self._container.keys()
+
+
+def generator_range(generator, count):
+    return [generator.__next__()for i in range(count)]
