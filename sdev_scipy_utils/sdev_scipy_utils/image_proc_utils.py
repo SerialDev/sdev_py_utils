@@ -73,3 +73,11 @@ def save_bytesio_file(data, filename="test.png"):
     with open(filename, 'wb') as f:
         f.write(data.read())
     return []
+
+
+def blur_image(img):
+    # Blur image with random kernel
+    kernel_size = random.randint(1, 5)
+    if kernel_size % 2 != 1:
+        kernel_size += 1
+    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
