@@ -6,4 +6,4 @@ from .matrix_utils import *
 from .gaussian_utils import *
 from .fselection_utils import *
 from .nlp_utils import *
-
+from .keras_utils import *
