@@ -42,3 +42,10 @@ def print_trainable_layers(model, trainable=True):
         else:
             if not layer.trainable:
                 print(idx, layer.trainable, layer)
+    return model
+
+
+def freeze_trainable_layers(model, except_last=4):
+    for layer in model.layers[:-except_last]:
+        layer.trainable = False
+    return model
