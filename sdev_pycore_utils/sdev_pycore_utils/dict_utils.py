@@ -192,7 +192,7 @@ def without_keys(d, keys):
     return {x: d[x] for x in d if x not in keys}
 
 
-def dict_union(*args):
+def union_dicts(*args):
     """
     Join multiple dicts together
 
@@ -211,3 +211,24 @@ def dict_union(*args):
     from itertools import chain
 
     return dict(chain.from_iterable(d.items() for d in args))
+
+
+def transform_dict_ltuples(data):
+    """
+    dict -> list(tuples)
+
+    Parameters
+    ----------
+
+    data : dict
+       A dictionary
+
+    Returns
+    -------
+
+    list
+        A tuple list
+    """
+
+    result = [(a, b) for a, b in data.items()]
+    return result
