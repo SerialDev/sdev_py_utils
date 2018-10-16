@@ -81,3 +81,7 @@ def blur_image(img):
     if kernel_size % 2 != 1:
         kernel_size += 1
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+
+
+def extract_annotation_polygon(annotation):
+    return [i['shape_attributes'] for i in annotation[1]['regions']]

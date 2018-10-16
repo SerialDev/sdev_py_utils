@@ -5,13 +5,13 @@ import yaml
 from collections import OrderedDict
 
 
-def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+def load_yaml_odict(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     """
     * Function: Load yaml into an OrderedDict
     * -----------{returns}------------
     * An OrderedDict object with yaml contents . . .
     * ------------{usage}-------------
-    >>> ordered_load(stream, yaml.SafeLoader)
+    >>> load_yaml_odict(stream, yaml.SafeLoader)
     """
 
     class OrderedLoader(Loader):
@@ -27,13 +27,13 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     return yaml.load(stream, OrderedLoader)
 
 
-def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
+def dump_odict_yaml(data, stream=None, Dumper=yaml.Dumper, **kwds):
     """
     * Function: Dump an OrderedDict onto a yaml file
     * -----------{returns}------------
     * Serialised OrderedDict object into yaml . . .
     * ------------{usage}-------------
-    >>> ordered_dump(data, Dumper=yaml.SafeDumper)
+    >>> dump_odict_yaml(data, Dumper=yaml.SafeDumper)
     """
 
     class OrderedDumper(Dumper):
