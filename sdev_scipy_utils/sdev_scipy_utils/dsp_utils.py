@@ -50,7 +50,7 @@ def findpeaks(data, spacing=1, limit=None):
         start = spacing
         h_c = x[start: start + len]  # central
         start = spacing + s + 1
-        h_a = x[start : start + len]  # after
+        h_a = x[start: start + len]  # after
         peak_candidate = np.logical_and(
             peak_candidate, np.logical_and(h_c > h_b, h_c > h_a)
         )
@@ -175,8 +175,8 @@ def mean_subtraction_cumulation(timeseries):
 
     # series = pandas.Series([x[1] if x[1] else 0 for x in timeseries])
     series = timeseries
-    series = series - series[0 : len(series) - 1].mean()
-    stdDev = series[0 : len(series) - 1].std()
+    series = series - series[0: len(series) - 1].mean()
+    stdDev = series[0: len(series) - 1].std()
     expAverage = series.ewm(com=15).mean()
 
     return abs(series.iloc[-1]) > 3 * stdDev
@@ -303,7 +303,7 @@ def bayesian_anomaly(series):
     """
     index = bayesian_changepoint(series)[1]
     MAD = series.mad()
-    subset = series[index - 2 : index + 5].mean()
+    subset = series[index - 2: index + 5].mean()
     return subset > MAD
 
 
@@ -431,7 +431,7 @@ def bayesian_changepoint(data):
 
     z, zz = np.max(y), np.argmax(y)
     mean1 = sum(data[: zz + 1] / float(len(data[: zz + 1])))
-    mean2 = sum(data[(zz + 1) : n]) / float(n - 1 - zz)
+    mean2 = sum(data[(zz + 1): n]) / float(n - 1 - zz)
     # p = y.argsort()[-3:][::-1]
     p = sorted(range(len(y)), key=lambda x: y[x])[-5:]
     return y, zz, mean1, mean2, p
@@ -605,7 +605,7 @@ def freq_from_autocorr(signal, fs):
     # reversed in time), and throw away the negative lags
     signal -= np.mean(signal)  # Remove DC offset
     corr = fftconvolve(signal, signal[::-1], mode="full")
-    corr = corr[len(corr) // 2 :]
+    corr = corr[len(corr) // 2:]
 
     # Find the first low point
     d = np.diff(corr)
@@ -749,3 +749,29 @@ def bumphunter(hdata, hmc, n):
     pvalue_uncertainty = sqrt(pvalue * (1. - pvalue) / n)
 
     return measurement, (lo, hi), pseudo_experiments, pvalue, pvalue_uncertainty
+
+
+def remove_outliers(data):
+    """
+    """
+    mean = sum(data) / len(data)
+    std = stddev(data)
+
+    result = []
+    for i in data:
+        if math.fabs((i - mean)) > 1 * std:
+            result.append(0)
+        else:
+            result.append(i)
+    return result
+
+
+def rescale(values, new_min=0, new_max=100):
+    output = []
+    old_min, old_max = min(values), max(values)
+
+    for v in values:
+        new_v = (new_max - new_min) / (old_max - old_min) * (v - old_min) + new_min
+        output.append(new_v)
+
+    return output
