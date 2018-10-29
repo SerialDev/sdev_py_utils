@@ -4,6 +4,7 @@
 # import zip_longest
 from collections import Counter
 
+
 def flatten_list_tuples(list_tuples):
     """
     Flatten a list ot tuples [(,)...] -> [...]
@@ -89,7 +90,7 @@ def chunks(l, n):
         A generator yielding lists of size n
     """
     for i in range(0, len(l), n):
-        yield l[i : i + n]
+        yield l[i: i + n]
 
 
 def chunks_padded(iterable, n, padvalue=None):
@@ -208,6 +209,7 @@ def compare_orderable(s, t):
     """
     return sorted(s) == sorted(t)
 
+
 def compare_equality(s, t):
     """
     Compare two unordered lists that are
@@ -236,3 +238,32 @@ def compare_equality(s, t):
     except ValueError:
         return False
     return not t
+
+
+def transform_points_array(data):
+    """
+    Transform from a points list to a dict with
+    arrays of points
+    type-def: [{n: w}, {n: w}] -> {n: [w, w]}
+
+    Parameters
+    ----------
+
+    data : list
+    A list of points
+
+    Returns
+    -------
+
+    dict
+        A point of arrays
+    """
+    temp = {}
+    for i in data:
+        for k, v in i.items():
+            if k in temp:
+                temp[k].append(v)
+            else:
+                temp[k] = []
+                temp[k].append(v)
+    return temp
