@@ -5,6 +5,11 @@ import doctest
 import sys
 
 
+def attach_method(class_instance, name, function):
+    if name not in class_instance.__dict__.keys():
+        class_instance.__dict__[name] = types.MethodType(function, class_instance)
+
+
 def nested_attribute(object, attr):
     """
     Get the nested attributes of a pyObj
