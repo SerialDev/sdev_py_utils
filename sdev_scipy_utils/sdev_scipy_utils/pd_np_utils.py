@@ -206,7 +206,7 @@ def np_parallel(func, data, parts=4, verbose=False):
                 array = data[0:split_len]
                 split_array.append((array))
             else:
-                array = data[(split_len * (i - 1)) : (split_len * i)]
+                array = data[(split_len * (i - 1)): (split_len * i)]
                 split_array.append((array))
         return np.array(split_array)
 
@@ -716,7 +716,7 @@ def data_chunker(data, chunks=None, max_len=None):
             if chunk_num == 0:
                 yield data[val:chunk_size]
             val += chunk_size
-            yield data[val : (val + chunk_size)]
+            yield data[val: (val + chunk_size)]
 
     elif max_len is not None and chunks is None:
         val = 0
@@ -725,7 +725,7 @@ def data_chunker(data, chunks=None, max_len=None):
                 val += max_len
                 yield data[0:(val)]
             val += max_len
-            yield data[(val - max_len) : val]
+            yield data[(val - max_len): val]
 
 
 def sliding_window(data, segment_length, slide_length, flag="chunks"):
@@ -828,12 +828,12 @@ def tosql(df, *args, **kargs):
     for i in range((len(df) - INITIAL_CHUNK) // CHUNKSIZE):
         t = threading.Thread(
             target=lambda: df.iloc[
-                INITIAL_CHUNK + i * CHUNKSIZE : INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
+                INITIAL_CHUNK + i * CHUNKSIZE: INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
             ].to_sql(*args, **kargs)
         )
         t.start()
         workers.append(t)
-        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE :, :].to_sql(*args, **kargs)
+        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE:, :].to_sql(*args, **kargs)
     [t.join() for t in workers]
 
 
@@ -878,7 +878,7 @@ def fast_np_fillna(a):
     ind = np.where(~pd.isnull(a))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1 :] = a[last]
+    a[last + 1:] = a[last]
     return a
 
 
@@ -887,7 +887,7 @@ def fast_np_fillna(a):
     ind = np.where(~np.equal(a, None))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1 :] = a[last]
+    a[last + 1:] = a[last]
     return a
 
 
@@ -1181,3 +1181,17 @@ def split_dataframe(df, sections=10):
         lb = lb + part_size
         ub = ub + part_size
     return result
+
+
+def fill_na(df):
+    for col in df:
+        # get dtype for column
+        dt = df[col].dtype
+        # check if it is a number
+        if dt == int or dt == float:
+            df[col].fillna(0, inplace=True)
+        elif dt == np.dtype('<M8[ns]'):
+            df[col].fillna(datetime.datetime(2000, 1, 1, 0, 0, 0), inplace=True)
+        else:
+            df[col].fillna("", inplace=True)
+    return df
