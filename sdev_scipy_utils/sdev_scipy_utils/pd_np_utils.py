@@ -1195,3 +1195,33 @@ def fill_na(df):
         else:
             df[col].fillna("", inplace=True)
     return df
+
+
+def inner_join(con, table1, table2, col):
+    a = pd.read_sql("select * from {} limit 1;".format(table1), con).keys()
+    b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
+    intersection = [table1 + "." + i for i in a.intersection(b)]
+    intersection.extend([table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)])
+    union = list(a.symmetric_difference(b))
+    union.extend(intersection)
+    cols = ", ".join(union)
+    result = "select {} from {} INNER JOIN {} ON {}.{}={}.{}".format(
+        cols, table1, table2, table1, col, table2, col)
+    return result + " "
+
+
+def nest_inner(con, query, view1, table2, col, col2=None):
+    a = pd.read_sql(query + " limit 1", con).keys()
+    b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
+    intersection = [view1 + "." + i for i in a.intersection(b)]
+    intersection.extend([table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)])
+    union = list(a.symmetric_difference(b))
+    union.extend(intersection)
+    cols = ", ".join(union)
+    if col2:
+        result = "select {} from ({}) as {} INNER JOIN {} ON {}.{}={}.{}".format(
+            cols, query, view1, table2, view1, col, table2, col2)
+    else:
+        result = "select {} from ({}) as {} INNER JOIN {} ON {}.{}={}.{}".format(
+            cols, query, view1, table2, view1, col, table2, col)
+    return result + " "

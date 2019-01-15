@@ -33,6 +33,33 @@ import dill as pickle  # Required to pickle lambda functions
 #     wrap(lib)
 
 
+def pickle_to_buffer(data):
+    import io
+    buffer = io.BytesIO()
+    buffer.write(pickle.dumps(data))
+    buffer.seek(0)
+    return buffer
+
+
+def b64encode_buffer(buffer):
+    import base64
+    return base64.b64encode(buffer.read())
+
+
+def b64decode_data(data):
+    import base64
+    return base64.b64decode(data)
+
+
+def b64encode_data(data):
+    import base64
+    return base64.b64encode(data)
+
+
+def load_pickle_from_b64(data):
+    return pickle.loads(b64decode_data(data))
+
+
 def path_split_into_list(path):
     # Gets all parts of the path as a list, excluding path separators
     parts = []
