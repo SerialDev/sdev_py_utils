@@ -1225,3 +1225,8 @@ def nest_inner(con, query, view1, table2, col, col2=None):
         result = "select {} from ({}) as {} INNER JOIN {} ON {}.{}={}.{}".format(
             cols, query, view1, table2, view1, col, table2, col)
     return result + " "
+
+
+def iter_range_pd(df):
+    for i in range(df.shape[0]):
+        yield (df.iloc[i])
