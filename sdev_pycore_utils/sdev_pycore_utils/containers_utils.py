@@ -4,6 +4,18 @@
 import yaml
 from collections import OrderedDict
 
+def b64_pickle(data):
+    import base64
+    import pickle
+    return base64.b64encode(pickle.dumps(data))
+
+def md5_hex(data):
+    from hashlib import md5
+    return md5(data).hexdigest()
+
+def hash_runtime(data):
+    return md5_hex(b64_pickle(data))
+
 
 def load_yaml_odict(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     """
