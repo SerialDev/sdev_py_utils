@@ -1230,3 +1230,13 @@ def nest_inner(con, query, view1, table2, col, col2=None):
 def iter_range_pd(df):
     for i in range(df.shape[0]):
         yield (df.iloc[i])
+
+
+def pd_csv_to_buffer(data):
+    import io
+    u = data.to_csv().encode("latin-1")
+    out_buffer = io.BytesIO()
+    out_buffer.seek(0)
+    out_buffer.write(u)
+    out_buffer.seek(0)
+    return out_buffer
