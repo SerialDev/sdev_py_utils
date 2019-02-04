@@ -128,3 +128,22 @@ def fix_double_encoded(s):
     if not is_double_encoded(s):
         return s
     return DOUBLE_ENCODED.sub(decode_double_encoded, s)
+
+
+
+from difflib import SequenceMatcher
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def similarity_string_list(list_to_check):
+    # Check the Levenshtein distance between two strings using the built in sequenceMatcher.
+    # This has a O(n^2) overhead and would not be suitable in production
+    # Approximate algorithms are better in this case but overkill for a quick cleanup [Eg, Minhash with LSH]
+    similars = []
+    for i in list_to_check:
+        for j in list_to_check:
+            similarity  = similar(i,j)
+            if similarity > 0.8 and similarity < 1.0:
+                similars.append((i,j))
+    return similars
