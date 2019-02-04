@@ -137,8 +137,8 @@ def similar(a, b):
 
 
 def similarity_string_list(list_to_check):
-    # Check the Levenshtein distance between two strings using the built in sequenceMatcher.
-    # This has a O(n^2) overhead and would not be suitable in production
+    # Run  Ratcliff/Obershelp algorithm  between two strings using the built in sequenceMatcher.
+    # This has a O(n^2) overhead and would not be suitable in production [same issue with using Levenshtein Distance]
     # Approximate algorithms are better in this case but overkill for a quick cleanup [Eg, Minhash with LSH]
     similars = []
     for i in list_to_check:
