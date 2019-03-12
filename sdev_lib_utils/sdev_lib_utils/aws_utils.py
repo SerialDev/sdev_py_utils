@@ -181,3 +181,17 @@ class aws_utils(object):
 
 
 
+
+def iter_bucket_folder(aws_personal, bucket_name, folder):
+    u = aws_personal.iter_bucket(bucket_name)
+    for i in u:
+        if i.key.split("/")[0] == folder:
+            yield i
+
+
+def get_folders_bucket(aws_personal, bucket_name):
+    u = aws_personal.iter_bucket(bucket_name)
+    folders = {}
+    for i in u:
+        folders[i.key.split("/")[0]] = ""
+    return list(folders.keys())

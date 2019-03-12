@@ -1240,3 +1240,16 @@ def pd_csv_to_buffer(data):
     out_buffer.write(u)
     out_buffer.seek(0)
     return out_buffer
+
+
+def transform_aos_soa(dict_list):
+    cols = list(dict_list[0].keys())
+    soa = {}
+    for i in cols:
+        soa[i] = []
+        for j in range(len(dict_list)):
+            soa[i].append(dict_list[j][i])
+    return soa
+
+def transform_aos_pd(dict_list):
+    return pd.DataFrame(transform_aos_soa(dict_list))
