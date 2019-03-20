@@ -422,3 +422,10 @@ def retrieve_name(var):
                 return names[0]
             else:
                 return result_name
+
+
+def source(data):
+    import inspect
+    result = inspect.getsource(data)
+    print(result)
+    return result
