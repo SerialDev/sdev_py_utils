@@ -267,3 +267,33 @@ def transform_points_array(data):
                 temp[k] = []
                 temp[k].append(v)
     return temp
+
+
+def dup_detect(source_list):
+    """
+    Detect Duplicates
+
+    Parameters
+    ----------
+
+    source_list list list to check for duplicates :
+       nil
+
+    Returns
+    -------
+
+    dict
+        a dict containing the duplicate and the indexes it occurs in
+
+
+    Doctest
+    -------
+    >>> dup_detect([1,2,1])
+    {1: [0, 2]}
+    """
+    from collections import defaultdict
+    D = defaultdict(list)
+    for i,item in enumerate(source_list):
+        D[item].append(i)
+    D = {k:v for k,v in D.items() if len(v)>1}
+    return D
