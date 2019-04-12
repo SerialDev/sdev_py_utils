@@ -9,9 +9,28 @@ import scipy.stats
 
 
 def detect_peaks(signal, threshold=0.5):
-    """ Performs peak detection on three steps: root mean square, peak to
-    average ratios and first order logic.
-    threshold used to discard peaks too small """
+    """
+    Performs peak detection on three steps:
+    root mean square,
+    peak to average ratios and first order logic.
+    Threshold used to discard peaks too small
+
+    Parameters
+    ----------
+
+    signal : np.array
+        numpy array containing the signal to process
+
+    threshold : float
+        floating point value to assign a threshold
+
+    Returns
+    -------
+
+    list
+        A list of indexes where a peak was found
+    """
+
     # compute root mean square
     root_mean_square = sqrt(np.sum(np.square(signal) / len(signal)))
     # compute peak to average ratios
@@ -31,11 +50,28 @@ def detect_peaks(signal, threshold=0.5):
 
 
 def findpeaks(data, spacing=1, limit=None):
-    """Finds peaks in `data` which are of `spacing` width and >=`limit`.
-    :param data: values
-    :param spacing: minimum spacing to the next peak (should be 1 or more)
-    :param limit: peaks should have value greater or equal
-    :return:
+    """
+    Find peaks in `data` qhich are of `spacing` width and >= `limit`
+
+    Parameters
+    ----------
+
+    data : list
+       A list of values to check for peaks
+
+    spacing : uint
+       Minimum spacing to the next peak(should be 1 or more)
+
+    limit : None|uint
+       Peaks should have a value greater or equal
+
+    Returns
+    -------
+
+    list
+        A list of peak indexes
+
+
     """
     len = data.size
     x = np.zeros(len + 2 * spacing)
@@ -67,21 +103,56 @@ def findpeaks(data, spacing=1, limit=None):
 
 def tail_avg(series, num_points):
     """
-    This is a utility function used to calculate the average of the last num_points
-    datapoints in the series as a measure, instead of just the last datapoint.
-    It reduces noise, but it also reduces sensitivity and increases the delay
-    to detection.
-    """
+    This is a utility function used to calculate the average
+    of the last `num_points` datapoints in the series as a
+    measure, instead of just the last datapoint.
+    It reduces noise, but it also reduces sensitivity
+    and increases the delay to detection.
 
+    Parameters
+    ----------
+
+    series : pd.Series
+       A pandas series to get the tail avg from
+
+    num_points : uint
+       number of points to use as tail
+
+    Returns
+    -------
+
+    float
+        Tail average
+
+
+    """
     t = series[-num_points:].sum() / num_points
     return t
 
 
 def median_absolute_deviation(timeseries, threshold=6):
     """
-     A timeseries is anomalous if the deviation of its latest datapoint with
-     respect to the median is X times larger than the median of deviations.
-     """
+    A timeseries is anomalous if the deviation
+    of its latest datapoint with respect to
+    the median is X times larger than the median
+    of deviations
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       A pandas timeseries to check MAD from
+
+    threshold : uint
+       What threshold to use to define a anomaly
+
+    Returns
+    -------
+
+    Tuple
+        A tuple containing [0]:Bool, [1]:float, [2]:uint
+
+    """
     series = timeseries
     try:
         median = series.median()
@@ -118,7 +189,21 @@ def median_absolute_deviation(timeseries, threshold=6):
 
 def grubbs(series):
     """
-    A timeseries is anomalous if the Z score is greater than the Grubb's score.
+    A timeseries is anomalous if the Z score is
+    greater than the Grubb's score.
+
+    Parameters
+    ----------
+
+    series : pd.Series
+       A pandas series being checked for anomalies
+
+    Returns
+    -------
+
+    Tuple
+         [0]:Bool,[1]:float,[2]:float
+
     """
 
     # series = scipy.array([x[1] for x in timeseries])
@@ -139,10 +224,23 @@ def grubbs(series):
 
 def stddev_from_average(timeseries):
     """
-    A timeseries is anomalous if the absolute value of the average of the latest
-    three datapoint minus the moving average is greater than three standard
-    deviations of the average. This does not exponentially weight the MA and so
-    is better for detecting anomalies with respect to the entire series.
+    A timeseries is anomalous if the absolute value of the
+    average of the latest three datapoints - the moving average
+    is greater than three standard deviations of the average.
+    This does not exponentially weight the MA and so is better
+    for detecting anomalies with respect to the entire series
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
     series = timeseries
     mean = series.mean()
@@ -154,10 +252,19 @@ def stddev_from_average(timeseries):
 
 def stddev_from_moving_average(timeseries):
     """
-    A timeseries is anomalous if the absolute value of the average of the latest
-    three datapoint minus the moving average is greater than three standard
-    deviations of the moving average. This is better for finding anomalies with
-    respect to the short term trends.
+    A timeseries is anomalous if the absolute value of the average of the latest three datapoint minus the moving average is greater than three standard deviations of the moving average. This is better for finding anomalies with respect to the short term trends
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
     series = timeseries
     expAverage = timeseries.ewm(com=50).mean()
@@ -171,6 +278,18 @@ def mean_subtraction_cumulation(timeseries):
     A timeseries is anomalous if the value of the next datapoint in the
     series is farther than three standard deviations out in cumulative terms
     after subtracting the mean from each data point.
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
 
     # series = pandas.Series([x[1] if x[1] else 0 for x in timeseries])
@@ -186,6 +305,18 @@ def least_squares(timeseries):
     """
     A timeseries is anomalous if the average of the last three datapoints
     on a projected least squares model is greater than three sigma.
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
 
     # x = np.array([t[0] for t in timeseries])
@@ -219,6 +350,18 @@ def histogram_bins(timeseries):
 
     Returns: the size of the bin which contains the tail_avg. Smaller bin size
     means more anomalous.
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
 
     # series = scipy.array([x[1] for x in timeseries])
@@ -271,6 +414,18 @@ def ks_test_ljung(timeseries):
     that data distribution for last 10 minutes is different from last hour.
     It produces false positives on series with trends so Ljung-Box test for
     no autocorrelation is used to filter them out.
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
 
     # hour_ago = time() - 3600
@@ -300,6 +455,18 @@ def bayesian_anomaly(series):
     * returns true if [-5:5] of argmax(anomaly) is > than stdev . . .
     * ------------{usage}-------------
     >>> bayesian_anomaly(pd.series)
+
+    Parameters
+    ----------
+
+    timeseries : pd.Series
+       Timeseries dataset to check for anomalies
+
+    Returns
+    -------
+
+    Bool
+         A Boolean value of whether it is anomalous or not
     """
     index = bayesian_changepoint(series)[1]
     MAD = series.mad()
