@@ -147,3 +147,13 @@ def similarity_string_list(list_to_check):
             if similarity > 0.8 and similarity < 1.0:
                 similars.append((i,j))
     return similars
+
+
+
+def serialize_str(data):
+    import pickle, base64
+    return base64.b64encode(pickle.dumps(data)).decode()
+
+def deserialize_str(data):
+    import pickle, base64
+    return pickle.loads(base64.b64decode(data))
