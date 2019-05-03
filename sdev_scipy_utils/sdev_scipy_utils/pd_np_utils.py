@@ -1253,3 +1253,36 @@ def transform_aos_soa(dict_list):
 
 def transform_aos_pd(dict_list):
     return pd.DataFrame(transform_aos_soa(dict_list))
+
+
+def serialize_pd_str(df):
+    import base64, io
+    temp_io = io.BytesIO()
+    df.to_pickle(temp_io, compression=None)
+    temp_io.seek(0)
+    result = base64.b64encode(temp_io.read())
+    return result.decode()
+
+def deserialize_pd_str(data):
+    import base64, io
+    temp_io = io.BytesIO()
+    temp_io.write(base64.b64decode(data))
+    temp_io.seek(0)
+    result = pd.read_pickle(temp_io)
+    return result
+
+def serialize_pd_csv(df):
+    import base64, io
+    temp_io = io.StringIO()
+    df.to_csv(temp_io)
+    temp_io.seek(0)
+    result = base64.b64encode(temp_io.read().encode())
+    return result.decode()
+
+def deserialize_pd_csv(data):
+    import base64, io
+    temp_io = io.BytesIO()
+    temp_io.write(base64.b64decode(data))
+    temp_io.seek(0)
+    result = pd.read_csv(temp_io)
+    return result
