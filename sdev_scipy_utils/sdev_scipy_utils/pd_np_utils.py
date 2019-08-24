@@ -1227,6 +1227,29 @@ def nest_inner(con, query, view1, table2, col, col2=None):
     return result + " "
 
 
+def fillna_sampled(x, reproducibility_seed=0):
+    """
+    fill NA with a random sample from existing series
+
+    Parameters
+    ----------
+    x: pd.Series
+       A Pandas Series containing the values to sample from
+       after non-destructively dropping NaNs
+    reproducibility_seed: int
+       Random Seed, used to seed the random number generator,
+       will allow the data to be reproducible
+    Return
+    ------
+    filled : pd.DataFrame, pd.Series
+        Imputed pandas series through sampling on existing values.
+    """
+    n_nans = len(x[pd.isnull(x)])
+    filled = x.fillna(pd.Series(x.dropna(inplace=False).sample(n=n_nans, random_state=reproducibility_seed)))
+
+    return filled
+
+
 def iter_range_pd(df):
     for i in range(df.shape[0]):
         yield (df.iloc[i])
@@ -1251,38 +1274,101 @@ def transform_aos_soa(dict_list):
             soa[i].append(dict_list[j][i])
     return soa
 
+
 def transform_aos_pd(dict_list):
     return pd.DataFrame(transform_aos_soa(dict_list))
 
 
 def serialize_pd_str(df):
-    import base64, io
+    import base64
+    import io
     temp_io = io.BytesIO()
     df.to_pickle(temp_io, compression=None)
     temp_io.seek(0)
     result = base64.b64encode(temp_io.read())
     return result.decode()
 
+
 def deserialize_pd_str(data):
-    import base64, io
+    import base64
+    import io
     temp_io = io.BytesIO()
     temp_io.write(base64.b64decode(data))
     temp_io.seek(0)
     result = pd.read_pickle(temp_io)
     return result
 
+
 def serialize_pd_csv(df):
-    import base64, io
+    import base64
+    import io
     temp_io = io.StringIO()
     df.to_csv(temp_io)
     temp_io.seek(0)
     result = base64.b64encode(temp_io.read().encode())
     return result.decode()
 
+
 def deserialize_pd_csv(data):
-    import base64, io
+    import base64
+    import io
     temp_io = io.BytesIO()
     temp_io.write(base64.b64decode(data))
     temp_io.seek(0)
     result = pd.read_csv(temp_io)
     return result
+
+
+def fill_sequential(df):
+    if pd_get_nan(df).shape[0] == 0:
+        return df
+
+    uu = pd_get_nan(df)
+    fill = pd_get_not_nan(df)
+
+    for index, i in enumerate(fill.values):
+        df.iloc[uu[index]] = i
+    fill_sequential(df)
+
+
+def pd_get_nan(df):
+    if type(df) == pd.core.series.Series:
+        return df[df.isna()]
+    else:
+        return df[df.isna()[df.columns[0]]]
+
+
+def pd_get_not_nan(df):
+    if type(df) == pd.core.series.Series:
+        return df[~df.isna()]
+    else:
+        return df[~df.isna()[df.columns[0]]]
+
+
+def broadcast_fill(df_or_series, nan_series,  fill_array):
+    """
+    Broadcast an array into a sequence of indexes
+
+    Parameters
+    ----------
+    df_or_series : pd.DataFrame | pd.core.series.Series
+        A df or series to modify
+
+    nan_series : pd.core.series.Series
+        A series of NaNs containing the index of NaNs in df_or_series
+
+    fill_array : np.array
+       Array to fill df_or_series with
+
+    Returns
+    -------
+    pd.core.series.Series:
+       Series with NaNs filled
+    """
+    nan_num = nan_series.shape[0]
+    if type(df_or_series) == pd.core.series.Series:
+        result = df_or_series.loc[list(nan_series.index)] = fill_array[:nan_num]
+        return result
+    else:
+        result = df_or_series.iloc[:, 0].loc[list(nan_series.index)] = fill_array[:nan_num]
+        return result
