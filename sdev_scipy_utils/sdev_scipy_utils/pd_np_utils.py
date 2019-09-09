@@ -71,6 +71,14 @@ def pd_concat_list_dict(list_dict):
     return df
 
 
+def pd_csv_to_io(df):
+    import io
+    buffer = io.BytesIO()
+    df.to_csv(buffer)
+    buffer.seek(0)
+    return buffer
+
+
 # {Get attributes pandas}#
 
 
