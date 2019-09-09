@@ -249,3 +249,18 @@ def joblib_load_bytes(file_name, file_bytes):
     except Exception as e:
         print(f'error with {name} with content {file_bytes} \n with traceback: {traceback.format_exc()}')
 
+
+def to_s3_pickles(client, bucket_name, data, key_name):
+    import pickle
+    import zlib
+    response = client().put_object(
+        Bucket=bucket_name, Body=zlib.compress(pickle.dumps(data)), Key=key_name
+    )
+    return response
+
+
+def to_s3(client, bucket_name, data, key_name):
+        response = client().put_object(
+            Bucket=bucket_name, Body=data, Key=key_name
+        )
+        return response
