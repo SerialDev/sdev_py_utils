@@ -224,6 +224,7 @@ def download_from_s3(bucket_name, key_name, client):
     """
     Downloads s3 file and returns the path its stored in
     """
+    import os
     try:
         name = key_name.split('/')[1]
     except Exception as e:
@@ -238,6 +239,7 @@ def download_from_s3(bucket_name, key_name, client):
     return os.path.join(os.getcwd(), name)
 
 def joblib_load_bytes(file_name, file_bytes):
+    import joblib
     try:
         name = file_name.split('/')[1]
     except Exception as e:
@@ -253,14 +255,14 @@ def joblib_load_bytes(file_name, file_bytes):
 def to_s3_pickles(client, bucket_name, data, key_name):
     import pickle
     import zlib
-    response = client().put_object(
+    response = client.put_object(
         Bucket=bucket_name, Body=zlib.compress(pickle.dumps(data)), Key=key_name
     )
     return response
 
 
 def to_s3(client, bucket_name, data, key_name):
-        response = client().put_object(
+        response = client.put_object(
             Bucket=bucket_name, Body=data, Key=key_name
         )
         return response
