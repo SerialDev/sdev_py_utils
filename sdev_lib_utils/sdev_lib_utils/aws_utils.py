@@ -181,6 +181,16 @@ class aws_utils(object):
 
 
 
+def create_uri(s3_object):
+    query = "SELECT aws_commons.create_s3_uri( '{}', '{}', 'eu-west-1' ".format(s3_object.bucket_name, s3_object.key) + ")"
+    result = pd.read_sql(query, connection)['create_s3_uri'][0]
+    return result
+
+def create_aws_credential(access_key, secret_key):
+    query = "SELECT aws_commons.create_aws_credentials( '{}', '{}', '')".format(access_key, secret_key)
+    result = pd.read_sql(query,connection)['create_aws_credentials'][0][:-4] + ")"
+    return result
+
 
 def iter_bucket_folder(aws_personal, bucket_name, folder):
     u = aws_personal.iter_bucket(bucket_name)
