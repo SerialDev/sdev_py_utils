@@ -195,3 +195,74 @@ def get_folders_bucket(aws_personal, bucket_name):
     for i in u:
         folders[i.key.split("/")[0]] = ""
     return list(folders.keys())
+
+def iter_bucket(resource, bucket_name):
+    for i in resource.Bucket(bucket_name).objects.all():
+        yield i
+        
+
+def iter_bucket_folder(resource, bucket_name, folder):
+    u = iter_bucket(resource, bucket_name)
+    for i in u:
+        if i.key.split("/")[0] == folder:
+            yield i
+
+
+def get_folders_bucket(resource, bucket_name):
+    u = iter_bucket(resource, bucket_name)
+    folders = {}
+    for i in u:
+        folders[i.key.split("/")[0]] = ""
+    return list(folders.keys())
+
+def from_s3(object_summary, client):
+    result = client.get_object(Bucket=object_summary.bucket_name,
+                                Key=object_summary.key)['Body'].read()
+    return result
+
+def download_from_s3(bucket_name, key_name, client):
+    """
+    Downloads s3 file and returns the path its stored in
+    """
+    import os
+    try:
+        name = key_name.split('/')[1]
+    except Exception as e:
+        name = key_name
+        
+    if os.path.exists(os.path.join(os.getcwd(), name)):
+        return os.path.join(os.getcwd(), name)
+
+    result = client.get_object(Bucket=bucket_name, Key=key_name)['Body'].read()
+    with open(name, 'wb') as f:
+        f.write(result)
+    return os.path.join(os.getcwd(), name)
+
+def joblib_load_bytes(file_name, file_bytes):
+    import joblib
+    try:
+        name = file_name.split('/')[1]
+    except Exception as e:
+        name = file_name
+    try:
+        with open(name, 'wb') as f:
+            f.write(file_bytes)
+        return joblib.load(os.path.join(os.getcwd(), name))
+    except Exception as e:
+        print(f'error with {name} with content {file_bytes} \n with traceback: {traceback.format_exc()}')
+
+
+def to_s3_pickles(client, bucket_name, data, key_name):
+    import pickle
+    import zlib
+    response = client.put_object(
+        Bucket=bucket_name, Body=zlib.compress(pickle.dumps(data)), Key=key_name
+    )
+    return response
+
+
+def to_s3(client, bucket_name, data, key_name):
+        response = client.put_object(
+            Bucket=bucket_name, Body=data, Key=key_name
+        )
+        return response

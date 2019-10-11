@@ -71,6 +71,37 @@ def pd_concat_list_dict(list_dict):
     return df
 
 
+def pd_csv_to_io(df):
+    import io
+    buffer = io.BytesIO()
+    df.to_csv(buffer)
+    buffer.seek(0)
+    return buffer
+
+def chunk_select_mysql(con, table_name, order_by, stride_length=1000):
+    query = f"""
+CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
+  SELECT *
+  FROM {table_name}
+  ORDER BY {order_by}
+);
+"""
+    # temp_table = pd.read_sql(query, con)
+    # row_count = pd.read_sql(f"select Count(*) as row_count from MYCHUNKED{table_name}",mariadb_connection).row_count[0]
+    # deleted_temp = pd.read_sql(f"DROP TEMPORARY TABLE IF EXISTS MYCHUNKED{table_name};", con)
+    row_count = pd.read_sql(f"select Count(*) as row_count from {table_name}",mariadb_connection).row_count[0]
+    print(row_count)
+    for i in range(0, row_count, stride_length):
+        current = i + stride_length
+        yield pd.read_sql(f"select * from {table_name} LIMIT {i}, {current};", con)
+   
+def get_stride_len(size_data, chunks):
+    from math import ceil
+    stride = ceil(size_data / chunks)
+    return stride
+
+
+
 # {Get attributes pandas}#
 
 
