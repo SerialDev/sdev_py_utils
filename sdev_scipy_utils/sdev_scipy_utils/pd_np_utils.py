@@ -1403,3 +1403,9 @@ def broadcast_fill(df_or_series, nan_series,  fill_array):
     else:
         result = df_or_series.iloc[:, 0].loc[list(nan_series.index)] = fill_array[:nan_num]
         return result
+
+
+
+def pd_split_str(series, sep):
+    a, b = series.str.split(sep, 1).str
+    return a, b
