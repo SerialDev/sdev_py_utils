@@ -297,3 +297,12 @@ def dup_detect(source_list):
         D[item].append(i)
     D = {k:v for k,v in D.items() if len(v)>1}
     return D
+
+def list_argmax(current):
+    max_num = 0
+    max_index = 0
+    for index, row in enumerate(current):
+        if len(row) > max_num:
+            max_num = len(row)
+            max_index = index
+    return max_index, max_num
