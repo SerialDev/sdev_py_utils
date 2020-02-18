@@ -94,7 +94,8 @@ CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
     for i in range(0, row_count, stride_length):
         current = i + stride_length
         yield pd.read_sql(f"select * from {table_name} LIMIT {i}, {current};", con)
-   
+
+
 def get_stride_len(size_data, chunks):
     from math import ceil
     stride = ceil(size_data / chunks)
@@ -1409,3 +1410,25 @@ def broadcast_fill(df_or_series, nan_series,  fill_array):
 def pd_split_str(series, sep):
     a, b = series.str.split(sep, 1).str
     return a, b
+
+
+def pd_get_dummies_concat(source_df, column):
+    """
+    One hot encode a column and concatenate horizontally [] + []
+
+    Parameters
+    ----------
+
+    source_df : pd.DataFrame
+       Source dataframe to concatenate into
+
+    column : string
+       column to one-hot-encode
+
+    Returns
+    -------
+
+    pd.DataFrame:
+        One hot encoded dataframe concatenated into source_df
+    """
+    return pd.concat( [source_df , pd.get_dummies(df[column])] , axis = 1, sort=False)
