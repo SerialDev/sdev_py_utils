@@ -1432,3 +1432,42 @@ def pd_get_dummies_concat(source_df, column):
         One hot encoded dataframe concatenated into source_df
     """
     return pd.concat( [source_df , pd.get_dummies(df[column])] , axis = 1, sort=False)
+
+
+def pd_histogram(series: pd.Series):
+    """
+    Get the histogram data as from a pd.Series
+
+    Parameters
+    ----------
+
+    series : pd.Series
+       A pandas series to extract the value_counts
+
+    Returns
+    -------
+
+    pd.Series
+        A pandas series with the resulting histogram data
+    """
+    counts, bins = np.histogram(series)
+    return pd.Series(counts, index=bins[:-1])
+
+
+def pd_plot_hist(series: pd.Series):
+    """
+    Plot the histogram from a pandas series
+
+    Parameters
+    ----------
+
+    series : pd.Series
+       A pandas series to extract histogram data from
+
+    Returns
+    -------
+
+    matplotlib.axes
+        Axes data from matplotlib with the histogram plot
+    """
+    return pd_histogram(series).plot.bar()
