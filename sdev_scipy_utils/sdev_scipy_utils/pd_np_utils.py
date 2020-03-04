@@ -1303,11 +1303,29 @@ def transform_aos_soa(dict_list):
     for i in cols:
         soa[i] = []
         for j in range(len(dict_list)):
-            soa[i].append(dict_list[j][i])
+            try:
+                soa[i].append(dict_list[j][i])
+            except Exception as e:
+                soa[i].append(None)
     return soa
 
 
 def transform_aos_pd(dict_list):
+    """
+    Load a list of dicts into pandas, very efficiently. Great for dealing with rest.json results
+
+    Parameters
+    ----------
+
+    dict_list : List
+       A list of dicts [{}]
+
+    Returns
+    -------
+
+    pd.DataFrame
+        A pandas dataframe with all the data from the dicts
+    """
     return pd.DataFrame(transform_aos_soa(dict_list))
 
 
