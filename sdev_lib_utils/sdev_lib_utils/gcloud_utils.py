@@ -1298,3 +1298,42 @@ def generate_signed_url(service_account_file, bucket_name, object_name,
         scheme_and_host, canonical_uri, canonical_query_string, signature)
 
     return signed_url
+
+
+
+
+def upload_bytesio_blob(bucket_name, blob_name, content, encode=False):
+    import io
+    buff = io.BytesIO();
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    if encode:
+        buff.seek(0)
+        buff.write(content.encode())
+        buff.seek(0)
+    else:
+        buff.seek(0)
+        buff.write(content)
+        buff.seek(0)
+
+    blob = bucket.blob(blob_name)
+    blob.upload_from_file(buff)
+    print(
+        "File {} uploaded to {}.".format(
+            blob_name, bucket_name
+        ))
+
+def download_bytesio_blob(bucket_name, blob_name):
+    import io
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.get_blob(blob_name)
+    buffer = io.BytesIO()
+    blob.download_to_file(buffer)
+    buffer.seek(0)
+    print(
+        "File {} downloaded from {}.".format(
+            blob_name, bucket_name
+        )
+    )
+    return buffer
