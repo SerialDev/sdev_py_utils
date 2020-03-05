@@ -1489,3 +1489,11 @@ def pd_plot_hist(series: pd.Series):
         Axes data from matplotlib with the histogram plot
     """
     return pd_histogram(series).plot.bar()
+
+
+
+def topackedbits(x):
+    return np.unpackbits(np.frombuffer(np.asarray(x), dtype=np.uint8))
+
+def frompackedbits(bits, dtype=np.int64):
+    return np.frombuffer(np.packbits(bits), dtype=dtype)
