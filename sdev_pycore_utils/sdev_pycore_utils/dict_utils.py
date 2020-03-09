@@ -56,29 +56,30 @@ def filter_dict(d, filter_string, remove=True):
         return d
 
 
-def map_dictionary(function, dictionary, keys=True, vals=True):
+def merge_dictionaries(dicts, unique_key=False):
     """
-    * type-def ::f(x) :: {} :: Bool :: Bool -> {}
+    * type-def ::[dict] -> dict
     * ---------------{Function}---------------
-    * Map a function across a dictionary [keys||values] . . .
+    * merge a list of dictionaries into a one dict [unique optional] . . .
     * ----------------{Params}----------------
-    * : function::py_object_function the function to apply
-    * : dictionary::{} dictionary to apply function to
-    * : keys::Bool whether to apply along keys
-    * : vals::Bool whether to apply along values
+    * : list of dicts
     * ----------------{Returns}---------------
-    * Dictionary with the function applied to each item in it . . .
+    * dictionary [unique optional] . . .
     """
-    if keys and vals:
-        key_map = map(function, dictionary.keys())
-        val_map = map(function, dictionary.values())
-        return dict(zip(key_map, val_map))
-    if keys and not vals:
-        key_map = map(function, dictionary.keys())
-        return dict(zip(key_map, dictionary.values()))
-    if not keys and vals:
-        val_map = map(function, dictionary.values())
-        return dict(zip(dictionary.keys(), val_map))
+    if unique_key:
+        super_dict = {}
+        for k in set(k for d in dicts for k in d):
+            super_dict[k] = set(d[k] for d in dicts if k in d)
+            if len(super_dict[k]) == 1:
+                super_dict[k] = super_dict[k][0]
+        return super_dict
+    else:
+        super_dict = {}
+        for k in set(k for d in dicts for k in d):
+            super_dict[k] = [d[k] for d in dicts if k in d]
+            if len(super_dict[k]) == 1:
+                super_dict[k] = super_dict[k][0]
+        return super_dict
 
 
 def merge_dictionaries(dicts, unique_key=False):
@@ -232,3 +233,82 @@ def transform_dict_ltuples(data):
 
     result = [(a, b) for a, b in data.items()]
     return result
+
+
+
+def type_executor(tuple_list, data_param):
+    import re
+    result = {}
+    modified = False
+    for current_type, current_fn in tuple_list:
+        if type(data_param) == current_type:
+            if type(data_param) == type(None):
+                continue
+
+            result[re.compile("'.*'").findall(
+                str(current_type))[0].replace("'","")] = current_fn(data_param)
+
+            modified = True
+    if modified == False:
+        result['unmodified'] = []
+        result['unmodified'].append(data_param)
+    return result
+
+
+def print_return(x, key=''):
+    if key == None:
+        key = ''
+    # print(x)
+    return key+"_"+x
+
+def identity(x):
+    return x
+
+
+def flatten_dict(current_dict, key=None ):
+
+    flattened_dict = {}
+    for key in current_dict.keys():
+        type_executors = [(str, lambda x: print_return(x, key)),
+                          (dict, lambda x: flatten_dict(x, key=key)),
+                          (list, lambda x: flatten_dict_list(x, key=key)),
+                          (None, identity)]
+        u = type_executor(type_executors, current_dict[key])
+        try:
+            flattened_dict = merge_dictionaries([flattened_dict, u['list']])
+        except KeyError as e:
+            pass
+        try:
+            flattened_dict = merge_dictionaries([flattened_dict, u['dict']])
+        except KeyError as e:
+            pass
+        try:
+            flattened_dict[u['str'].replace(' ', '-').split('_')[0]] = u['str'].replace(' ', '-').split('_')[1]
+        except KeyError as e:
+            pass
+
+
+    return flattened_dict
+
+
+
+def flatten_dict_list(current_list, key=None):
+
+    flattened_dict = {}
+    type_executors = [(str, lambda x: print_return(x, key)),
+                      (dict, lambda x: flatten_dict(x, key=key)),
+                      (list, lambda x: flatten_dict_list(x, key=key)),
+                      (None, identity)]
+
+    for i in current_list:
+        u = type_executor(type_executors, i)
+        try:
+            flattened_dict = merge_dictionaries([flattened_dict, u['dict']])
+        except KeyError as e:
+            pass
+        try:
+            flattened_dict[u['str'].split('_')[0]] = u['str'].replace(' ', '-').split('_')[1]
+        except KeyError as e:
+            pass
+
+    return flattened_dict
