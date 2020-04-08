@@ -90,7 +90,7 @@ def chunks(l, n):
         A generator yielding lists of size n
     """
     for i in range(0, len(l), n):
-        yield l[i: i + n]
+        yield l[i : i + n]
 
 
 def chunks_padded(iterable, n, padvalue=None):
@@ -231,7 +231,7 @@ def compare_equality(s, t):
         Whether both lists are equal
 
     """
-    t = list(t)   # make a mutable copy
+    t = list(t)  # make a mutable copy
     try:
         for elem in s:
             t.remove(elem)
@@ -292,11 +292,13 @@ def dup_detect(source_list):
     {1: [0, 2]}
     """
     from collections import defaultdict
+
     D = defaultdict(list)
-    for i,item in enumerate(source_list):
+    for i, item in enumerate(source_list):
         D[item].append(i)
-    D = {k:v for k,v in D.items() if len(v)>1}
+    D = {k: v for k, v in D.items() if len(v) > 1}
     return D
+
 
 def list_argmax(current):
     max_num = 0
@@ -306,3 +308,31 @@ def list_argmax(current):
             max_num = len(row)
             max_index = index
     return max_index, max_num
+
+
+def rolling_list(data):
+    """
+    Create a rolling list of tuples
+
+    Parameters
+    ----------
+
+    data : List
+       A list to get the data from
+
+    Returns
+    -------
+
+    List
+        A list of tuples
+
+
+    Doctest
+    -------
+    >>> rolling_list([1,2,3,4])
+    [(1, 2), (2, 3), (3, 4), (4, None)]
+    """
+    data.extend([None])
+    result = list(zip(data[:], data[1:]))
+    data.pop()
+    return result
