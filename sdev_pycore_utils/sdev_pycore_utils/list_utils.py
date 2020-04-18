@@ -336,3 +336,32 @@ def rolling_list(data):
     result = list(zip(data[:], data[1:]))
     data.pop()
     return result
+
+
+def rolling_doubly_list(data):
+    """
+    Create a rolling list of tuples
+
+    Parameters
+    ----------
+
+    data : List
+       A list to get the data from
+
+    Returns
+    -------
+
+    List
+        A list of tuples
+
+
+    Doctest
+    -------
+    >>> rolling_doubly_list([1,2,3,4])
+    [(None, 1, 2), (1, 2, 3), (2, 3, 4), (3, 4, None)]
+    """
+    temp = [None]
+    temp.extend(data)
+    temp.extend([None])
+    result = list(zip(temp[:], temp[1:], temp[2:]))
+    return result

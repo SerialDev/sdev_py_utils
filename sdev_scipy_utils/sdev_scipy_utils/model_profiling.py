@@ -33,7 +33,7 @@ def plot_confusion_matrix(
     plt.yticks(tick_marks, classes)
 
     fmt = ".2f" if normalize else "d"
-    thresh = cm.max() / 2.
+    thresh = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(
             j,
@@ -278,3 +278,58 @@ def barplot(df, var, MyTitle="", aval=0.9, prnt=False, prcnt=False, topn=10):
     plt.title(MyTitle)
     plt.grid()
     plt.show()
+
+
+def learned_frontier(data, classifier, X_train, X_test, savefig=None):
+    import matplotlib.pyplot as plt
+
+    data_min = multi_dim_min(data)
+    data_min = data_min + data_min / 2
+    data_max = multi_dim_max(data)
+    data_max = data_max + data_max / 2
+
+    # fit the model for novelty detection
+    clf = classifier
+    clf.fit(X_train)
+
+    y_pred_test = clf.predict(X_test)
+
+    # xx, yy = np.meshgrid(np.linspace(-30, 30, 5000), np.linspace(-30, 30, 5000))
+    xx, yy = np.meshgrid(
+        np.linspace(data_min, data_max, 5000), np.linspace(data_min, data_max, 5000)
+    )
+
+    print(f"Learning frontier for {type(clf)}")
+    # plot the learned frontier, the points, and the nearest vectors to the plane
+    Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    plt.title(f"Learning frontier with  {type(clf)}")
+    plt.contourf(
+        xx, yy, Z, levels=np.linspace(Z.min() + Z.min() / 4, 10, 7), cmap=plt.cm.PuBu
+    )
+
+    a = plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors="darkred")
+    plt.contourf(xx, yy, Z, levels=[0, Z.max() + Z.max() / 4], colors="palevioletred")
+
+    s = 40
+    b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c="white", s=s, edgecolors="k")
+    b2 = plt.scatter(X_test[:, 0], X_test[:, 1], c="blueviolet", s=s, edgecolors="k")
+
+    plt.axis("tight")
+    plt.xlim((data_min, data_max))
+    plt.ylim((data_min, data_max))
+    plt.legend(
+        [a.collections[0], b1, b2],
+        ["learned frontier", "training observations", "new regular_observations",],
+        loc="upper left",
+        prop=matplotlib.font_manager.FontProperties(size=11),
+    )
+
+    n_error_test = y_pred_test[y_pred_test == -1].size
+
+    plt.xlabel("errors novel regular: %d/40 ;" % (n_error_test))
+    plt.show()
+
+    if savefig != None:
+        plt.savefig(savefig)

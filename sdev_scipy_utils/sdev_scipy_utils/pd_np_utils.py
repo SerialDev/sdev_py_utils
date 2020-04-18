@@ -73,10 +73,12 @@ def pd_concat_list_dict(list_dict):
 
 def pd_csv_to_io(df):
     import io
+
     buffer = io.BytesIO()
     df.to_csv(buffer)
     buffer.seek(0)
     return buffer
+
 
 def chunk_select_mysql(con, table_name, order_by, stride_length=1000):
     query = f"""
@@ -89,7 +91,9 @@ CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
     # temp_table = pd.read_sql(query, con)
     # row_count = pd.read_sql(f"select Count(*) as row_count from MYCHUNKED{table_name}",mariadb_connection).row_count[0]
     # deleted_temp = pd.read_sql(f"DROP TEMPORARY TABLE IF EXISTS MYCHUNKED{table_name};", con)
-    row_count = pd.read_sql(f"select Count(*) as row_count from {table_name}",mariadb_connection).row_count[0]
+    row_count = pd.read_sql(
+        f"select Count(*) as row_count from {table_name}", mariadb_connection
+    ).row_count[0]
     print(row_count)
     for i in range(0, row_count, stride_length):
         current = i + stride_length
@@ -98,9 +102,9 @@ CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
 
 def get_stride_len(size_data, chunks):
     from math import ceil
+
     stride = ceil(size_data / chunks)
     return stride
-
 
 
 # {Get attributes pandas}#
@@ -238,7 +242,7 @@ def np_parallel(func, data, parts=4, verbose=False):
                 array = data[0:split_len]
                 split_array.append((array))
             else:
-                array = data[(split_len * (i - 1)): (split_len * i)]
+                array = data[(split_len * (i - 1)) : (split_len * i)]
                 split_array.append((array))
         return np.array(split_array)
 
@@ -748,7 +752,7 @@ def data_chunker(data, chunks=None, max_len=None):
             if chunk_num == 0:
                 yield data[val:chunk_size]
             val += chunk_size
-            yield data[val: (val + chunk_size)]
+            yield data[val : (val + chunk_size)]
 
     elif max_len is not None and chunks is None:
         val = 0
@@ -757,7 +761,7 @@ def data_chunker(data, chunks=None, max_len=None):
                 val += max_len
                 yield data[0:(val)]
             val += max_len
-            yield data[(val - max_len): val]
+            yield data[(val - max_len) : val]
 
 
 def sliding_window(data, segment_length, slide_length, flag="chunks"):
@@ -860,12 +864,12 @@ def tosql(df, *args, **kargs):
     for i in range((len(df) - INITIAL_CHUNK) // CHUNKSIZE):
         t = threading.Thread(
             target=lambda: df.iloc[
-                INITIAL_CHUNK + i * CHUNKSIZE: INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
+                INITIAL_CHUNK + i * CHUNKSIZE : INITIAL_CHUNK + (i + 1) * CHUNKSIZE, :
             ].to_sql(*args, **kargs)
         )
         t.start()
         workers.append(t)
-        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE:, :].to_sql(*args, **kargs)
+        df.iloc[INITIAL_CHUNK + (i + 1) * CHUNKSIZE :, :].to_sql(*args, **kargs)
     [t.join() for t in workers]
 
 
@@ -910,7 +914,7 @@ def fast_np_fillna(a):
     ind = np.where(~pd.isnull(a))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1:] = a[last]
+    a[last + 1 :] = a[last]
     return a
 
 
@@ -919,7 +923,7 @@ def fast_np_fillna(a):
     ind = np.where(~np.equal(a, None))[0]
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
-    a[last + 1:] = a[last]
+    a[last + 1 :] = a[last]
     return a
 
 
@@ -1075,7 +1079,7 @@ def pd_from_klepto_stream(path):
         else:
             temp = d.__dict__["__archive__"][i]
             df = pd.concat((temp, df))
-            del (temp)
+            del temp
             gc.collect()
     df.set_index("_idx_", inplace=True, drop=True)
     df.sort_index(inplace=True)
@@ -1222,7 +1226,7 @@ def fill_na(df):
         # check if it is a number
         if dt == int or dt == float:
             df[col].fillna(0, inplace=True)
-        elif dt == np.dtype('<M8[ns]'):
+        elif dt == np.dtype("<M8[ns]"):
             df[col].fillna(datetime.datetime(2000, 1, 1, 0, 0, 0), inplace=True)
         else:
             df[col].fillna("", inplace=True)
@@ -1233,12 +1237,15 @@ def inner_join(con, table1, table2, col):
     a = pd.read_sql("select * from {} limit 1;".format(table1), con).keys()
     b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
     intersection = [table1 + "." + i for i in a.intersection(b)]
-    intersection.extend([table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)])
+    intersection.extend(
+        [table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)]
+    )
     union = list(a.symmetric_difference(b))
     union.extend(intersection)
     cols = ", ".join(union)
     result = "select {} from {} INNER JOIN {} ON {}.{}={}.{}".format(
-        cols, table1, table2, table1, col, table2, col)
+        cols, table1, table2, table1, col, table2, col
+    )
     return result + " "
 
 
@@ -1246,16 +1253,20 @@ def nest_inner(con, query, view1, table2, col, col2=None):
     a = pd.read_sql(query + " limit 1", con).keys()
     b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
     intersection = [view1 + "." + i for i in a.intersection(b)]
-    intersection.extend([table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)])
+    intersection.extend(
+        [table2 + "." + i + " as " + table2 + "_" + i for i in a.intersection(b)]
+    )
     union = list(a.symmetric_difference(b))
     union.extend(intersection)
     cols = ", ".join(union)
     if col2:
         result = "select {} from ({}) as {} INNER JOIN {} ON {}.{}={}.{}".format(
-            cols, query, view1, table2, view1, col, table2, col2)
+            cols, query, view1, table2, view1, col, table2, col2
+        )
     else:
         result = "select {} from ({}) as {} INNER JOIN {} ON {}.{}={}.{}".format(
-            cols, query, view1, table2, view1, col, table2, col)
+            cols, query, view1, table2, view1, col, table2, col
+        )
     return result + " "
 
 
@@ -1277,7 +1288,11 @@ def fillna_sampled(x, reproducibility_seed=0):
         Imputed pandas series through sampling on existing values.
     """
     n_nans = len(x[pd.isnull(x)])
-    filled = x.fillna(pd.Series(x.dropna(inplace=False).sample(n=n_nans, random_state=reproducibility_seed)))
+    filled = x.fillna(
+        pd.Series(
+            x.dropna(inplace=False).sample(n=n_nans, random_state=reproducibility_seed)
+        )
+    )
 
     return filled
 
@@ -1289,6 +1304,7 @@ def iter_range_pd(df):
 
 def pd_csv_to_buffer(data):
     import io
+
     u = data.to_csv().encode("latin-1")
     out_buffer = io.BytesIO()
     out_buffer.seek(0)
@@ -1332,6 +1348,7 @@ def transform_aos_pd(dict_list):
 def serialize_pd_str(df):
     import base64
     import io
+
     temp_io = io.BytesIO()
     df.to_pickle(temp_io, compression=None)
     temp_io.seek(0)
@@ -1342,6 +1359,7 @@ def serialize_pd_str(df):
 def deserialize_pd_str(data):
     import base64
     import io
+
     temp_io = io.BytesIO()
     temp_io.write(base64.b64decode(data))
     temp_io.seek(0)
@@ -1352,6 +1370,7 @@ def deserialize_pd_str(data):
 def serialize_pd_csv(df):
     import base64
     import io
+
     temp_io = io.StringIO()
     df.to_csv(temp_io)
     temp_io.seek(0)
@@ -1362,6 +1381,7 @@ def serialize_pd_csv(df):
 def deserialize_pd_csv(data):
     import base64
     import io
+
     temp_io = io.BytesIO()
     temp_io.write(base64.b64decode(data))
     temp_io.seek(0)
@@ -1395,7 +1415,7 @@ def pd_get_not_nan(df):
         return df[~df.isna()[df.columns[0]]]
 
 
-def broadcast_fill(df_or_series, nan_series,  fill_array):
+def broadcast_fill(df_or_series, nan_series, fill_array):
     """
     Broadcast an array into a sequence of indexes
 
@@ -1420,9 +1440,10 @@ def broadcast_fill(df_or_series, nan_series,  fill_array):
         result = df_or_series.loc[list(nan_series.index)] = fill_array[:nan_num]
         return result
     else:
-        result = df_or_series.iloc[:, 0].loc[list(nan_series.index)] = fill_array[:nan_num]
+        result = df_or_series.iloc[:, 0].loc[list(nan_series.index)] = fill_array[
+            :nan_num
+        ]
         return result
-
 
 
 def pd_split_str(series, sep):
@@ -1449,7 +1470,7 @@ def pd_get_dummies_concat(source_df, column):
     pd.DataFrame:
         One hot encoded dataframe concatenated into source_df
     """
-    return pd.concat( [source_df , pd.get_dummies(df[column])] , axis = 1, sort=False)
+    return pd.concat([source_df, pd.get_dummies(df[column])], axis=1, sort=False)
 
 
 def pd_histogram(series: pd.Series):
@@ -1491,9 +1512,27 @@ def pd_plot_hist(series: pd.Series):
     return pd_histogram(series).plot.bar()
 
 
-
 def topackedbits(x):
     return np.unpackbits(np.frombuffer(np.asarray(x), dtype=np.uint8))
 
+
 def frompackedbits(bits, dtype=np.int64):
     return np.frombuffer(np.packbits(bits), dtype=dtype)
+
+
+def rows_with_nan(df, col=None):
+    if col != None:
+        temp_df = df[col]
+    else:
+        temp_df = df
+
+    if type(temp_df) == pd.core.series.Series:
+        is_NaN = temp_df.isnull()
+        row_has_NaN = pd.DataFrame(is_NaN).any(axis=1)
+        rows_with_NaN = df[row_has_NaN]
+        return rows_with_NaN
+    elif type(temp_df) == pd.core.frame.DataFrame:
+        is_NaN = temp_df.isnull()
+        row_has_NaN = is_NaN.any(axis=1)
+        rows_with_NaN = temp_df[row_has_NaN]
+        return rows_with_NaN
