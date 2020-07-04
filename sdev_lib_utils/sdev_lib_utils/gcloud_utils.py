@@ -1,6 +1,27 @@
-
 from google.cloud import storage
+from google.cloud import bigquery
 import pprint
+
+
+def bigquery_column_dtypes(project_name, dataset_name):
+    query = f"""
+select column_name, data_type
+from `{project_name}.{dataset_name}.INFORMATION_SCHEMA.COLUMNS`
+where table_name = '{dataset_name}'
+order by ordinal_position
+    """
+    return query
+
+
+def bigquery_aos(client, query):
+    """
+    client: google.cloud.bigquery.client.Client, query: str
+    """
+    result = []
+    query_job = client.query(query)  # Make an API request.
+    for row in query_job:
+        result.append(dict(row.items()))
+    return result
 
 
 def bucket_metadata(bucket_name):
@@ -16,16 +37,10 @@ def bucket_metadata(bucket_name):
     print("Location: {}".format(bucket.location))
     print("Location Type: {}".format(bucket.location_type))
     print("Cors: {}".format(bucket.cors))
-    print(
-        "Default Event Based Hold: {}".format(bucket.default_event_based_hold)
-    )
+    print("Default Event Based Hold: {}".format(bucket.default_event_based_hold))
     print("Default KMS Key Name: {}".format(bucket.default_kms_key_name))
     print("Metageneration: {}".format(bucket.metageneration))
-    print(
-        "Retention Effective Time: {}".format(
-            bucket.retention_policy_effective_time
-        )
-    )
+    print("Retention Effective Time: {}".format(bucket.retention_policy_effective_time))
     print("Retention Period: {}".format(bucket.retention_period))
     print("Retention Policy Locked: {}".format(bucket.retention_policy_locked))
     print("Requester Pays: {}".format(bucket.requester_pays))
@@ -34,6 +49,7 @@ def bucket_metadata(bucket_name):
     print("Versioning Enabled: {}".format(bucket.versioning_enabled))
     print("Labels:")
     pprint.pprint(bucket.labels)
+
 
 def create_bucket(bucket_name):
     """Creates a new bucket."""
@@ -56,7 +72,6 @@ def list_buckets():
         print(bucket.name)
 
 
-
 def upload_blob_file(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
     # bucket_name = "your-bucket-name"
@@ -69,11 +84,7 @@ def upload_blob_file(bucket_name, source_file_name, destination_blob_name):
 
     blob.upload_from_filename(source_file_name)
 
-    print(
-        "File {} uploaded to {}.".format(
-            source_file_name, destination_blob_name
-        )
-    )
+    print("File {} uploaded to {}.".format(source_file_name, destination_blob_name))
 
 
 def list_blobs(bucket_name, show=False):
@@ -92,7 +103,6 @@ def list_blobs(bucket_name, show=False):
         else:
             blobs_list.append(blob)
     return blobs_list
-
 
 
 def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
@@ -124,9 +134,7 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
     storage_client = storage.Client()
 
     # Note: Client.list_blobs requires at least package version 1.17.0.
-    blobs = storage_client.list_blobs(
-        bucket_name, prefix=prefix, delimiter=delimiter
-    )
+    blobs = storage_client.list_blobs(bucket_name, prefix=prefix, delimiter=delimiter)
 
     print("Blobs:")
     for blob in blobs:
@@ -150,11 +158,8 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_name)
 
-    print(
-        "Blob {} downloaded to {}.".format(
-            source_blob_name, destination_file_name
-        )
-    )
+    print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
+
 
 def rename_blob(bucket_name, blob_name, new_name):
     """Renames a blob."""
@@ -171,10 +176,7 @@ def rename_blob(bucket_name, blob_name, new_name):
     print("Blob {} has been renamed to {}".format(blob.name, new_blob.name))
 
 
-
-def copy_blob(
-    bucket_name, blob_name, destination_bucket_name, destination_blob_name
-):
+def copy_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_name):
     """Copies a blob from one bucket to another with a new name."""
     # bucket_name = "your-bucket-name"
     # blob_name = "your-object-name"
@@ -201,7 +203,6 @@ def copy_blob(
     )
 
 
-
 def delete_blob(bucket_name, blob_name):
     """Deletes a blob from the bucket."""
     # bucket_name = "your-bucket-name"
@@ -214,7 +215,6 @@ def delete_blob(bucket_name, blob_name):
     blob.delete()
 
     print("Blob {} deleted.".format(blob_name))
-
 
 
 def add_bucket_label(bucket_name):
@@ -243,6 +243,7 @@ def get_bucket_labels(bucket_name):
     labels = bucket.labels
     pprint.pprint(labels)
 
+
 def remove_bucket_label(bucket_name):
     """Remove a label from a bucket."""
     # bucket_name = "your-bucket-name"
@@ -260,7 +261,6 @@ def remove_bucket_label(bucket_name):
 
     print("Removed labels on {}.".format(bucket.name))
     pprint.pprint(bucket.labels)
-
 
 
 def enable_requester_pays(bucket_name):
@@ -303,7 +303,6 @@ def get_requester_pays_status(bucket_name):
         print("Requester Pays is disabled for {}".format(bucket_name))
 
 
-
 def download_file_requester_pays(
     bucket_name, project_id, source_blob_name, destination_file_name
 ):
@@ -343,6 +342,7 @@ def set_retention_policy(bucket_name, retention_period):
         )
     )
 
+
 def remove_retention_policy(bucket_name):
     """Removes the retention policy on a given bucket"""
     # bucket_name = "my-bucket"
@@ -352,15 +352,14 @@ def remove_retention_policy(bucket_name):
     bucket.reload()
 
     if bucket.retention_policy_locked:
-        print(
-            "Unable to remove retention period as retention policy is locked."
-        )
+        print("Unable to remove retention period as retention policy is locked.")
         return
 
     bucket.retention_period = None
     bucket.patch()
 
     print("Removed bucket {} retention policy".format(bucket.name))
+
 
 def lock_retention_policy(bucket_name):
     """Locks the retention policy on a given bucket"""
@@ -382,6 +381,7 @@ def lock_retention_policy(bucket_name):
         )
     )
 
+
 def get_retention_policy(bucket_name):
     """Gets the retention policy on a given bucket"""
     # bucket_name = "my-bucket"
@@ -396,9 +396,7 @@ def get_retention_policy(bucket_name):
         print("Retention Policy is locked")
 
     if bucket.retention_policy_effective_time:
-        print(
-            "Effective Time: {}".format(bucket.retention_policy_effective_time)
-        )
+        print("Effective Time: {}".format(bucket.retention_policy_effective_time))
 
 
 def enable_default_event_based_hold(bucket_name):
@@ -425,11 +423,8 @@ def get_default_event_based_hold(bucket_name):
     if bucket.default_event_based_hold:
         print("Default event-based hold is enabled for {}".format(bucket_name))
     else:
-        print(
-            "Default event-based hold is not enabled for {}".format(
-                bucket_name
-            )
-        )
+        print("Default event-based hold is not enabled for {}".format(bucket_name))
+
 
 def disable_default_event_based_hold(bucket_name):
     """Disables the default event based hold on a given bucket"""
@@ -442,7 +437,6 @@ def disable_default_event_based_hold(bucket_name):
     bucket.patch()
 
     print("Default event based hold was disabled for {}".format(bucket_name))
-
 
 
 def set_event_based_hold(bucket_name, blob_name):
@@ -459,6 +453,7 @@ def set_event_based_hold(bucket_name, blob_name):
 
     print("Event based hold was set for {}".format(blob_name))
 
+
 def set_temporary_hold(bucket_name, blob_name):
     """Sets a temporary hold on a given blob"""
     # bucket_name = "my-bucket"
@@ -472,6 +467,7 @@ def set_temporary_hold(bucket_name, blob_name):
     blob.patch()
 
     print("Temporary hold was set for #{blob_name}")
+
 
 def release_event_based_hold(bucket_name, blob_name):
     """Releases the event based hold on a given blob"""
@@ -489,7 +485,6 @@ def release_event_based_hold(bucket_name, blob_name):
     print("Event based hold was released for {}".format(blob_name))
 
 
-
 def release_temporary_hold(bucket_name, blob_name):
     """Releases the temporary hold on a given blob"""
 
@@ -504,6 +499,7 @@ def release_temporary_hold(bucket_name, blob_name):
     blob.patch()
 
     print("Temporary hold was release for #{blob_name}")
+
 
 import base64
 import os
@@ -524,10 +520,7 @@ def generate_encryption_key():
 
 
 def upload_encrypted_blob(
-    bucket_name,
-    source_file_name,
-    destination_blob_name,
-    base64_encryption_key,
+    bucket_name, source_file_name, destination_blob_name, base64_encryption_key,
 ):
     """Uploads a file to a Google Cloud Storage bucket using a custom
     encryption key.
@@ -543,24 +536,15 @@ def upload_encrypted_blob(
     # 32 bytes. Since it's passed in as a base64 encoded string, it needs
     # to be decoded.
     encryption_key = base64.b64decode(base64_encryption_key)
-    blob = bucket.blob(
-        destination_blob_name, encryption_key=encryption_key
-    )
+    blob = bucket.blob(destination_blob_name, encryption_key=encryption_key)
 
     blob.upload_from_filename(source_file_name)
 
-    print(
-        "File {} uploaded to {}.".format(
-            source_file_name, destination_blob_name
-        )
-    )
+    print("File {} uploaded to {}.".format(source_file_name, destination_blob_name))
 
 
 def download_encrypted_blob(
-    bucket_name,
-    source_blob_name,
-    destination_file_name,
-    base64_encryption_key,
+    bucket_name, source_blob_name, destination_file_name, base64_encryption_key,
 ):
     """Downloads a previously-encrypted blob from Google Cloud Storage.
 
@@ -584,11 +568,8 @@ def download_encrypted_blob(
 
     blob.download_to_filename(destination_file_name)
 
-    print(
-        "Blob {} downloaded to {}.".format(
-            source_blob_name, destination_file_name
-        )
-    )
+    print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
+
 
 def rotate_encryption_key(
     bucket_name, blob_name, base64_encryption_key, base64_new_encryption_key
@@ -602,12 +583,8 @@ def rotate_encryption_key(
 
     # Both source_blob and destination_blob refer to the same storage object,
     # but destination_blob has the new encryption key.
-    source_blob = bucket.blob(
-        blob_name, encryption_key=current_encryption_key
-    )
-    destination_blob = bucket.blob(
-        blob_name, encryption_key=new_encryption_key
-    )
+    source_blob = bucket.blob(blob_name, encryption_key=current_encryption_key)
+    destination_blob = bucket.blob(blob_name, encryption_key=new_encryption_key)
 
     token = None
 
@@ -622,7 +599,8 @@ def rotate_encryption_key(
 
 
 def add_member_to_crypto_key_policy(
-        project_id, location_id, key_ring_id, crypto_key_id, member, role):
+    project_id, location_id, key_ring_id, crypto_key_id, member, role
+):
     """Adds a member with a given role to the Identity and Access Management
     (IAM) policy for a given CryptoKey associated with a KeyRing."""
 
@@ -632,22 +610,25 @@ def add_member_to_crypto_key_policy(
     client = kms_v1.KeyManagementServiceClient()
 
     # The resource name of the CryptoKey.
-    resource = client.crypto_key_path_path(project_id, location_id,
-                                           key_ring_id, crypto_key_id)
+    resource = client.crypto_key_path_path(
+        project_id, location_id, key_ring_id, crypto_key_id
+    )
     # Get the current IAM policy.
     policy = client.get_iam_policy(resource)
 
     # Add member
-    policy.bindings.add(
-        role=role,
-        members=[member])
+    policy.bindings.add(role=role, members=[member])
 
     # Update the IAM Policy.
     client.set_iam_policy(resource, policy)
 
     # Print results
-    print('Member {} added with role {} to policy for CryptoKey {} \
-           in KeyRing {}'.format(member, role, crypto_key_id, key_ring_id))
+    print(
+        "Member {} added with role {} to policy for CryptoKey {} \
+           in KeyRing {}".format(
+            member, role, crypto_key_id, key_ring_id
+        )
+    )
 
 
 def enable_default_kms_key(bucket_name, kms_key_name):
@@ -665,6 +646,7 @@ def enable_default_kms_key(bucket_name, kms_key_name):
             bucket.name, bucket.default_kms_key_name
         )
     )
+
 
 def upload_blob_with_kms(
     bucket_name, source_file_name, destination_blob_name, kms_key_name
@@ -724,12 +706,9 @@ def list_keys(project_id):
     hmac_keys = storage_client.list_hmac_keys(project_id=project_id)
     print("HMAC Keys:")
     for hmac_key in hmac_keys:
-        print(
-            "Service Account Email: {}".format(hmac_key.service_account_email)
-        )
+        print("Service Account Email: {}".format(hmac_key.service_account_email))
         print("Access ID: {}".format(hmac_key.access_id))
     return hmac_keys
-
 
 
 def get_key(access_id, project_id):
@@ -741,9 +720,7 @@ def get_key(access_id, project_id):
 
     storage_client = storage.Client(project=project_id)
 
-    hmac_key = storage_client.get_hmac_key_metadata(
-        access_id, project_id=project_id
-    )
+    hmac_key = storage_client.get_hmac_key_metadata(access_id, project_id=project_id)
 
     print("The HMAC key metadata is:")
     print("Service Account Email: {}".format(hmac_key.service_account_email))
@@ -757,7 +734,6 @@ def get_key(access_id, project_id):
     return hmac_key
 
 
-
 def deactivate_key(access_id, project_id):
     """
     Deactivate the HMAC key with the given access ID.
@@ -767,9 +743,7 @@ def deactivate_key(access_id, project_id):
 
     storage_client = storage.Client(project=project_id)
 
-    hmac_key = storage_client.get_hmac_key_metadata(
-        access_id, project_id=project_id
-    )
+    hmac_key = storage_client.get_hmac_key_metadata(access_id, project_id=project_id)
     hmac_key.state = "INACTIVE"
     hmac_key.update()
 
@@ -795,9 +769,7 @@ def activate_key(access_id, project_id):
 
     storage_client = storage.Client(project=project_id)
 
-    hmac_key = storage_client.get_hmac_key_metadata(
-        access_id, project_id=project_id
-    )
+    hmac_key = storage_client.get_hmac_key_metadata(access_id, project_id=project_id)
     hmac_key.state = "ACTIVE"
     hmac_key.update()
 
@@ -823,14 +795,11 @@ def delete_key(access_id, project_id):
 
     storage_client = storage.Client(project=project_id)
 
-    hmac_key = storage_client.get_hmac_key_metadata(
-        access_id, project_id=project_id
-    )
+    hmac_key = storage_client.get_hmac_key_metadata(access_id, project_id=project_id)
     hmac_key.delete()
 
     print(
-        "The key is deleted, though it may still appear in list_hmac_keys()"
-        " results."
+        "The key is deleted, though it may still appear in list_hmac_keys()" " results."
     )
 
 
@@ -845,11 +814,7 @@ def make_blob_public(bucket_name, blob_name):
 
     blob.make_public()
 
-    print(
-        "Blob {} is publicly accessible at {}".format(
-            blob.name, blob.public_url
-        )
-    )
+    print("Blob {} is publicly accessible at {}".format(blob.name, blob.public_url))
 
 
 def add_bucket_iam_member(bucket_name, role, member):
@@ -869,6 +834,7 @@ def add_bucket_iam_member(bucket_name, role, member):
 
     print("Added {} with role {} to {}.".format(member, role, bucket_name))
 
+
 def view_bucket_iam_members(bucket_name):
     """View IAM Policy for a bucket"""
     # bucket_name = "your-bucket-name"
@@ -880,6 +846,7 @@ def view_bucket_iam_members(bucket_name):
 
     for binding in policy.bindings:
         print("Role: {}, Members: {}".format(binding["role"], binding["members"]))
+
 
 def remove_bucket_iam_member(bucket_name, role, member):
     """Remove member from bucket IAM Policy"""
@@ -900,7 +867,6 @@ def remove_bucket_iam_member(bucket_name, role, member):
     bucket.set_iam_policy(policy)
 
     print("Removed {} with role {} from {}.".format(member, role, bucket_name))
-
 
 
 def add_bucket_conditional_iam_binding(
@@ -957,11 +923,7 @@ def enable_uniform_bucket_level_access(bucket_name):
     bucket.iam_configuration.uniform_bucket_level_access_enabled = True
     bucket.patch()
 
-    print(
-        "Uniform bucket-level access was enabled for {}.".format(bucket.name)
-    )
-
-
+    print("Uniform bucket-level access was enabled for {}.".format(bucket.name))
 
 
 def get_uniform_bucket_level_access(bucket_name):
@@ -973,22 +935,15 @@ def get_uniform_bucket_level_access(bucket_name):
     iam_configuration = bucket.iam_configuration
 
     if iam_configuration.uniform_bucket_level_access_enabled:
-        print(
-            "Uniform bucket-level access is enabled for {}.".format(
-                bucket.name
-            )
-        )
+        print("Uniform bucket-level access is enabled for {}.".format(bucket.name))
         print(
             "Bucket will be locked on {}.".format(
                 iam_configuration.uniform_bucket_level_locked_time
             )
         )
     else:
-        print(
-            "Uniform bucket-level access is disabled for {}.".format(
-                bucket.name
-            )
-        )
+        print("Uniform bucket-level access is disabled for {}.".format(bucket.name))
+
 
 def disable_uniform_bucket_level_access(bucket_name):
     """Disable uniform bucket-level access for a bucket"""
@@ -1000,9 +955,7 @@ def disable_uniform_bucket_level_access(bucket_name):
     bucket.iam_configuration.uniform_bucket_level_access_enabled = False
     bucket.patch()
 
-    print(
-        "Uniform bucket-level access was disabled for {}.".format(bucket.name)
-    )
+    print("Uniform bucket-level access was disabled for {}.".format(bucket.name))
 
 
 def add_bucket_owner(bucket_name, user_email):
@@ -1024,11 +977,8 @@ def add_bucket_owner(bucket_name, user_email):
     bucket.acl.user(user_email).grant_owner()
     bucket.acl.save()
 
-    print(
-        "Added user {} as an owner on bucket {}.".format(
-            user_email, bucket_name
-        )
-    )
+    print("Added user {} as an owner on bucket {}.".format(user_email, bucket_name))
+
 
 def add_blob_owner(bucket_name, blob_name, user_email):
     """Adds a user as an owner on the given blob."""
@@ -1080,6 +1030,7 @@ def add_bucket_default_owner(bucket_name, user_email):
         )
     )
 
+
 def remove_bucket_default_owner(bucket_name, user_email):
     """Removes a user from the access control list of the given bucket's
     default object access control list."""
@@ -1105,6 +1056,7 @@ def remove_bucket_default_owner(bucket_name, user_email):
         )
     )
 
+
 def print_bucket_acl(bucket_name):
     """Prints out a bucket's access control list."""
 
@@ -1125,6 +1077,7 @@ def print_blob_acl(bucket_name, blob_name):
     for entry in blob.acl:
         print("{}: {}".format(entry["role"], entry["entity"]))
 
+
 def remove_bucket_owner(bucket_name, user_email):
     """Removes a user from the access control list of the given bucket."""
     # bucket_name = "your-bucket-name"
@@ -1144,6 +1097,7 @@ def remove_bucket_owner(bucket_name, user_email):
     bucket.acl.save()
 
     print("Removed user {} from bucket {}.".format(user_email, bucket_name))
+
 
 def remove_blob_owner(bucket_name, blob_name, user_email):
     """Removes a user from the access control list of the given blob in the
@@ -1170,7 +1124,6 @@ def remove_blob_owner(bucket_name, blob_name, user_email):
     )
 
 
-
 def generate_download_signed_url_v4(bucket_name, blob_name):
     """Generates a v4 signed URL for downloading a blob.
 
@@ -1181,7 +1134,6 @@ def generate_download_signed_url_v4(bucket_name, blob_name):
     # bucket_name = 'your-bucket-name'
     # blob_name = 'your-object-name'
     import datetime
-
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -1202,11 +1154,16 @@ def generate_download_signed_url_v4(bucket_name, blob_name):
     return url
 
 
-
-
-def generate_signed_url(service_account_file, bucket_name, object_name,
-                        subresource=None, expiration=604800, http_method='GET',
-                        query_parameters=None, headers=None):
+def generate_signed_url(
+    service_account_file,
+    bucket_name,
+    object_name,
+    subresource=None,
+    expiration=604800,
+    http_method="GET",
+    query_parameters=None,
+    headers=None,
+):
 
     import binascii
     import collections
@@ -1222,90 +1179,97 @@ def generate_signed_url(service_account_file, bucket_name, object_name,
     from google.oauth2 import service_account
 
     if expiration > 604800:
-        print('Expiration Time can\'t be longer than 604800 seconds (7 days).')
+        print("Expiration Time can't be longer than 604800 seconds (7 days).")
         sys.exit(1)
 
-    escaped_object_name = quote(six.ensure_binary(object_name), safe=b'/~')
-    canonical_uri = '/{}'.format(escaped_object_name)
+    escaped_object_name = quote(six.ensure_binary(object_name), safe=b"/~")
+    canonical_uri = "/{}".format(escaped_object_name)
 
     datetime_now = datetime.datetime.utcnow()
-    request_timestamp = datetime_now.strftime('%Y%m%dT%H%M%SZ')
-    datestamp = datetime_now.strftime('%Y%m%d')
+    request_timestamp = datetime_now.strftime("%Y%m%dT%H%M%SZ")
+    datestamp = datetime_now.strftime("%Y%m%d")
 
     google_credentials = service_account.Credentials.from_service_account_file(
-        service_account_file)
+        service_account_file
+    )
     client_email = google_credentials.service_account_email
-    credential_scope = '{}/auto/storage/goog4_request'.format(datestamp)
-    credential = '{}/{}'.format(client_email, credential_scope)
+    credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
+    credential = "{}/{}".format(client_email, credential_scope)
 
     if headers is None:
         headers = dict()
-    host = '{}.storage.googleapis.com'.format(bucket_name)
-    headers['host'] = host
+    host = "{}.storage.googleapis.com".format(bucket_name)
+    headers["host"] = host
 
-    canonical_headers = ''
+    canonical_headers = ""
     ordered_headers = collections.OrderedDict(sorted(headers.items()))
     for k, v in ordered_headers.items():
         lower_k = str(k).lower()
         strip_v = str(v).lower()
-        canonical_headers += '{}:{}\n'.format(lower_k, strip_v)
+        canonical_headers += "{}:{}\n".format(lower_k, strip_v)
 
-    signed_headers = ''
+    signed_headers = ""
     for k, _ in ordered_headers.items():
         lower_k = str(k).lower()
-        signed_headers += '{};'.format(lower_k)
+        signed_headers += "{};".format(lower_k)
     signed_headers = signed_headers[:-1]  # remove trailing ';'
 
     if query_parameters is None:
         query_parameters = dict()
-    query_parameters['X-Goog-Algorithm'] = 'GOOG4-RSA-SHA256'
-    query_parameters['X-Goog-Credential'] = credential
-    query_parameters['X-Goog-Date'] = request_timestamp
-    query_parameters['X-Goog-Expires'] = expiration
-    query_parameters['X-Goog-SignedHeaders'] = signed_headers
+    query_parameters["X-Goog-Algorithm"] = "GOOG4-RSA-SHA256"
+    query_parameters["X-Goog-Credential"] = credential
+    query_parameters["X-Goog-Date"] = request_timestamp
+    query_parameters["X-Goog-Expires"] = expiration
+    query_parameters["X-Goog-SignedHeaders"] = signed_headers
     if subresource:
-        query_parameters[subresource] = ''
+        query_parameters[subresource] = ""
 
-    canonical_query_string = ''
-    ordered_query_parameters = collections.OrderedDict(
-        sorted(query_parameters.items()))
+    canonical_query_string = ""
+    ordered_query_parameters = collections.OrderedDict(sorted(query_parameters.items()))
     for k, v in ordered_query_parameters.items():
-        encoded_k = quote(str(k), safe='')
-        encoded_v = quote(str(v), safe='')
-        canonical_query_string += '{}={}&'.format(encoded_k, encoded_v)
+        encoded_k = quote(str(k), safe="")
+        encoded_v = quote(str(v), safe="")
+        canonical_query_string += "{}={}&".format(encoded_k, encoded_v)
     canonical_query_string = canonical_query_string[:-1]  # remove trailing '&'
 
-    canonical_request = '\n'.join([http_method,
-                                   canonical_uri,
-                                   canonical_query_string,
-                                   canonical_headers,
-                                   signed_headers,
-                                   'UNSIGNED-PAYLOAD'])
+    canonical_request = "\n".join(
+        [
+            http_method,
+            canonical_uri,
+            canonical_query_string,
+            canonical_headers,
+            signed_headers,
+            "UNSIGNED-PAYLOAD",
+        ]
+    )
 
-    canonical_request_hash = hashlib.sha256(
-        canonical_request.encode()).hexdigest()
+    canonical_request_hash = hashlib.sha256(canonical_request.encode()).hexdigest()
 
-    string_to_sign = '\n'.join(['GOOG4-RSA-SHA256',
-                                request_timestamp,
-                                credential_scope,
-                                canonical_request_hash])
+    string_to_sign = "\n".join(
+        [
+            "GOOG4-RSA-SHA256",
+            request_timestamp,
+            credential_scope,
+            canonical_request_hash,
+        ]
+    )
 
     signature = binascii.hexlify(
         google_credentials.signer.sign(string_to_sign)
     ).decode()
 
-    scheme_and_host = '{}://{}'.format('https', host)
-    signed_url = '{}{}?{}&x-goog-signature={}'.format(
-        scheme_and_host, canonical_uri, canonical_query_string, signature)
+    scheme_and_host = "{}://{}".format("https", host)
+    signed_url = "{}{}?{}&x-goog-signature={}".format(
+        scheme_and_host, canonical_uri, canonical_query_string, signature
+    )
 
     return signed_url
 
 
-
-
 def upload_bytesio_blob(bucket_name, blob_name, content, encode=False):
     import io
-    buff = io.BytesIO();
+
+    buff = io.BytesIO()
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     if encode:
@@ -1319,24 +1283,19 @@ def upload_bytesio_blob(bucket_name, blob_name, content, encode=False):
 
     blob = bucket.blob(blob_name)
     blob.upload_from_file(buff)
-    print(
-        "File {} uploaded to {}.".format(
-            blob_name, bucket_name
-        ))
+    print("File {} uploaded to {}.".format(blob_name, bucket_name))
+
 
 def download_bytesio_blob(bucket_name, blob_name):
     import io
+
     client = storage.Client()
     bucket = client.get_bucket(bucket_name)
     blob = bucket.get_blob(blob_name)
     buffer = io.BytesIO()
     blob.download_to_file(buffer)
     buffer.seek(0)
-    print(
-        "File {} downloaded from {}.".format(
-            blob_name, bucket_name
-        )
-    )
+    print("File {} downloaded from {}.".format(blob_name, bucket_name))
     return buffer
 
 
@@ -1358,14 +1317,12 @@ def create_secret(project_id, secret_id):
     parent = client.project_path(project_id)
 
     # Create the secret.
-    response = client.create_secret(parent, secret_id, {
-        'replication': {
-            'automatic': {},
-        },
-    })
+    response = client.create_secret(
+        parent, secret_id, {"replication": {"automatic": {},},}
+    )
 
     # Print the new secret name.
-    print('Created secret: {}'.format(response.name))
+    print("Created secret: {}".format(response.name))
 
 
 def add_secret_version(project_id, secret_id, payload):
@@ -1384,16 +1341,16 @@ def add_secret_version(project_id, secret_id, payload):
 
     # Convert the string payload into a bytes. This step can be omitted if you
     # pass in bytes instead of a str for the payload argument.
-    payload = payload.encode('UTF-8')
+    payload = payload.encode("UTF-8")
 
     # Add the secret version.
-    response = client.add_secret_version(parent, {'data': payload})
+    response = client.add_secret_version(parent, {"data": payload})
 
     # Print the new secret version name.
-    print('Added secret version: {}'.format(response.name))
+    print("Added secret version: {}".format(response.name))
 
 
-def access_secret_version(project_id, secret_id, version_id='latest'):
+def access_secret_version(project_id, secret_id, version_id="latest"):
     """
     Access the payload for the given secret version if one exists. The version
     can be a version number as a string (e.g. "5") or an alias (e.g. "latest").
@@ -1415,6 +1372,6 @@ def access_secret_version(project_id, secret_id, version_id='latest'):
     #
     # WARNING: Do not print the secret in a production environment - this
     # snippet is showing how to access the secret material.
-    payload = response.payload.data.decode('UTF-8')
+    payload = response.payload.data.decode("UTF-8")
     # print('Plaintext: {}'.format(payload))
     return payload
