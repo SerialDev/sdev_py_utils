@@ -114,6 +114,7 @@ def lift_df(
     return lift_df
 
 
+# TODO FIX THIS
 def lift_chart(
     actual,
     pred,
@@ -191,6 +192,8 @@ def deciles(var):
 
 
 def roc_plot(actual, pred, ttl):
+    from sklearn.metrics import auc, roc_curve
+
     fpr, tpr, thresholds = roc_curve(actual, pred)
     roc_auc = auc(fpr, tpr)
     print("The Area Under the ROC Curve : %f" % roc_auc)

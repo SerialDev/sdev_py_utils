@@ -32,11 +32,11 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
     h_spacing = (right - left) / float(len(layer_sizes) - 1)
     # Nodes
     for n, layer_size in enumerate(layer_sizes):
-        layer_top = v_spacing * (layer_size - 1) / 2. + (top + bottom) / 2.
+        layer_top = v_spacing * (layer_size - 1) / 2.0 + (top + bottom) / 2.0
         for m in range(layer_size):
             circle = plt.Circle(
                 (n * h_spacing + left, layer_top - m * v_spacing),
-                v_spacing / 4.,
+                v_spacing / 4.0,
                 color="w",
                 ec="k",
                 zorder=4,
@@ -52,7 +52,7 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
             elif (n_layers == 3) & (n == 1):
                 plt.text(
                     n * h_spacing + left + 0.00,
-                    layer_top - m * v_spacing + (v_spacing / 8. + 0.01 * v_spacing),
+                    layer_top - m * v_spacing + (v_spacing / 8.0 + 0.01 * v_spacing),
                     r"$H_{" + str(m + 1) + "}$",
                     fontsize=15,
                 )
@@ -69,8 +69,8 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
     for n, (layer_size_a, layer_size_b) in enumerate(
         zip(layer_sizes[:-1], layer_sizes[1:])
     ):
-        layer_top_a = v_spacing * (layer_size_a - 1) / 2. + (top + bottom) / 2.
-        layer_top_b = v_spacing * (layer_size_b - 1) / 2. + (top + bottom) / 2.
+        layer_top_a = v_spacing * (layer_size_a - 1) / 2.0 + (top + bottom) / 2.0
+        layer_top_b = v_spacing * (layer_size_b - 1) / 2.0 + (top + bottom) / 2.0
         for m in range(layer_size_a):
             for o in range(layer_size_b):
                 line = plt.Line2D(
@@ -82,7 +82,7 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
                 ax.add_artist(line)
 
     # Input-Arrows
-    layer_top_0 = v_spacing * (layer_sizes[0] - 1) / 2. + (top + bottom) / 2.
+    layer_top_0 = v_spacing * (layer_sizes[0] - 1) / 2.0 + (top + bottom) / 2.0
     for m in range(layer_sizes[0]):
         plt.arrow(
             left - 0.18,
@@ -95,7 +95,7 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
             color="k",
         )
     # Output-Arrows
-    layer_top_0 = v_spacing * (layer_sizes[-1] - 1) / 2. + (top + bottom) / 2.
+    layer_top_0 = v_spacing * (layer_sizes[-1] - 1) / 2.0 + (top + bottom) / 2.0
     for m in range(layer_sizes[-1]):
         plt.arrow(
             right + 0.015,

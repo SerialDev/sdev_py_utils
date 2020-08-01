@@ -1,17 +1,37 @@
-
 # --------{Object Serialization}--------#
 
 import yaml
 from collections import OrderedDict
 
+
+def network_compress_encode(data):
+    import zlib
+    import base64
+
+    result = base64.b64encode(zlib.compress(data.encode())).decode()
+    return result
+
+
+def network_compress_decode(data):
+    import zlib
+    import base64
+
+    result = zlib.decompress(base64.b64decode(data.encode()))
+    return result
+
+
 def b64_pickle(data):
     import base64
     import pickle
+
     return base64.b64encode(pickle.dumps(data))
+
 
 def md5_hex(data):
     from hashlib import md5
+
     return md5(data).hexdigest()
+
 
 def hash_runtime(data):
     return md5_hex(b64_pickle(data))
@@ -147,4 +167,4 @@ class RecentlyUsedContainer(MutableMapping):
 
 
 def generator_range(generator, count):
-    return [generator.__next__()for i in range(count)]
+    return [generator.__next__() for i in range(count)]

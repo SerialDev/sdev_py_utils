@@ -2,6 +2,11 @@ from google.cloud import storage
 from google.cloud import bigquery
 import pprint
 
+import os
+
+from google.oauth2 import service_account
+import googleapiclient.discovery
+
 
 def bigquery_column_dtypes(project_name, dataset_name):
     query = f"""
@@ -1375,3 +1380,20 @@ def access_secret_version(project_id, secret_id, version_id="latest"):
     payload = response.payload.data.decode("UTF-8")
     # print('Plaintext: {}'.format(payload))
     return payload
+
+
+def create_key(service_account_email):
+    """Creates a key for a service account."""
+
+    service = googleapiclient.discovery.build("iam", "v1")
+
+    key = (
+        service.projects()
+        .serviceAccounts()
+        .keys()
+        .create(name="projects/-/serviceAccounts/" + service_account_email, body={})
+        .execute()
+    )
+
+    print("Created key: " + key["name"])
+    return key

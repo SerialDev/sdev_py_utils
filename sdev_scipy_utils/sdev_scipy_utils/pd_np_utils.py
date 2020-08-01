@@ -1536,3 +1536,16 @@ def rows_with_nan(df, col=None):
         row_has_NaN = is_NaN.any(axis=1)
         rows_with_NaN = temp_df[row_has_NaN]
         return rows_with_NaN
+
+
+def drop_contains_pd(df, col, contained_string):
+    df.drop(
+        df[col][df[col].str.contains(contained_string)].index, inplace=True,
+    )
+    return df
+
+
+def partition_df(df, col):
+    for current_element in df[col].unique():
+        result = df[df[col] == current_element]
+        yield result
