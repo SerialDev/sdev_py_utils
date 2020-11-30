@@ -77,7 +77,7 @@ def cat_manhattan_bar(data, facet=None, height=5):
             height=height,
             aspect=2,  # height should be two times width
         )
-        result.set(xscale="log")
+        result.set(yscale="log")
     return result
 
 

@@ -1549,3 +1549,21 @@ def partition_df(df, col):
     for current_element in df[col].unique():
         result = df[df[col] == current_element]
         yield result
+
+
+def contains_extract_pd(df, contained_string):
+    extracted_rows = df[df.ClientRequestPath.str.contains(contained_string)]
+    df = df.drop(kendo_rows.index, axis=0)
+    return df, extracted_rows
+
+
+
+def np_startswith_indeces(array, data):
+    return np.flatnonzero(np.char.startswith(array, data))
+
+def np_startswith_mask(array, data):
+    return np.char.startswith(array, data)
+
+def np_startswith_values(array, data):
+    return array[(np.char.startswith(array, data))]
+

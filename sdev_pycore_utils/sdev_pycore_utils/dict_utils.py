@@ -235,9 +235,9 @@ def transform_dict_ltuples(data):
     return result
 
 
-
 def type_executor(tuple_list, data_param):
     import re
+
     result = {}
     modified = False
     for current_type, current_fn in tuple_list:
@@ -245,70 +245,91 @@ def type_executor(tuple_list, data_param):
             if type(data_param) == type(None):
                 continue
 
-            result[re.compile("'.*'").findall(
-                str(current_type))[0].replace("'","")] = current_fn(data_param)
+            result[
+                re.compile("'.*'").findall(str(current_type))[0].replace("'", "")
+            ] = current_fn(data_param)
 
             modified = True
     if modified == False:
-        result['unmodified'] = []
-        result['unmodified'].append(data_param)
+        result["unmodified"] = []
+        result["unmodified"].append(data_param)
     return result
 
 
-def print_return(x, key=''):
+def print_return(x, key=""):
     if key == None:
-        key = ''
+        key = ""
     # print(x)
-    return key+"_"+x
+    return key + "_" + x
+
 
 def identity(x):
     return x
 
 
-def flatten_dict(current_dict, key=None ):
+def flatten_dict(current_dict, key=None):
 
     flattened_dict = {}
     for key in current_dict.keys():
-        type_executors = [(str, lambda x: print_return(x, key)),
-                          (dict, lambda x: flatten_dict(x, key=key)),
-                          (list, lambda x: flatten_dict_list(x, key=key)),
-                          (None, identity)]
+        type_executors = [
+            (str, lambda x: print_return(x, key)),
+            (dict, lambda x: flatten_dict(x, key=key)),
+            (list, lambda x: flatten_dict_list(x, key=key)),
+            (None, identity),
+        ]
         u = type_executor(type_executors, current_dict[key])
         try:
-            flattened_dict = merge_dictionaries([flattened_dict, u['list']])
+            flattened_dict = merge_dictionaries([flattened_dict, u["list"]])
         except KeyError as e:
             pass
         try:
-            flattened_dict = merge_dictionaries([flattened_dict, u['dict']])
+            flattened_dict = merge_dictionaries([flattened_dict, u["dict"]])
         except KeyError as e:
             pass
         try:
-            flattened_dict[u['str'].replace(' ', '-').split('_')[0]] = u['str'].replace(' ', '-').split('_')[1]
+            flattened_dict[u["str"].replace(" ", "-").split("_")[0]] = (
+                u["str"].replace(" ", "-").split("_")[1]
+            )
         except KeyError as e:
             pass
-
 
     return flattened_dict
-
 
 
 def flatten_dict_list(current_list, key=None):
 
     flattened_dict = {}
-    type_executors = [(str, lambda x: print_return(x, key)),
-                      (dict, lambda x: flatten_dict(x, key=key)),
-                      (list, lambda x: flatten_dict_list(x, key=key)),
-                      (None, identity)]
+    type_executors = [
+        (str, lambda x: print_return(x, key)),
+        (dict, lambda x: flatten_dict(x, key=key)),
+        (list, lambda x: flatten_dict_list(x, key=key)),
+        (None, identity),
+    ]
 
     for i in current_list:
         u = type_executor(type_executors, i)
         try:
-            flattened_dict = merge_dictionaries([flattened_dict, u['dict']])
+            flattened_dict = merge_dictionaries([flattened_dict, u["dict"]])
         except KeyError as e:
             pass
         try:
-            flattened_dict[u['str'].split('_')[0]] = u['str'].replace(' ', '-').split('_')[1]
+            flattened_dict[u["str"].split("_")[0]] = (
+                u["str"].replace(" ", "-").split("_")[1]
+            )
         except KeyError as e:
             pass
 
     return flattened_dict
+
+
+def deconstruct(dict_list, key):
+    return list(map(lambda x: x[key], dict_list))
+
+
+def multi_deconstruct(dict_list, key_list):
+    query = "lambda x:["
+    for i in key_list:
+        query += f"x['{i}'],"
+    query = query
+    query += "]"
+    return list(map(eval(query), dict_list))
