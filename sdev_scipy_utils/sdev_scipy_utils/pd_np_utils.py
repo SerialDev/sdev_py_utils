@@ -1313,15 +1313,28 @@ def pd_csv_to_buffer(data):
     return out_buffer
 
 
+
+
+def max_len_aos(data):
+    max_len = (0, 0)
+    for idx, i in enumerate(data):
+        current_len = len(i.keys())
+        if current_len > max_len[1]:
+            max_len = (idx, current_len)
+    return max_len
+
+
+
 def transform_aos_soa(dict_list):
-    cols = list(dict_list[0].keys())
+    max_len = max_len_aos(dict_list)
+    cols = list(dict_list[max_len[0]].keys())
     soa = {}
     for i in cols:
         soa[i] = []
         for j in range(len(dict_list)):
             try:
                 soa[i].append(dict_list[j][i])
-            except Exception as e:
+            except Exception:
                 soa[i].append(None)
     return soa
 

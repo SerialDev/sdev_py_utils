@@ -11,7 +11,7 @@ log_filename = ""
 def prettify_stacktrace():
     import pretty_errors
     import stackprinter
-    stackprinter.set_excepthook(style='darkbg2')
+    stackprinter.set_excepthook(style='lightbg2')
 
     pretty_errors.configure(
         separator_character = '*',
