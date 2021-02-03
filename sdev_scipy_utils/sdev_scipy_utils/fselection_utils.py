@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import ShuffleSplit
 from sklearn.metrics import r2_score
 from collections import defaultdict
-from sklearn.linear_model import LinearRegression, Lasso, Ridge, RandomizedLasso
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.feature_selection import RFE
 import numpy as np
 
@@ -91,13 +91,13 @@ def feature_select(X, Y, names=None, method="all"):
                 reverse=True,
             )
         )
-    elif method == "stability":
-        rlasso = RandomizedLasso(alpha=0.025)
-        rlasso.fit(X, Y)
-        print("Features sorted by their score:")
-        print(
-            sorted(zip(map(lambda x: round(x, 4), rlasso.scores_), names), reverse=True)
-        )
+    # elif method == "stability": # Randomized lasso removed from sklearn
+    #     rlasso = RandomizedLasso(alpha=0.025)
+    #     rlasso.fit(X, Y)
+    #     print("Features sorted by their score:")
+    #     print(
+    #         sorted(zip(map(lambda x: round(x, 4), rlasso.scores_), names), reverse=True)
+    #     )
     elif method == "recursive_l":
         # Recursive with linear
         lr = LinearRegression()
