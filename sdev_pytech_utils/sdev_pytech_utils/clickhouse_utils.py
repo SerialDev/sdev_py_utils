@@ -154,3 +154,11 @@ class ch_utils(object):
     @staticmethod
     def enclose_quote(data: str) -> str:
         return f"'{data}'"
+
+
+def enclose(data: str) -> str:
+    return f"({data})"
+
+
+def enclose_quote(data: str) -> str:
+    return f"'{data}'"
