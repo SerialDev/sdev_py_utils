@@ -129,7 +129,7 @@ class ch_utils(object):
         return data_types
 
     @staticmethod
-    def pd_execute(query):
+    def pd_execute(client, query):
         import pandas as pd
 
         a = client.execute(query, with_column_types=True)

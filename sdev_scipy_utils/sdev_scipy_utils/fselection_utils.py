@@ -1,7 +1,7 @@
 from sklearn.ensemble import RandomForestRegressor
 
 # from sklearn.model_selection import ShuffleSplit  # TODO: New version not an iterator
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit
 from sklearn.metrics import r2_score
 from collections import defaultdict
 from sklearn.linear_model import LinearRegression, Lasso, Ridge, RandomizedLasso
@@ -33,7 +33,7 @@ def feature_select(X, Y, names=None, method="all"):
         lr.fit(X, Y)
         print("Linear Model:", pretty_print_linear(lr.coef_, names, sort=True))
     elif method == "L1":  # Lasso
-        lasso = Lasso(alpha=.3)
+        lasso = Lasso(alpha=0.3)
         lasso.fit(X, Y)
         print("Lasso model:", pretty_print_linear(lasso.coef_, names, sort=True))
     elif method == "L2":  # Ridge
