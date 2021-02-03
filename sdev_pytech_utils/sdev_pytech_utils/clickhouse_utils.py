@@ -120,6 +120,8 @@ class ch_utils(object):
 
     @staticmethod
     def pd_col_types(df):
+        import numpy as np
+
         data_types = list(zip(df.columns, df.dtypes))
 
         data_mapper = ch_utils().ch_df_map(True)
@@ -154,6 +156,64 @@ class ch_utils(object):
     @staticmethod
     def enclose_quote(data: str) -> str:
         return f"'{data}'"
+
+    @staticmethod
+    def create_table(
+        ch, df, db_name, table_name, primary_key="date", low_cardinality=False
+    ):
+        data_types = ch.pd_col_types(df)
+        if low_cardinality:
+            data_types = [
+                [
+                    k,
+                    v[0].replace(
+                        "String CODEC(LZ4)", "LowCardinality(String) CODEC(LZ4)"
+                    ),
+                ]
+                for k, v in data_types
+            ]
+        else:
+            data_types = [[k, v[0]] for k, v in data_types]
+
+        query = f"""create table if not exists {db_name}.{table_name}
+        {ch.enclose(", ".join([" ".join(x) for x in data_types]))}
+        ENGINE = MergeTree()
+        PRIMARY KEY ({primary_key})"""
+        return query
+
+    @staticmethod
+    def enclose_columns(ch, df, col_list):
+        for col in col_list:
+            df[f"{col}"] = df[f"{col}"].apply(ch.enclose_quote)
+        return df
+
+    @staticmethod
+    def escape_columns(ch, df, col_list):
+        for col in col_list:
+            df[f"{col}"] = df[f"{col}"].apply(lambda x: x.replace("'", ""))
+        return df
+
+    @staticmethod
+    def drop_table(client, db_name, table_name):
+        return client.execute(f"DROP TABLE {db_name}.{table_name};")
+
+    @staticmethod
+    def count_rows_table(client, db_name, table_name):
+        return client.execute(f"select count(*) from {db_name}.{table_name};")
+
+    @staticmethod
+    def insert_data(ch, df, db_name, table_name):
+        data = ", ".join(
+            [ch.enclose(", ".join(list(map(str, x)))) for idx, x in df.iterrows()]
+        )
+        query = f"""
+        INSERT INTO {db_name}.{table_name}
+        (*)
+        VALUES
+        {data}
+        ;
+        """
+        return query
 
 
 def enclose(data: str) -> str:
