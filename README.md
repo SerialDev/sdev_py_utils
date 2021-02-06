@@ -18,3 +18,35 @@ sphinx-apidoc -o .\docs  .\sdev_search_utils
 sphinx-apidoc -o .\docs  .\sdev_viz_utils
 
 sphinx-build -b html .\docs .\docs\build\
+
+
+
+# Install 
+
+local development
+```
+python install_development
+
+```
+
+local production
+```
+python install_production
+```
+
+remote
+```
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_algo_utils\&subdirectory=sdev_algo_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_concurrency_utils\&subdirectory=sdev_concurrency_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_decorator_utils\&subdirectory=sdev_decorator_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_introspection_utils\&subdirectory=sdev_introspection_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_lib_utils\&subdirectory=sdev_lib_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_logging_utils\&subdirectory=sdev_logging_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_misc_utils\&subdirectory=sdev_misc_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_pycore_utils\&subdirectory=sdev_pycore_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_pytech_utils\&subdirectory=sdev_pytech_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_scipy_utils\&subdirectory=sdev_scipy_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_search_utils\&subdirectory=sdev_search_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_viz_utils\&subdirectory=sdev_viz_utils
+pip install git+https://github.com/SerialDev/sdev_py_utils.git#egg=sdev_network_analysis\&subdirectory=sdev_network_analysis
+```

@@ -1,9 +1,5 @@
 #
 
-import matplotlib
-
-matplotlib.use("Agg")
-
 
 def gen_query_string(var_name, content):
     return f"?{var_name}={content}"
@@ -13,7 +9,6 @@ def bulma_inside_col(data, val=6):
     return f"""
 <div class="column is-{val}">
     {data}
-
 </div>
 """
 
@@ -40,9 +35,9 @@ def bulma_header():
 
 def bulma_navbar_item(title, url):
     return f"""
-          <a class="navbar-item" href="{url}">
-            {title}
-          </a>
+<a class="navbar-item" href="{url}">
+  {title}
+</a>
     """
 
 
@@ -56,30 +51,27 @@ def bulma_navbar(
         navbar += bulma_navbar_item(i, j)
 
     return f"""
-
-    <!-- START NAV -->
-    <nav class="navbar is-black">
-        <div class="container">
-            <div class="navbar-brand">
-                <a class="navbar-item brand-text" href="{title_url}">
-          {title}
-        </a>
-                <div class="navbar-burger burger" data-target="navMenu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-            <div id="navMenu" class="navbar-menu">
-                <div class="navbar-start">
-    {navbar}
-
-                </div>
-
-            </div>
-        </div>
-    </nav>
-    <!-- END NAV -->
+<!-- START NAV -->
+<nav class="navbar is-black">
+  <div class="container">
+    <div class="navbar-brand">
+      <a class="navbar-item brand-text" href="{title_url}">
+        {title}
+      </a>
+      <div class="navbar-burger burger" data-target="navMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    <div id="navMenu" class="navbar-menu">
+      <div class="navbar-start">
+        {navbar}
+      </div>
+    </div>
+  </div>
+</nav>
+<!-- END NAV -->
     """
 
 
@@ -91,53 +83,65 @@ def bulma_list_items(list_items, active_item=None, ul=True):
         items += f"<li><a>{i}</a></li>"
 
     return f"""
-                    <ul class="menu-list">
+<ul class="menu-list">
    {items}
-                    </ul>
+</ul>
     """
 
 
 def bulma_side_container():
     return """
-
-    <div class="container">
-        <div class="columns">
-            <div class="column is-3 ">
-                <aside class="menu is-hidden-mobile">
-                    <p class="menu-label">
-                        General
-                    </p>
-                    <ul class="menu-list">
-    {bulma_list_items(['customers', 'pickles'], 'dashboard')}
-                    </ul>
-                    <p class="menu-label">
-                        Administration
-                    </p>
-                    <ul class="menu-list">
-                        <li><a>Team Settings</a></li>
-                        <li>
-                            <a>Manage Your Team</a>
-                            <ul>
-    {bulma_list_items(['Members', 'Plugins'])}
-                            </ul>
-                        </li>
-                        <li><a>Invitations</a></li>
-                        <li><a>Cloud Storage Environment Settings</a></li>
-                        <li><a>Authentication</a></li>
-                        <li><a>Payments</a></li>
-                    </ul>
-                    <p class="menu-label">
-                        Transactions
-                    </p>
-                    <ul class="menu-list">
-                        <li><a>Payments</a></li>
-                        <li><a>Transfers</a></li>
-                        <li><a>Balance</a></li>
-                        <li><a>Reports</a></li>
-                    </ul>
-                </aside>
-            </div>
-
+<div class="container">
+  <div class="columns">
+    <div class="column is-3">
+      <aside class="menu is-hidden-mobile">
+        <p class="menu-label">General</p>
+        <ul class="menu-list">
+          {bulma_list_items([customers, pickles], dashboard)}
+        </ul>
+        <p class="menu-label">Administration</p>
+        <ul class="menu-list">
+          <li>
+            <a>Team Settings</a>
+          </li>
+          <li>
+            <a>Manage Your Team</a>
+            <ul>
+              {bulma_list_items([Members, Plugins])}
+            </ul>
+          </li>
+          <li>
+            <a>Invitations</a>
+          </li>
+          <li>
+            <a>Cloud Storage Environment Settings</a>
+          </li>
+          <li>
+            <a>Authentication</a>
+          </li>
+          <li>
+            <a>Payments</a>
+          </li>
+        </ul>
+        <p class="menu-label">Transactions</p>
+        <ul class="menu-list">
+          <li>
+            <a>Payments</a>
+          </li>
+          <li>
+            <a>Transfers</a>
+          </li>
+          <li>
+            <a>Balance</a>
+          </li>
+          <li>
+            <a>Reports</a>
+          </li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</div>
 """
 
 
@@ -148,50 +152,51 @@ def bulma_breadcrumbs(current_breadcrumb, breadcrumb_list):
     bread += f'<li class="is-active"><a href="#" aria-current="page">{current_breadcrumb}</a></li>'
 
     return f"""
-                <nav class="breadcrumb" aria-label="breadcrumbs">
-                    <ul>
-                        {bread}
-                    </ul>
-                </nav>
+<nav class="breadcrumb" aria-label="breadcrumbs">
+  <ul>
+    {bread}
+  </ul>
+</nav>
+"""
+
+
+def bulma_href(data, content=""):
+    return f"""
+<a href="{data}">{content}</a>
 """
 
 
 def bulma_hero(title, subtitle):
     return f"""
-
-                <section class="hero is-info welcome is-small">
-                    <div class="hero-body"  >
-                        <div class="container">
-                            <h1 class="title">
-                                {title}
-                            </h1>
-                            <h2 class="subtitle">
-                                {subtitle}
-                            </h2>
-                        </div>
-                    </div>
-                </section>
-
+<section class="hero is-info welcome is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h1 class="title">{title}</h1>
+      <h2 class="subtitle">{subtitle}</h2>
+    </div>
+  </div>
+</section>
     """
 
 
 def bulma_info_tiles(tile_list=[("test", "this")]):
     tiles = ""
     for i, j in tile_list:
-        tiles += f"""<div class="tile is-parent">
-                            <article class="tile is-child box">
-                                <p class="title">{i}</p>
-                                <p class="subtitle">{j}</p>
-                            </article>
-                        </div>"""
+        tiles += f"""
+<div class="tile is-parent">
+  <article class="tile is-child box">
+    <p class="title">{i}</p>
+    <p class="subtitle">{j}</p>
+  </article>
+</div>
+"""
 
     return f"""
-                <section class="info-tiles">
-                    <div class="tile is-ancestor has-text-centered">
-                        {tiles}
-                    </div>
-                </section>
-
+<section class="info-tiles">
+  <div class="tile is-ancestor has-text-centered">
+    {tiles}
+  </div>
+</section>
 """
 
 
@@ -201,44 +206,40 @@ def bulma_tbody(row_contents=["test", "this"], cf_auth="", np_token=""):
         table += f'<td width="5%"> {i} </td>'
 
     return f"""
-    <tbody>
-    <tr>
+<tbody>
+  <tr>
     <td width="5%"><i class="fa fa-bell-o"></i></td>
-    {table}
+      {table}
     <td class="level-right"><a class="button is-small is-primary" href={row_contents[0] + "/" + gen_query_string("cf_auth",cf_auth) + "&" +gen_query_string("np_token", np_token)[1:]}>Action</a></td>
-    </tr>
-    </tbody>
+  </tr>
+</tbody>
     """
 
 
 def bulma_search_card(search_header):
     return f"""
-
-    <div class="card">
-    <header class="card-header">
-    <p class="card-header-title">
-    {search_header}
-    </p>
-    <a href="#" class="card-header-icon" aria-label="more options">
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">{search_header}</p><a href="#" class="card-header-icon" aria-label="more options">
     <span class="icon">
     <i class="fa fa-angle-down" aria-hidden="true"></i>
     </span>
     </a>
-    </header>
-    <div class="card-content">
+  </header>
+  <div class="card-content">
     <div class="content">
-    <div class="control has-icons-left has-icons-right">
-    <input class="input is-large" type="text" placeholder="">
+      <div class="control has-icons-left has-icons-right">
+        <input class="input is-large" type="text" placeholder="">
     <span class="icon is-medium is-left">
     <i class="fa fa-search"></i>
     </span>
     <span class="icon is-medium is-right">
     <i class="fa fa-check"></i>
     </span>
+      </div>
     </div>
-    </div>
-    </div>
-    </div>
+  </div>
+</div>
 """
 
 
@@ -248,65 +249,44 @@ def bulma_events_card(title, rows_list=[bulma_tbody(["why", "does", "this", "wor
         rows += i
 
     return f"""
-
-    <div class="card events-card">
-
-    <header class="card-header">
-
-    <p class="card-header-title">
-    {title}
-    </p>
-    <a href="#" class="card-header-icon" aria-label="more options">
+<div class="card events-card">
+  <header class="card-header">
+    <p class="card-header-title">{title}</p><a href="#" class="card-header-icon" aria-label="more options">
     <span class="icon">
     <i class="fa fa-angle-down" aria-hidden="true"></i>
     </span>
     </a>
-    </header>
-
-
-    <div class="card-table">
+  </header>
+  <div class="card-table">
     <div class="content">
-    <table class="table is-fullwidth is-striped">
-
-    {rows}
-
-    </table>
-
-
+      {rows}
+      <table class="table is-fullwidth is-striped"></table>
     </div>
-
-    </div>
-
-    <footer class="card-footer">
+  </div>
+  <footer class="card-footer">
     <a href="#" class="card-footer-item">Export All</a>
-    </footer>
-
-    </div>
-
+  </footer>
+</div>
 """
 
 
-def bulma_inside_card(title, content):
+def bulma_inside_card(title, content, height_px=300, id_name=""):
     return f"""
-
-    <div class="card events-card">
-
-    <header class="card-header">
-
+<div class="card events-card">
+  <header class="card-header">
     <p class="card-header-title">
     {title}
-    </p>
-    <a href="#" class="card-header-icon" aria-label="more options">
-    <span class="icon">
-    <i class="fa fa-angle-down" aria-hidden="true"></i>
-    </span>
+    </p><a href="#" class="card-header-icon" aria-label="more options">
+     <span class="icon">
+       <i class="fa fa-angle-down" aria-hidden="true"></i>
+     </span>
     </a>
-    </header>
-
-{content}
-
-    </div>
-
+  </header>
+  <div id="{id_name}"
+    style="overflow: auto; height: {height_px}px; max-height: 98%;">
+    {content}
+  </div>
+</div>
 """
 
 
@@ -375,7 +355,12 @@ def chartjs_data(
                 }
             )
 
-    return json.dumps({"labels": labels, "datasets": result,})
+    return json.dumps(
+        {
+            "labels": labels,
+            "datasets": result,
+        }
+    )
 
 
 def chartjs_bar(dataset, height=300, chart_type="horizontalBar", p_value=0):
@@ -447,19 +432,18 @@ var chart = new Chart(ctx, {{
 
 
 def table_header(cols):
-
     result = f"""
-    <thead>
+<thead>
     {table_row(cols, True)}
-  </thead> """
+</thead> """
     return result
 
 
 def table_footer(cols):
     result = f"""
-    <tfoot>
+<tfoot>
     {table_row(cols, True)}
-  </tfoot> """
+</tfoot> """
     return result
 
 
@@ -472,9 +456,9 @@ def table_row(dataset, header=False):
     for data in dataset:
         data_row += f" <{tag}>{data}</{tag}> "
     result = f"""
-    <tr>
+<tr>
     {data_row}
-    </tr> """
+</tr> """
     return result
 
 
@@ -483,31 +467,36 @@ def table_body(data):
     for i in data:
         result += table_row(i)
     result += " </tbody> "
-
     return result
 
 
 def list_html_table(cols, rows):
-    return f""" <table class="table is-striped">
+    return f"""
+<table class="table is-striped">
     {table_header(cols)}
 
     {table_body(rows)}
 
     {table_footer(cols)}
-    </table> """
+
+</table>
+"""
 
 
 def pd_html_table(df):
     df = df.fillna("-")
     cols = list(df.columns)
     contents = df.to_numpy()
-    return f""" <table class="table is-striped">
+    return f"""
+<table class="table is-striped" style="padding-top: 20px;
+    overflow: auto; height: 300px; max-height: 98%;">
     {table_header(cols)}
 
     {table_body(contents)}
 
     {table_footer(cols)}
-    </table> """
+</table>
+"""
 
 
 def log10_(data):
@@ -518,11 +507,12 @@ def log10_(data):
     return result
 
 
-import uuid
-
-
 def paginated_html(contents):
-    def id_generator(size=6,):
+    import uuid
+
+    def id_generator(
+        size=6,
+    ):
         import string
         import random
 
@@ -590,7 +580,6 @@ def paginated_html(contents):
 
 
 def bulma_message(header="Header", body="MessageBody"):
-
     return f"""
 <article class="message is-info">
   <div class="message-header">
@@ -628,6 +617,58 @@ def flask_print(stderr=[], stdout=[]):
         print(i, file=sys.stdout)
     sys.stdout.flush()
     sys.stderr.flush()
+
+
+def chartjs_multi(dataset, height=300, chart_type="horizontalBar"):
+    chart_id = np.random.randint(0, 100)
+
+    result = f"""
+<canvas id="{chart_id}" height="{height}"></canvas>
+<script>
+
+var ctx = document.getElementById('{chart_id}').getContext('2d');
+var chart = new Chart(ctx, {{
+    // The type of chart we want to create
+    type: '{chart_type}',
+
+    // The data for our dataset
+    {dataset} ,
+
+    // Configuration options go here
+    options: {{
+
+    }}
+}});
+
+    </script>
+
+    """
+
+    return result
+
+
+def chartjs_init_datasets(titles, labels, datasets, types, colors=None, fill=True):
+    data = {}
+    data["data"] = {}
+    data["data"]["datasets"] = []
+    for idx in range(len(titles)):
+        temp = {}
+        temp["label"] = titles[idx]
+        temp["data"] = datasets[idx]
+        temp["type"] = types[idx]
+        if colors is None:
+            temp["backgroundColor"] = "rgba(0, 0, 0, 0.1)"
+        else:
+            temp["backgroundColor"] = colors[idx]
+        if fill is True:
+            temp["fill"] = "true"
+        else:
+            temp["fill"] = "false"
+
+        data["data"]["datasets"].append(temp)
+    data["data"]["labels"] = labels
+
+    return json.dumps(data)[:-1][1:]
 
 
 def test_template():
