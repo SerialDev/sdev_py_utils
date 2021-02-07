@@ -1,5 +1,6 @@
 #
 import json
+import numpy as np
 
 
 def gen_query_string(var_name, content):
