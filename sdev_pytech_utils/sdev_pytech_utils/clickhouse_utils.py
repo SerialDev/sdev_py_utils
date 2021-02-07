@@ -137,7 +137,7 @@ class ch_utils(object):
         a = client.execute(query, with_column_types=True)
         datatypes = []
         columns = []
-        mapping = ch.ch_df_map()
+        mapping = ch_utils().ch_df_map()
         for data, datatype in a[1]:
             try:
                 columns.append(data)
