@@ -649,139 +649,6 @@ var chart = new Chart(ctx, {{
     return result
 
 
-def chartjs_init_datasets(titles, labels, datasets, types, colors=None, fill=True):
-    data = {}
-    data["data"] = {}
-    data["data"]["datasets"] = []
-    for idx in range(len(titles)):
-        temp = {}
-        temp["label"] = titles[idx]
-        temp["data"] = datasets[idx]
-        temp["type"] = types[idx]
-        if colors is None:
-            temp["backgroundColor"] = "rgba(0, 0, 0, 0.1)"
-        else:
-            temp["backgroundColor"] = colors[idx]
-        if fill is True:
-            temp["fill"] = "true"
-        else:
-            temp["fill"] = "false"
-
-        data["data"]["datasets"].append(temp)
-    data["data"]["labels"] = labels
-
-    return json.dumps(data)[:-1][1:]
-
-
-def bulma_inside_then(function_call, content, cache=True):
-
-    fun_id = uuid.uuid4().hex
-    if cache == True:
-        caching = f"""xx_{fun_id} = value;
-console.log("{function_call.replace('"', "'")} cache: xx_{fun_id}")"""
-    else:
-        caching = ""
-    return f"""
-{function_call}.then((value) => {{
-  {content}
-  {caching}
-}})
-"""
-
-
-def gen_chartjs_label(
-    title,
-    data,
-    background="#D6E9C6",
-    border_color=None,
-    stack_id=None,
-    chart_type="bar",
-    fill=True,
-    display=True,
-    radius=None,
-):
-    if stack_id:
-        stack_id = f"stack: '{stack_id}',"
-    else:
-        stack_id = ""
-
-    if border_color:
-        border_color = f"borderColor: '{border_color}',"
-    else:
-        border_color = ""
-
-    if radius:
-        radius = f"pointRadius: {radius},"
-    else:
-        radius = ""
-
-    if display is True:
-        display = " "
-    else:
-        display = f"""
-hidden: true,
-"""
-
-    return f"""
-{{
-    label: '{title}',
-    data: {data},
-    backgroundColor: '{background}', // green
-    {stack_id}
-    {border_color}
-    {display}
-    {radius}
-    type: '{chart_type}',
-    fill: {json.dumps(fill)}
-  }}
-    """
-
-
-def bulma_bar_chart(
-    x,
-    y,
-    label,
-    element_id,
-    color_scheme=bulma_color_schemes()[30],
-    var_id=uuid.uuid4().hex,
-):
-    return f"""
-
-    cct_{var_id} = document.getElementById("{element_id}").getContext('2d')
-
-    var bar_chart_{var_id} = new Chart(cct_{var_id}, {{
- type: 'bar',
-    data: {{
-        labels: {x},
-        datasets: [{{
-            label: '{label}',
-            data: {y},
-            borderWidth: 1
-        }}]
-    }},
-    options: {{
-        scales: {{
-            yAxes: [{{
-                ticks: {{
-                    beginAtZero: true
-                }}
-            }}]
-        }},
-     plugins: {{
-      colorschemes: {{
-        scheme: '{color_scheme}'
-
-      }}
-    }}
-}}
-
-}}
-
-);
-
-    """
-
-
 def bulma_color_schemes():
     return [
         "brewer.YlGn3",
@@ -1264,6 +1131,139 @@ def bulma_color_schemes():
         "tableau.ClassicRedWhiteGreenLight11",
         "tableau.ClassicRedGreenLight11",
     ]
+
+
+def chartjs_init_datasets(titles, labels, datasets, types, colors=None, fill=True):
+    data = {}
+    data["data"] = {}
+    data["data"]["datasets"] = []
+    for idx in range(len(titles)):
+        temp = {}
+        temp["label"] = titles[idx]
+        temp["data"] = datasets[idx]
+        temp["type"] = types[idx]
+        if colors is None:
+            temp["backgroundColor"] = "rgba(0, 0, 0, 0.1)"
+        else:
+            temp["backgroundColor"] = colors[idx]
+        if fill is True:
+            temp["fill"] = "true"
+        else:
+            temp["fill"] = "false"
+
+        data["data"]["datasets"].append(temp)
+    data["data"]["labels"] = labels
+
+    return json.dumps(data)[:-1][1:]
+
+
+def bulma_inside_then(function_call, content, cache=True):
+
+    fun_id = uuid.uuid4().hex
+    if cache == True:
+        caching = f"""xx_{fun_id} = value;
+console.log("{function_call.replace('"', "'")} cache: xx_{fun_id}")"""
+    else:
+        caching = ""
+    return f"""
+{function_call}.then((value) => {{
+  {content}
+  {caching}
+}})
+"""
+
+
+def gen_chartjs_label(
+    title,
+    data,
+    background="#D6E9C6",
+    border_color=None,
+    stack_id=None,
+    chart_type="bar",
+    fill=True,
+    display=True,
+    radius=None,
+):
+    if stack_id:
+        stack_id = f"stack: '{stack_id}',"
+    else:
+        stack_id = ""
+
+    if border_color:
+        border_color = f"borderColor: '{border_color}',"
+    else:
+        border_color = ""
+
+    if radius:
+        radius = f"pointRadius: {radius},"
+    else:
+        radius = ""
+
+    if display is True:
+        display = " "
+    else:
+        display = f"""
+hidden: true,
+"""
+
+    return f"""
+{{
+    label: '{title}',
+    data: {data},
+    backgroundColor: '{background}', // green
+    {stack_id}
+    {border_color}
+    {display}
+    {radius}
+    type: '{chart_type}',
+    fill: {json.dumps(fill)}
+  }}
+    """
+
+
+def bulma_bar_chart(
+    x,
+    y,
+    label,
+    element_id,
+    color_scheme=bulma_color_schemes()[30],
+    var_id=uuid.uuid4().hex,
+):
+    return f"""
+
+    cct_{var_id} = document.getElementById("{element_id}").getContext('2d')
+
+    var bar_chart_{var_id} = new Chart(cct_{var_id}, {{
+ type: 'bar',
+    data: {{
+        labels: {x},
+        datasets: [{{
+            label: '{label}',
+            data: {y},
+            borderWidth: 1
+        }}]
+    }},
+    options: {{
+        scales: {{
+            yAxes: [{{
+                ticks: {{
+                    beginAtZero: true
+                }}
+            }}]
+        }},
+     plugins: {{
+      colorschemes: {{
+        scheme: '{color_scheme}'
+
+      }}
+    }}
+}}
+
+}}
+
+);
+
+    """
 
 
 def test_template():
