@@ -1,6 +1,7 @@
 #
 import json
 import numpy as np
+import uuid
 
 
 def gen_query_string(var_name, content):
