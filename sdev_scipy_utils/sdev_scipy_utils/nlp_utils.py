@@ -1,21 +1,20 @@
-
 from nltk.tokenize import word_tokenize
 from nltk.util import ngrams
 import pandas as pd
 import numpy as np
 
 
-def get_ngrams(text, n, flag='nltk'):
+def get_ngrams(text, n, flag="nltk"):
     n_grams = ngrams(word_tokenize(text), n)
-    if flag == 'gensim':
+    if flag == "gensim":
         try:
-            return np.array(['_'.join(grams) for grams in n_grams])
+            return np.array(["_".join(grams) for grams in n_grams])
         except Exception as e:
             print(e)
             return []
-    elif flag == 'nltk':
+    elif flag == "nltk":
         try:
-            return np.array([' '.join(grams) for grams in n_grams])
+            return np.array([" ".join(grams) for grams in n_grams])
         except Exception as e:
             print(e)
             return []
@@ -26,7 +25,13 @@ def find_ngrams(input_list, n):
 
 
 def rank_ngrams(df_series, n):
-    return df_series.apply(pd.Series).stack().groupby(level=0).apply(lambda x: x.drop_duplicates()).value_counts()[:n]
+    return (
+        df_series.apply(pd.Series)
+        .stack()
+        .groupby(level=0)
+        .apply(lambda x: x.drop_duplicates())
+        .value_counts()[:n]
+    )
 
 
 def get_max_len(series):
@@ -76,7 +81,7 @@ from unidecode import unidecode
 import string
 
 all_letters = string.ascii_letters + " .,;'"
-all_letters = ''.join([chr(i) for i in range(128)])
+all_letters = "".join([chr(i) for i in range(128)])
 all_letters = string.printable
 
 n_letters = len(all_letters)
@@ -99,10 +104,11 @@ def unicode_to_ascii(s):
     str
         Ascii representation of the given Unicode Sequence
     """
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', s)
-        if unicodedata.category(c) != 'Mn'
-        and c in all_letters)
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFD", s)
+        if unicodedata.category(c) != "Mn" and c in all_letters
+    )
 
 
 def letter_to_index(letter):
@@ -194,7 +200,9 @@ def word_to_tensor(word, tensor_length=10):
     np.array
         Tensor representation of the word
     """
-    assert len(word) <= tensor_length, "length={} is > than the desired tensor".format(len(word))
+    assert len(word) <= tensor_length, "length={} is > than the desired tensor".format(
+        len(word)
+    )
 
     length = len(word)
     word = line_to_tensor(word)
@@ -228,11 +236,11 @@ def Build_STDM(docs, **kwargs):
     """
     from sklearn.feature_extraction.text import CountVectorizer
     import pandas as pd
+
     vectorizer = CountVectorizer(**kwargs)
     sparsematrix = vectorizer.fit_transform(docs)
     vocab = vectorizer.vocabulary_.keys()
     return sparsematrix, vocab
-
 
 
 # Define a topic mining function (non-negative matrix factorization)
@@ -240,10 +248,10 @@ def nmf(M, components=5, iterations=5000):
     # Initialize to matrices
     W = np.asmatrix(np.random.random(([M.shape[0], components])))
     H = np.asmatrix(np.random.random(([components, M.shape[1]])))
-    for n in range(0, iterations): 
+    for n in range(0, iterations):
         H = np.multiply(H, (W.T * M) / (W.T * W * H + 0.001))
         W = np.multiply(W, (M * H.T) / (W * (H * H.T) + 0.001))
-        print("%d/%d" % (n, iterations))    # Note 'logging' module
+        print("%d/%d" % (n, iterations))  # Note 'logging' module
     return (W, H)
 
 
@@ -275,17 +283,17 @@ def bwt(s):
     indexlist = []
     for t in table_sorted:
         index1 = table.index(t)
-        index1 = index1+1 if index1 < len(s)-1 else 0
+        index1 = index1 + 1 if index1 < len(s) - 1 else 0
         index2 = table_sorted.index(table[index1])
         indexlist.append(index2)
     # Join last characters of each row into string
-    r = ''.join([row[-1] for row in table_sorted])
+    r = "".join([row[-1] for row in table_sorted])
     return r, indexlist
 
 
-def ibwt(r,indexlist):
+def ibwt(r, indexlist):
     """Inverse Burrows-Wheeler transform. Not indicated by a unique byte but use index list"""
-    s = ''
+    s = ""
     x = indexlist[0]
     for _ in r:
         s = s + r[x]
@@ -293,9 +301,9 @@ def ibwt(r,indexlist):
     return s
 
 
-
 def count_vectorizer_vocab(data, nb_top_words=50000):
     from sklearn.feature_extraction.text import CountVectorizer
+
     vectorizer = CountVectorizer(
         analyzer="word",
         tokenizer=None,
@@ -309,16 +317,15 @@ def count_vectorizer_vocab(data, nb_top_words=50000):
     vocab = vectorizer.get_feature_names()
     freq = np.sum(train_split_data_features, axis=0)
 
-    df_vocab = pd.DataFrame(list(zip(vocab, freq)), columns=['vocab', 'freq'])
+    df_vocab = pd.DataFrame(list(zip(vocab, freq)), columns=["vocab", "freq"])
     # sort by frequency rank
     df_vocab = df_vocab.sort_values(by="freq", ascending=False)
     df_vocab.reset_index(drop=True, inplace=True)
-    df_vocab.index = df_vocab.index + 1 # Increase this to make room for null character
+    df_vocab.index = df_vocab.index + 1  # Increase this to make room for null character
 
     # Invert word/int pairs to get our lookup with word as key#Invert
-    vocab_idx = {key:value for (key, value) in zip(df_vocab["vocab"], df_vocab.index)}
+    vocab_idx = {key: value for (key, value) in zip(df_vocab["vocab"], df_vocab.index)}
     return vocab_idx, df_vocab
-
 
 
 def words_to_index(wordlist, vocab=None):
@@ -327,100 +334,103 @@ def words_to_index(wordlist, vocab=None):
     return [vocab[word] if word in vocab else 0 for word in wordlist]
 
 
-
-def arithmetize(text,basis=2**16):
-    """ convert substring to number using basis powers
-    employs Horner rule """
-    partial_sum=0
+def arithmetize(text, basis=2 ** 16):
+    """convert substring to number using basis powers
+    employs Horner rule"""
+    partial_sum = 0
     for ch in text:
-        partial_sum = partial_sum*basis+ord(ch) # Horner
+        partial_sum = partial_sum * basis + ord(ch)  # Horner
     return partial_sum
 
 
-def arithmetize_text(text,m,basis=2**16):
-     """ computes arithmization of all m long substrings
-     of text, using basis powers """
-     t=[] # will store list of numbers representing
-     # consecutive substrings
-     for s in range(0,len(text)-m+1):
-         t = t+[arithmetize(text[s:s+m],basis)]
-         # append the next number to existing t
-     return t
-
-
-#Something is Off here TODO text2 and efficient
-def arithmetize_text2(text,m,basis=2**16):
-    """ efficiently computes arithmetization of all m long
-    substrings of text, using basis powers """
-    b_power=basis**(m-1)
-    t=[arithmetize(text[0:m],basis)]
-    # t[0] equals first word arithmetization
-    for s in range(1,len(text)-m+1):
-        new_number=(t[s-1]-ord(text[s-1])*b_power)*basis
-        +ord(text[s+m-1])
-        t=t+[new_number] # append new_number to existing
+def arithmetize_text(text, m, basis=2 ** 16):
+    """computes arithmization of all m long substrings
+    of text, using basis powers"""
+    t = []  # will store list of numbers representing
+    # consecutive substrings
+    for s in range(0, len(text) - m + 1):
+        t = t + [arithmetize(text[s : s + m], basis)]
+        # append the next number to existing t
     return t
-    # t stores list of numbers representing m long words of text 
 
- 
-def arithmetize_text_efficient(text, m, basis=2**6):
+
+# Something is Off here TODO text2 and efficient
+def arithmetize_text2(text, m, basis=2 ** 16):
+    """efficiently computes arithmetization of all m long
+    substrings of text, using basis powers"""
+    b_power = basis ** (m - 1)
+    t = [arithmetize(text[0:m], basis)]
+    # t[0] equals first word arithmetization
+    for s in range(1, len(text) - m + 1):
+        new_number = (t[s - 1] - ord(text[s - 1]) * b_power) * basis
+        +ord(text[s + m - 1])
+        t = t + [new_number]  # append new_number to existing
+    return t
+    # t stores list of numbers representing m long words of text
+
+
+def arithmetize_text_efficient(text, m, basis=2 ** 6):
     """
     efficiently computes arithmetization of all m long
     substrings of text, using basis powers
     """
 
-    b_power=basis**(m-1)
-    t=[arithmetize(text[0:m], basis)]
+    b_power = basis ** (m - 1)
+    t = [arithmetize(text[0:m], basis)]
     # t[0] equals first word arithmetization
-    for s in range(1, len(text) -m +1):
-        new_number = (t[s-1] - ord(text[s-1]) * b_power) * basis + ord(text[s+m-1])
-        t = t + [new_number] # Append new_number to existing
-    return t # t stores list of umbers representing m long words of text
+    for s in range(1, len(text) - m + 1):
+        new_number = (t[s - 1] - ord(text[s - 1]) * b_power) * basis + ord(
+            text[s + m - 1]
+        )
+        t = t + [new_number]  # Append new_number to existing
+    return t  # t stores list of umbers representing m long words of text
 
 
-def find_matches_arithmetize(pattern,text,basis=2**16):
-     """ find all occurrences of pattern in text
-     using efficient arithmetization of text """
-     assert(len(pattern) <= len(text))
-     p=arithmetize(pattern,basis)
-     t=arithmetize_text2(text,len(pattern),basis)
-     matches=[]
-     for s in range(len(t)):
-         if p==t[s]: matches=matches+[s]
-     return matches
+def find_matches_arithmetize(pattern, text, basis=2 ** 16):
+    """find all occurrences of pattern in text
+    using efficient arithmetization of text"""
+    assert len(pattern) <= len(text)
+    p = arithmetize(pattern, basis)
+    t = arithmetize_text2(text, len(pattern), basis)
+    matches = []
+    for s in range(len(t)):
+        if p == t[s]:
+            matches = matches + [s]
+    return matches
 
 
-def fingerprint(text,basis=2**16,r=2**32-3):
-    """ used to compute karp-rabin fingerprint of the pattern
-    employs Horner method (modulo r) """
-    partial_sum=0
+def fingerprint(text, basis=2 ** 16, r=2 ** 32 - 3):
+    """used to compute karp-rabin fingerprint of the pattern
+    employs Horner method (modulo r)"""
+    partial_sum = 0
     for ch in text:
-        partial_sum=(partial_sum*basis+ord(ch)) % r
+        partial_sum = (partial_sum * basis + ord(ch)) % r
     return partial_sum
 
 
-def text_fingerprint(text,m,basis=2**16,r=2**32-3):
+def text_fingerprint(text, m, basis=2 ** 16, r=2 ** 32 - 3):
     """ used to computes karp-rabin fingerprint of the text """
-    f=[]
-    b_power=pow(basis,m-1,r)
+    f = []
+    b_power = pow(basis, m - 1, r)
     list.append(f, fingerprint(text[0:m], basis, r))
     # f[0] equals first text fingerprint
-    for s in range(1,len(text)-m+1):
-        new_fingerprint=((f[s-1]-ord(text[s-1])*b_power)*basis
-        +ord(text[s+m-1])) % r
+    for s in range(1, len(text) - m + 1):
+        new_fingerprint = (
+            (f[s - 1] - ord(text[s - 1]) * b_power) * basis + ord(text[s + m - 1])
+        ) % r
         # compute f[s], based on f[s-1]
-        list.append(f,new_fingerprint)# append f[s] to existing f
+        list.append(f, new_fingerprint)  # append f[s] to existing f
     return f
 
 
-def find_matches_KR(pattern,text,basis=2**16,r=2**32-3):
-    """ find all occurrences of pattern in text
-    using coin flipping Karp-Rabin algorithm """
+def find_matches_KR(pattern, text, basis=2 ** 16, r=2 ** 32 - 3):
+    """find all occurrences of pattern in text
+    using coin flipping Karp-Rabin algorithm"""
 
     if len(pattern) > len(text):
         return []
-    p = fingerprint(pattern,basis,r)
-    f = text_fingerprint(text,len(pattern),basis,r)
+    p = fingerprint(pattern, basis, r)
+    f = text_fingerprint(text, len(pattern), basis, r)
     matches = [s for s, f_s in enumerate(f) if f_s == p]
     # list comprehension
     return matches
@@ -435,12 +445,13 @@ def sanitize(text):
 
     # NOTE: \p{L} or \p{Letter}: any kind of letter from any language.
     # http://www.regular-expressions.info/unicode.html
-    p = re.compile(r'\w', re.UNICODE)
+    p = re.compile(r"\w", re.UNICODE)
 
     def f(c):
         return p.match(c[1]) is not None
 
     return filter(f, map(lambda x: (x[0], x[1].lower()), text))
+
 
 def kgrams(text, k=5):
     """Derives k-grams from text."""
@@ -452,7 +463,7 @@ def kgrams(text, k=5):
         yield text
     else:
         for i in range(n - k + 1):
-            yield text[i:i+k]
+            yield text[i : i + k]
 
 
 def winnowing_hash(kgram):
@@ -463,7 +474,7 @@ def winnowing_hash(kgram):
     kgram = list(kgram)
 
     # FIXME: What should we do when kgram is shorter than k?
-    text = ''.join(kgram[1]) if len(kgram) > 1 else ''
+    text = "".join(kgram[1]) if len(kgram) > 1 else ""
 
     hash_function = default_hash
     hs = hash_function(text)
@@ -475,7 +486,7 @@ def winnowing_hash(kgram):
 def default_hash(text):
     import hashlib
 
-    hs = hashlib.sha1(text.encode('utf-8'))
+    hs = hashlib.sha1(text.encode("utf-8"))
     hs = hs.hexdigest()[-4:]
     hs = int(hs, 16)
 
@@ -489,7 +500,7 @@ def select_min(window):
     :param window: A list of (index, hash) tuples.
     """
 
-    #print window, min(window, key=lambda x: x[1])
+    # print window, min(window, key=lambda x: x[1])
 
     return min(window, key=lambda x: x[1])
 
@@ -528,8 +539,9 @@ def get_shingles(s, k=5):
 
     """
 
-    shingles = [s[i:i+k] for i in range(len(s))][:-5]
+    shingles = [s[i : i + k] for i in range(len(s))][:-5]
     return shingles
+
 
 def jaccard_distance(set_a, set_b):
     """
@@ -563,5 +575,33 @@ def jaccard_distance(set_a, set_b):
     return jaccard_distance
 
 
+def get_tf_idf_words(trained_vectorizer, text_list):
+    feature_names = trained_vectorizer.get_feature_names()
+    result = []
+    for text in text_list:
+        tfidf_matrix = trained_vectorizer.transform([text]).todense()
+        feature_index = tfidf_matrix[0, :].nonzero()[1]
+        tfidf_scores = zip(
+            [feature_names[i] for i in feature_index],
+            [tfidf_matrix[0, x] for x in feature_index],
+        )
+        result.append(dict(tfidf_scores))
+    return result
 
 
+def tfidf_list_token_in_index(features, idx):
+    doc = idx
+    feature_index = features[doc, :].nonzero()[1]
+    tfidf_scores = zip(feature_index, [features[doc, x] for x in feature_index])
+    for w, s in [(feature_names[i], s) for (i, s) in tfidf_scores]:
+        print(w, s)
+    return None
+
+
+def pd_tfidf(vectorizer, features):
+    return pd.DataFrame(features.toarray(), columns=vectorizer.get_feature_names())
+
+
+def pd_tfidf_transform(vectorizer, feature_list):
+    features = vectorizer.transform(feature_list)
+    return pd_tfidf(vectorizer, features)

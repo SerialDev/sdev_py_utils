@@ -355,40 +355,40 @@ def timed_slice(
     microseconds=0,
 ):
     """
-    Get a timed slice from either a  pandas dataframe or numpy array
+     Get a timed slice from either a  pandas dataframe or numpy array
 
-    Parameters
-    ----------
+     Parameters
+     ----------
 
-    data : pd.DataFrame|np.array
-       A pandas dataframe to slice based on time
+     data : pd.DataFrame|np.array
+        A pandas dataframe to slice based on time
 
-    timeseries : str
-       Column Name of the timeseries to use
+     timeseries : str
+        Column Name of the timeseries to use
 
-    weeks : int
-       How many weeks
+     weeks : int
+        How many weeks
 
-    days : int
-       How many days
+     days : int
+        How many days
 
-    minutes : int
-       how many minutes
+     minutes : int
+        how many minutes
 
-    seconds : int
-       How many seconds
+     seconds : int
+        How many seconds
 
-    milliseconds : int
-       How many milliseconds
+     milliseconds : int
+        How many milliseconds
 
-    microseconds : int
-       How many microseconds
+     microseconds : int
+        How many microseconds
 
-    Returns
-    -------
+     Returns
+     -------
 
-   pd.DataFrame|np.array
-       Sliced data based on timedeltas
+    pd.DataFrame|np.array
+        Sliced data based on timedeltas
     """
 
     def np_timed_slice(
@@ -876,16 +876,16 @@ def tosql(df, *args, **kargs):
 # BY FAR FASTEST
 def to_sql(engine, df, table, if_exists="fail", sep="\t", encoding="utf8"):
     """
-   * -------------{Function}---------------
-   * write_to_sql_efficiently . . .
-   * -------------{params}-----------------
-   * : connection engine
-   * : pandas dataframe
-   * : 'table_name'
-   * :
-   * -------------{extra}------------------
-   * at the moment would only work with PostgreSQL due to copy_from call . . .
-   """
+    * -------------{Function}---------------
+    * write_to_sql_efficiently . . .
+    * -------------{params}-----------------
+    * : connection engine
+    * : pandas dataframe
+    * : 'table_name'
+    * :
+    * -------------{extra}------------------
+    * at the moment would only work with PostgreSQL due to copy_from call . . .
+    """
     # Create Table
     df[:0].to_sql(table, engine, if_exists=if_exists)
 
@@ -1313,8 +1313,6 @@ def pd_csv_to_buffer(data):
     return out_buffer
 
 
-
-
 def max_len_aos(data):
     max_len = (0, 0)
     for idx, i in enumerate(data):
@@ -1322,7 +1320,6 @@ def max_len_aos(data):
         if current_len > max_len[1]:
             max_len = (idx, current_len)
     return max_len
-
 
 
 def transform_aos_soa(dict_list):
@@ -1553,7 +1550,8 @@ def rows_with_nan(df, col=None):
 
 def drop_contains_pd(df, col, contained_string):
     df.drop(
-        df[col][df[col].str.contains(contained_string)].index, inplace=True,
+        df[col][df[col].str.contains(contained_string)].index,
+        inplace=True,
     )
     return df
 
@@ -1570,13 +1568,101 @@ def contains_extract_pd(df, contained_string):
     return df, extracted_rows
 
 
-
 def np_startswith_indeces(array, data):
     return np.flatnonzero(np.char.startswith(array, data))
+
 
 def np_startswith_mask(array, data):
     return np.char.startswith(array, data)
 
+
 def np_startswith_values(array, data):
     return array[(np.char.startswith(array, data))]
 
+
+def np_drop_nan(data):
+    return data[~np.isnan(data)]
+
+
+def pd_train_test_val_split(df, col):
+    y = df[col]
+    X = pd_except_cols(df, [col])
+    X_train, X_test, y_train, y_test = sk.model_selection.train_test_split(
+        X, y, test_size=0.20
+    )
+    X_train, X_val, y_train, y_val = sk.model_selection.train_test_split(
+        X_train, y_train, test_size=0.25
+    )  # 0.25 * 0.8 = 0.2
+    return X_train, X_test, X_val, y_train, y_test, y_val
+
+
+def pd_except_cols(df, col_list):
+    return df[df.columns.difference(col_list)]
+
+
+def pd_distance_matrix(df):
+    from scipy.spatial import distance_matrix
+
+    df = df.select_dtypes("number")
+    return pd.DataFrame(
+        distance_matrix(df.values, df.values), index=df.index, columns=df.index
+    )
+
+
+def np_topk(data, k):
+    return data.argsort()[-k:][::-1]
+
+
+def x_only_train_test_split(data, test_size=0.33):
+
+    from sklearn.model_selection import train_test_split
+
+    X_train, X_test, _, _ = train_test_split(
+        data, np.zeros(data.shape[0]), test_size=test_size, random_state=42
+    )
+    return X_train, X_test
+
+
+def pd_scale_norm_df(df):
+    import sklearn as sk
+
+    dtype_cols = [i for i in df.columns if df[i].dtype == np.object]
+    cols_to_norm = df.loc[:, ~df.columns.isin(dtype_cols)].columns
+    train = df.copy()
+    train[cols_to_norm] = sk.preprocessing.StandardScaler().fit_transform(
+        train[cols_to_norm]
+    )
+    return df
+
+
+def zeroper(df, value=0):
+    """
+    helper function to print out percentage of zeroes by column
+    Useful for optimizations based on usage of a sparse matrix
+    """
+    l = []
+    columns = []
+    for i in range(len(df.columns)):
+        if 0 in df[df.columns[i]].value_counts():
+            if (
+                100 * df[df.columns[i]].value_counts().loc[0] / len(df[df.columns[i]])
+                > value
+            ):
+                l.append(
+                    (
+                        df.columns[i],
+                        100
+                        * df[df.columns[i]].value_counts().loc[0]
+                        / len(df[df.columns[i]]),
+                    )
+                )
+            else:
+                pass
+        else:
+            pass
+    print("-" * 55)
+    for j in range(len(l)):
+        columns.append(l[j][0])
+        print("Percent of zeroes: ", l[j])
+        print("-" * 55)
+    return (columns, l)
