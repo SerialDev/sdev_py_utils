@@ -1158,6 +1158,7 @@ def chartjs_init_datasets(titles, labels, datasets, types, colors=None, fill=Tru
 
 
 def bulma_inside_then(function_call, content, cache=True):
+    import uuid
 
     fun_id = uuid.uuid4().hex
     if cache == True:
