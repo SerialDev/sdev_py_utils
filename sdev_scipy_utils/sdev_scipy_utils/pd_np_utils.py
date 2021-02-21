@@ -1666,3 +1666,7 @@ def zeroper(df, value=0):
         print("Percent of zeroes: ", l[j])
         print("-" * 55)
     return (columns, l)
+
+
+def pd_get_noncategorical(df):
+    return df.loc[:, ~df.columns.isin(df.select_dtypes("number").columns)]

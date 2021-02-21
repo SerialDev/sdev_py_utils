@@ -20,6 +20,24 @@ def network_compress_decode(data):
     return result
 
 
+def to_buffer(data):
+    import io
+    import dill as pickle  # Dill allows serializing lambdas
+
+    buf = io.BytesIO()
+    buf.seek(0)
+    buf.write(pickle.dumps(data))
+    return buf
+
+
+def from_buffer(buf):
+    import dill as pickle  # Dill allows serializing lambdas
+
+    buf.seek(0)
+    data = pickle.loads(buf.read())
+    return data
+
+
 def b64_pickle(data):
     import base64
     import pickle
