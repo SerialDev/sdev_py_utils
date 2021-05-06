@@ -19,6 +19,36 @@ import numpy as np
 import time
 
 
+def pretty_size(
+    bytes,
+):
+    """Get human-readable file sizes.
+    simplified version of https://pypi.python.org/pypi/hurry.filesize/
+    """
+    # bytes pretty-printing
+    UNITS_MAPPING = [
+        (1 << 50, " PB"),
+        (1 << 40, " TB"),
+        (1 << 30, " GB"),
+        (1 << 20, " MB"),
+        (1 << 10, " KB"),
+        (1, (" byte", " bytes")),
+    ]
+
+    for factor, suffix in UNITS_MAPPING:
+        if bytes >= factor:
+            break
+    amount = int(bytes / factor)
+
+    if isinstance(suffix, tuple):
+        singular, multiple = suffix
+        if amount == 1:
+            suffix = singular
+        else:
+            suffix = multiple
+    return str(amount) + suffix
+
+
 def lsos(all_obj=globals(), n=10):
     # Usage lsos(globals())
 
@@ -379,8 +409,7 @@ log.setLevel(logging.DEBUG)
 
 class log_with(object):
     """Logging decorator that allows you to log with a
-specific logger.
-"""
+    specific logger."""
 
     # Customize these messages
     ENTRY_MESSAGE = "Entering {}"
@@ -391,9 +420,8 @@ specific logger.
 
     def __call__(self, func):
         """Returns a wrapper that wraps func.
-The wrapper will log the entry and exit points of the function
-with logging.INFO level.
-"""
+        The wrapper will log the entry and exit points of the function
+        with logging.INFO level."""
         # set logger if it was not set earlier
         if not self.logger:
             logging.basicConfig()

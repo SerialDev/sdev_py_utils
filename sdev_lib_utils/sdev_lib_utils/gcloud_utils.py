@@ -525,7 +525,10 @@ def generate_encryption_key():
 
 
 def upload_encrypted_blob(
-    bucket_name, source_file_name, destination_blob_name, base64_encryption_key,
+    bucket_name,
+    source_file_name,
+    destination_blob_name,
+    base64_encryption_key,
 ):
     """Uploads a file to a Google Cloud Storage bucket using a custom
     encryption key.
@@ -549,7 +552,10 @@ def upload_encrypted_blob(
 
 
 def download_encrypted_blob(
-    bucket_name, source_blob_name, destination_file_name, base64_encryption_key,
+    bucket_name,
+    source_blob_name,
+    destination_file_name,
+    base64_encryption_key,
 ):
     """Downloads a previously-encrypted blob from Google Cloud Storage.
 
@@ -1323,7 +1329,13 @@ def create_secret(project_id, secret_id):
 
     # Create the secret.
     response = client.create_secret(
-        parent, secret_id, {"replication": {"automatic": {},},}
+        parent,
+        secret_id,
+        {
+            "replication": {
+                "automatic": {},
+            },
+        },
     )
 
     # Print the new secret name.
@@ -1397,3 +1409,131 @@ def create_key(service_account_email):
 
     print("Created key: " + key["name"])
     return key
+
+
+def dl_gcp_jsonlines_iterable(bucket_name, prefix_dir, breakout=None):
+    import io
+    from google.cloud import storage
+    import jsonlines
+    from tqdm import tqdm
+
+    client = storage.Client()
+
+    bucket = client.get_bucket(bucket_name)
+    result = []
+    for idx, blob in tqdm(enumerate(bucket.list_blobs(prefix=prefix_dir))):
+        if idx == 0:
+            print(blob.name)
+            continue
+        buf = io.BytesIO()
+        blob.download_to_file(buf)
+        buf.seek(0)
+        reader = jsonlines.Reader(buf)
+        for obj in reader:
+            result.append(obj)
+        if breakout is not None:
+            if breakout == idx:
+                break
+        # print("File {} downloaded from: {}/{}.".format(blob.name, bucket_name, prefix_dir))
+    print(
+        "Json Objects: {} downloaded from: {}/{}.".format(
+            len(result), bucket_name, prefix_dir
+        )
+    )
+    return result
+
+
+def pretty_size(
+    bytes,
+):
+    """Get human-readable file sizes.
+    simplified version of https://pypi.python.org/pypi/hurry.filesize/
+    """
+    # bytes pretty-printing
+    UNITS_MAPPING = [
+        (1 << 50, " PB"),
+        (1 << 40, " TB"),
+        (1 << 30, " GB"),
+        (1 << 20, " MB"),
+        (1 << 10, " KB"),
+        (1, (" byte", " bytes")),
+    ]
+
+    for factor, suffix in UNITS_MAPPING:
+        if bytes >= factor:
+            break
+    amount = int(bytes / factor)
+
+    if isinstance(suffix, tuple):
+        singular, multiple = suffix
+        if amount == 1:
+            suffix = singular
+        else:
+            suffix = multiple
+    return str(amount) + suffix
+
+
+def bq_query(query, client, dry_run=True):
+    # Avoid any heavy fees by recording dry_runs
+    job_config = bigquery.QueryJobConfig(dry_run=dry_run, use_query_cache=True)
+
+    # Start the query, passing in the extra configuration.
+    query_job = client.query(
+        (query),
+        job_config=job_config,
+    )  # Make an API request.
+    # A dry run query completes immediately.
+    if dry_run:
+        print(
+            "This query will process {} bytes.".format(
+                pretty_size(query_job.total_bytes_processed)
+            )
+        )
+    else:
+        return query_job
+
+
+def bq_plan_inspect(bquery_job):
+    result = []
+    for query_plan in bquery_job.query_plan:
+        temp_plan = {}
+        temp_plan["start"] = query_plan.start
+        temp_plan["end"] = query_plan.end
+        temp_plan[
+            "completed_parallel_inputs    "
+        ] = query_plan.completed_parallel_inputs
+        temp_plan["compute_ms_avg    "] = query_plan.compute_ms_avg
+        temp_plan["compute_ms_max"] = query_plan.compute_ms_max
+        temp_plan["compute_ratio_avg"] = query_plan.compute_ratio_avg
+        temp_plan["compute_ratio_max"] = query_plan.compute_ratio_max
+        temp_plan["entry_id"] = query_plan.entry_id
+        temp_plan["input_stages"] = query_plan.input_stages
+        temp_plan["name"] = query_plan.name
+        temp_plan["parallel_inputs"] = query_plan.parallel_inputs
+        temp_plan["read_ms_avg"] = query_plan.read_ms_avg
+        temp_plan["read_ms_max"] = query_plan.read_ms_max
+        temp_plan["read_ratio_avg"] = query_plan.read_ratio_avg
+        temp_plan["read_ratio_max"] = query_plan.read_ratio_max
+        temp_plan["records_read"] = query_plan.records_read
+        temp_plan["records_written"] = query_plan.records_written
+        temp_plan["shuffle_output_bytes"] = query_plan.shuffle_output_bytes
+        temp_plan[
+            "shuffle_output_bytes_spilled"
+        ] = query_plan.shuffle_output_bytes_spilled
+        temp_plan["status"] = query_plan.status
+        temp_plan["wait_ms_avg"] = query_plan.wait_ms_avg
+        temp_plan["wait_ms_max"] = query_plan.wait_ms_max
+        temp_plan["wait_ratio_avg"] = query_plan.wait_ratio_avg
+        temp_plan["wait_ratio_max"] = query_plan.wait_ratio_max
+        temp_plan["write_ms_avg"] = query_plan.write_ms_avg
+        temp_plan["write_ms_max"] = query_plan.write_ms_max
+        temp_plan["write_ratio_avg"] = query_plan.write_ratio_avg
+        temp_plan["write_ratio_max"] = query_plan.write_ratio_max
+        temp_plan["steps"] = []
+        for step in query_plan.steps:
+            temp_step = {}
+            temp_step["kind"] = step.kind
+            temp_step["substeps"] = step.substeps
+            temp_plan["steps"].append(temp_step)
+        result.append(temp_plan)
+    return result

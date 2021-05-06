@@ -1461,7 +1461,7 @@ def pd_split_str(series, sep):
     return a, b
 
 
-def pd_get_dummies_concat(source_df, column):
+def pd_get_dummies_concat(source_df, column, prefix=None, drop=True):
     """
     One hot encode a column and concatenate horizontally [] + []
 
@@ -1480,7 +1480,14 @@ def pd_get_dummies_concat(source_df, column):
     pd.DataFrame:
         One hot encoded dataframe concatenated into source_df
     """
-    return pd.concat([source_df, pd.get_dummies(df[column])], axis=1, sort=False)
+    result = pd.concat(
+        [source_df, pd.get_dummies(source_df[column], prefix=prefix)],
+        axis=1,
+        sort=False,
+    )
+    if drop:
+        result.drop(column, axis=1, inplace=True)
+    return result
 
 
 def pd_histogram(series: pd.Series):
@@ -1670,3 +1677,27 @@ def zeroper(df, value=0):
 
 def pd_get_noncategorical(df):
     return df.loc[:, ~df.columns.isin(df.select_dtypes("number").columns)]
+
+
+def pd_h_concat(df_1, df_2, cols=None, keep_col=False):
+    if cols is not None:
+        df_2 = df_2[cols]
+    df = pd.concat((df_1, df_2), axis=1, verify_integrity=True)
+    if cols is not None and keep_col == False:
+        df.drop(cols, axis=1, inplace=True)
+    return df
+
+
+def pct_col_nul(df, col):
+    print(
+        f"""Dataframe col {col} Nulls accounts for 
+          {(df.shape[0] - df[col].dropna().shape[0]) * 100 / df.shape[0]:.2f}% 
+          of the whole DataFrame of len={df.shape[0]}"""
+    )
+
+
+def np_deconstructed_mask(data: np.array, key, matching_key):
+    """
+    np.vectorize(lambda x: x["eventType"] == uniq[0])(data_np)
+    """
+    return np.vectorize(lambda x: x[key] == matching_key)(data)

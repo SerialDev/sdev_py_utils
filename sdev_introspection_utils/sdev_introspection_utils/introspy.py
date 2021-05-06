@@ -1,8 +1,25 @@
-
 import types
 import inspect
 import doctest
 import sys
+
+
+def get_names(f):
+    import dis
+    import types
+
+    ins = dis.get_instructions(f)
+    for x in ins:
+        try:
+            if (
+                x.opcode == 100
+                and "<locals>" in next(ins).argval
+                and next(ins).opcode == 132
+            ):
+                yield next(ins).argrepr
+                yield from get_names(x.argval)
+        except Exception:
+            pass
 
 
 def attach_method(class_instance, name, function):
@@ -316,8 +333,7 @@ def inspect_types(mod):
 
 
 def list_functions_types(mod):
-    """
-    """
+    """"""
     func_list = []
 
     func_list.append(
@@ -337,8 +353,7 @@ def list_functions(mod):
     """
 
     def is_mod_function(mod, func):
-        """
-        """
+        """"""
         return inspect.isfunction(func) and inspect.getmodule(func) == mod
 
     return [
@@ -416,7 +431,11 @@ def retrieve_name(var):
     result_name = [k for k, v in locals().items() if v is var][0]
 
     for fi in reversed(inspect.stack()):
-        names = [var_name for var_name, var_val in fi.frame.f_locals.items() if var_val is var]
+        names = [
+            var_name
+            for var_name, var_val in fi.frame.f_locals.items()
+            if var_val is var
+        ]
         if len(names) > 0:
             if len(names) > len(result_name):
                 return names[0]
@@ -426,6 +445,7 @@ def retrieve_name(var):
 
 def source(data):
     import inspect
+
     result = inspect.getsource(data)
     print(result)
     return result

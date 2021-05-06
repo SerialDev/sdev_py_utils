@@ -333,3 +333,34 @@ def multi_deconstruct(dict_list, key_list):
     query = query
     query += "]"
     return list(map(eval(query), dict_list))
+
+
+def get_by_path(root, items):
+    """Access a nested object in root by item sequence."""
+    from functools import reduce  # forward compatibility for Python 3
+    import operator
+
+    return reduce(operator.getitem, items, root)
+
+
+def set_by_path(root, items, value):
+    """Set a value in a nested object in root by item sequence."""
+    get_by_path(root, items[:-1])[items[-1]] = value
+
+
+def del_by_path(root, items):
+    """Delete a key-value in a nested object in root by item sequence."""
+    del get_by_path(root, items[:-1])[items[-1]]
+
+
+def flatten_dictionary(d, parent_key="", sep="_"):
+    import collections
+
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten_dictionary(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

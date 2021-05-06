@@ -32,12 +32,14 @@ import dill as pickle  # Required to pickle lambda functions
 # for lib in glob.glob(os.path.join(sys32dir, "*.tlb")):
 #     wrap(lib)
 
+
 def checkIfProcessRunning(processName):
-    '''
+    """
     Check if there is any running process that contains the given name processName.
-    '''
+    """
     import psutil
-    #Iterate over the all the running process
+
+    # Iterate over the all the running process
     for proc in psutil.process_iter():
         try:
             # Check if process name contains the given name string.
@@ -50,6 +52,7 @@ def checkIfProcessRunning(processName):
 
 def pickle_to_buffer(data):
     import io
+
     buffer = io.BytesIO()
     buffer.write(pickle.dumps(data))
     buffer.seek(0)
@@ -58,21 +61,41 @@ def pickle_to_buffer(data):
 
 def b64encode_buffer(buffer):
     import base64
+
     return base64.b64encode(buffer.read())
 
 
 def b64decode_data(data):
     import base64
+
     return base64.b64decode(data)
 
 
 def b64encode_data(data):
     import base64
+
     return base64.b64encode(data)
 
 
 def load_pickle_from_b64(data):
     return pickle.loads(b64decode_data(data))
+
+
+def cast_bytesio_encoding(data):
+    from base64 import b64encode
+
+    data.seek(0)
+    return b64encode(data.read())
+
+
+def cast_encoding_bytesio(data):
+    from base64 import b64decode
+    from io import BytesIO
+
+    buf = BytesIO()
+    buf.write(b64decode(data))
+    buf.seek(0)
+    return buf
 
 
 def path_split_into_list(path):
@@ -233,6 +256,7 @@ def truncated_path(path, lval=None, rval=None):
 
 def to_bytes_io(data):
     from io import BytesIO
+
     out_buffer = BytesIO()
     out_buffer.write(data)
     out_buffer.seek(0)
@@ -241,6 +265,7 @@ def to_bytes_io(data):
 
 def to_str_io(data):
     from io import StringIO
+
     out__buffer = StringIO()
     out_buffer.write(data)
     out_buffer.seek(0)
@@ -363,13 +388,13 @@ class file_utils(object):
 
     @staticmethod
     def to_zipped_pickle(obj, filename, protocol=-1):
-        with gzip.open(filename, 'wb') as f:
+        with gzip.open(filename, "wb") as f:
             pickle.dump(obj, f, protocol)
 
     @staticmethod
     def from_zipped_pickle(path):
         try:
-            with gzip.open(path, 'rb') as f:
+            with gzip.open(path, "rb") as f:
                 loaded_object = pickle.load(f)
                 return loaded_object
         except IOError:
@@ -491,9 +516,9 @@ def safestat(filename):
 
 def execute(cmd, working_directory=os.getcwd()):
     """
-        Purpose  : To execute a command and return exit status
-        Argument : cmd - command to execute
-        Return   : exit_code
+    Purpose  : To execute a command and return exit status
+    Argument : cmd - command to execute
+    Return   : exit_code
     """
     process = subprocess.Popen(
         cmd,
@@ -937,7 +962,7 @@ def load_or_create(data, path, force=False):
             pickle.dump(data, f)
         return data
     try:
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             result = pickle.load(f)
         return result
     except Exception:
@@ -953,7 +978,7 @@ def load_or_create_locked(data, path, force=False, timeout=1):
 
     if force == True:
         with lock.acquire(timeout=timeout):
-            open(path, 'wb').write(pickle.dumps(data))
+            open(path, "wb").write(pickle.dumps(data))
         return data
     try:
         with open(path, "rb") as f:
@@ -987,20 +1012,20 @@ def local_caching(data, name, force=False):
     try_makedir("cache")
 
     if force == True:
-        with open(filepath, 'wb') as f:
+        with open(filepath, "wb") as f:
             print("Force dump, dumping..")
             pickle.dump(data, f)
         return data
 
     try:
-        with open(filepath, 'rb') as f:
+        with open(filepath, "rb") as f:
             data = pickle.load(f)
             print("{} found loading..".format(name))
         return data
     except FileNotFoundError:
         print("{} was not found, dumping".format(name))
 
-        with open(filepath, 'wb') as f:
+        with open(filepath, "wb") as f:
             pickle.dump(data, f)
         return data
 

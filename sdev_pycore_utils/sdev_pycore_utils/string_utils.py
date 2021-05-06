@@ -1,4 +1,3 @@
-
 import re
 
 
@@ -99,11 +98,10 @@ def to_str(bytes_or_str):
     return value  # Instance of str
 
 
-
-
 # functions to detect/fix double-encoded UTF-8 strings
 # Based on http://blogs.perl.org/users/chansen/2010/10/coping-with-double-encoded-utf-8.html
-DOUBLE_ENCODED = re.compile("""
+DOUBLE_ENCODED = re.compile(
+    """
 \xC3 (?: [\x82-\x9F] \xC2 [\x80-\xBF]                                    # U+0080 - U+07FF
        |  \xA0       \xC2 [\xA0-\xBF] \xC2 [\x80-\xBF]                   # U+0800 - U+0FFF
        | [\xA1-\xAC] \xC2 [\x80-\xBF] \xC2 [\x80-\xBF]                   # U+1000 - U+CFFF
@@ -113,16 +111,21 @@ DOUBLE_ENCODED = re.compile("""
        | [\xB1-\xB3] \xC2 [\x80-\xBF] \xC2 [\x80-\xBF] \xC2 [\x80-\xBF]  # U+040000 - U+0FFFFF
        |  \xB4       \xC2 [\x80-\x8F] \xC2 [\x80-\xBF] \xC2 [\x80-\xBF]  # U+100000 - U+10FFFF
        )
-""", re.X)
+""",
+    re.X,
+)
+
 
 def is_double_encoded(s):
     return DOUBLE_ENCODED.search(s) and True or False
 
+
 def decode_double_encoded(m):
     s = m.group(0)
-    s = re.sub(r'[\xC2-\xC3]', '', s)
-    s = re.sub(r'\A(.)', lambda m: chr(0xC0 | (ord(m.group(1)) & 0x3F)), s)
+    s = re.sub(r"[\xC2-\xC3]", "", s)
+    s = re.sub(r"\A(.)", lambda m: chr(0xC0 | (ord(m.group(1)) & 0x3F)), s)
     return s
+
 
 def fix_double_encoded(s):
     if not is_double_encoded(s):
@@ -130,8 +133,9 @@ def fix_double_encoded(s):
     return DOUBLE_ENCODED.sub(decode_double_encoded, s)
 
 
-
 from difflib import SequenceMatcher
+
+
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
@@ -143,17 +147,31 @@ def similarity_string_list(list_to_check):
     similars = []
     for i in list_to_check:
         for j in list_to_check:
-            similarity  = similar(i,j)
+            similarity = similar(i, j)
             if similarity > 0.8 and similarity < 1.0:
-                similars.append((i,j))
+                similars.append((i, j))
     return similars
-
 
 
 def serialize_str(data):
     import pickle, base64
+
     return base64.b64encode(pickle.dumps(data)).decode()
+
 
 def deserialize_str(data):
     import pickle, base64
+
     return pickle.loads(base64.b64decode(data))
+
+
+def snake_casify(letters):
+    letters = list(letters)  # strings are immutable in python
+    for idx, i in enumerate(letters):
+        if idx == 0:
+            if i.isupper():
+                letters[idx] = i.lower()
+        else:
+            if i.isupper():
+                letters[idx] = "_" + i.lower()
+    return "".join(letters)
