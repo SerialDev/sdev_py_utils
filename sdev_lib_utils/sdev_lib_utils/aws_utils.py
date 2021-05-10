@@ -1,9 +1,9 @@
-
 import json
 import boto3
 import dill as pickle
 import zlib
 import io
+
 
 class aws_utils(object):
     """
@@ -55,46 +55,43 @@ class aws_utils(object):
        Stores any iterable into s3 in different increments to allow for reconstruction/function application
 
     """
+
     def __init__(self, key, secret):
 
         self.key = key
         self.secret = secret
 
-
     def get_s3_client(self):
-        self.s3_client =  boto3.client("s3",
-                            aws_access_key_id=self.key,
-                            aws_secret_access_key=self.secret)
+        self.s3_client = boto3.client(
+            "s3", aws_access_key_id=self.key, aws_secret_access_key=self.secret
+        )
         return self.s3_client
 
-
     def get_s3_res(self):
-        self.s3_res =  boto3.resource("s3",
-                            aws_access_key_id=self.key,
-                            aws_secret_access_key=self.secret)
+        self.s3_res = boto3.resource(
+            "s3", aws_access_key_id=self.key, aws_secret_access_key=self.secret
+        )
         return self.s3_res
 
-
     def get_bucket(self, bucket_name):
-        self.current_bucket=  self.get_s3_res().Bucket(bucket_name)
+        self.current_bucket = self.get_s3_res().Bucket(bucket_name)
         return self.current_bucket
 
-
     def get_bucket_key(self, bucket_name, key_name):
-        self.current_bucket_key=  self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)
+        self.current_bucket_key = self.get_s3_client().get_object(
+            Bucket=bucket_name, Key=key_name
+        )
         return self.current_bucket_key
 
-
     def get_bucket_key_json(self):
-            if hasattr(self, 'current_bucket_key'):
-                for i in self.current_bucket_key['Body'].iter_lines():
-                    yield json.loads(i.decode())
-            else:
-                print("No current bucket object initialized")
-
+        if hasattr(self, "current_bucket_key"):
+            for i in self.current_bucket_key["Body"].iter_lines():
+                yield json.loads(i.decode())
+        else:
+            print("No current bucket object initialized")
 
     def get_bucket_info(self, prefix):
-        if hasattr(self, 'current_bucket'):
+        if hasattr(self, "current_bucket"):
             for obj in self.current_bucket.objects.filter(Prefix=prefix):
                 print(obj.key, obj.size)
                 o = obj
@@ -103,15 +100,19 @@ class aws_utils(object):
             print("Bucket has not yet been initialized")
 
     def to_s3(self, bucket_name, data, key_name):
-        response = self.get_s3_client().put_object(Bucket=bucket_name,
-                                                   Body=zlib.compress(pickle.dumps(data)),
-                                                   Key=key_name)
+        response = self.get_s3_client().put_object(
+            Bucket=bucket_name, Body=zlib.compress(pickle.dumps(data)), Key=key_name
+        )
         return response
 
     def from_s3(self, bucket_name, key_name):
-        return pickle.loads(zlib.decompress(self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].read()))
-
-
+        return pickle.loads(
+            zlib.decompress(
+                self.get_s3_client()
+                .get_object(Bucket=bucket_name, Key=key_name)["Body"]
+                .read()
+            )
+        )
 
     def from_bin_file_streaming(self, name, bucket_name, key_name, full_path=False):
         if full_path:
@@ -119,15 +120,22 @@ class aws_utils(object):
         else:
             path = os.path.join(os.getcwd(), name)
 
-        with open(path, 'ab') as f:
-            obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
+        with open(path, "ab") as f:
+            obj = (
+                self.get_s3_client()
+                .get_object(Bucket=bucket_name, Key=key_name)["Body"]
+                .iter_lines()
+            )
             for i in obj:
                 f.write(i)
 
-
     def from_bin_streaming(self, bucket_name, key_name):
         out_buffer = io.BytesIO()
-        obj = self.get_s3_client().get_object(Bucket=bucket_name, Key=key_name)['Body'].iter_lines()
+        obj = (
+            self.get_s3_client()
+            .get_object(Bucket=bucket_name, Key=key_name)["Body"]
+            .iter_lines()
+        )
         for i in obj:
             out_buffer.write(i)
         out_buffer.seek(0)
@@ -140,14 +148,13 @@ class aws_utils(object):
         result = self.get_s3_client().upload_fileobj(out_buffer, bucket_name, key_name)
         return result
 
-
     def read_bin(self, name, full_path=False):
         if full_path:
             path = name
         else:
             path = os.path.join(os.getcwd(), name)
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             obj = f.read()
         return obj
 
@@ -157,7 +164,7 @@ class aws_utils(object):
         item_num = 0
         file_num = 0
         for item in iterable:
-            item_num +=1
+            item_num += 1
             print_iter(item_num)
             temp_list.append(item)
             if item_num != 0 and item_num % increments == 0:
@@ -167,7 +174,6 @@ class aws_utils(object):
 
         if temp_list != []:
             self.to_s3(bucket_name, temp_list, key_name + "_{}".format(file_num + 1))
-
 
     def iter_bucket(self, bucket_name):
         for i in self.get_s3_res().Bucket(bucket_name).objects.all():
@@ -180,15 +186,22 @@ class aws_utils(object):
         return buckets
 
 
-
 def create_uri(s3_object):
-    query = "SELECT aws_commons.create_s3_uri( '{}', '{}', 'eu-west-1' ".format(s3_object.bucket_name, s3_object.key) + ")"
-    result = pd.read_sql(query, connection)['create_s3_uri'][0]
+    query = (
+        "SELECT aws_commons.create_s3_uri( '{}', '{}', 'eu-west-1' ".format(
+            s3_object.bucket_name, s3_object.key
+        )
+        + ")"
+    )
+    result = pd.read_sql(query, connection)["create_s3_uri"][0]
     return result
 
+
 def create_aws_credential(access_key, secret_key):
-    query = "SELECT aws_commons.create_aws_credentials( '{}', '{}', '')".format(access_key, secret_key)
-    result = pd.read_sql(query,connection)['create_aws_credentials'][0][:-4] + ")"
+    query = "SELECT aws_commons.create_aws_credentials( '{}', '{}', '')".format(
+        access_key, secret_key
+    )
+    result = pd.read_sql(query, connection)["create_aws_credentials"][0][:-4] + ")"
     return result
 
 
@@ -206,10 +219,11 @@ def get_folders_bucket(aws_personal, bucket_name):
         folders[i.key.split("/")[0]] = ""
     return list(folders.keys())
 
+
 def iter_bucket(resource, bucket_name):
     for i in resource.Bucket(bucket_name).objects.all():
         yield i
-        
+
 
 def iter_bucket_folder(resource, bucket_name, folder):
     u = iter_bucket(resource, bucket_name)
@@ -225,46 +239,55 @@ def get_folders_bucket(resource, bucket_name):
         folders[i.key.split("/")[0]] = ""
     return list(folders.keys())
 
+
 def from_s3(object_summary, client):
-    result = client.get_object(Bucket=object_summary.bucket_name,
-                                Key=object_summary.key)['Body'].read()
+    result = client.get_object(
+        Bucket=object_summary.bucket_name, Key=object_summary.key
+    )["Body"].read()
     return result
+
 
 def download_from_s3(bucket_name, key_name, client):
     """
     Downloads s3 file and returns the path its stored in
     """
     import os
+
     try:
-        name = key_name.split('/')[1]
+        name = key_name.split("/")[1]
     except Exception as e:
         name = key_name
-        
+
     if os.path.exists(os.path.join(os.getcwd(), name)):
         return os.path.join(os.getcwd(), name)
 
-    result = client.get_object(Bucket=bucket_name, Key=key_name)['Body'].read()
-    with open(name, 'wb') as f:
+    result = client.get_object(Bucket=bucket_name, Key=key_name)["Body"].read()
+    with open(name, "wb") as f:
         f.write(result)
     return os.path.join(os.getcwd(), name)
 
+
 def joblib_load_bytes(file_name, file_bytes):
     import joblib
+
     try:
-        name = file_name.split('/')[1]
+        name = file_name.split("/")[1]
     except Exception as e:
         name = file_name
     try:
-        with open(name, 'wb') as f:
+        with open(name, "wb") as f:
             f.write(file_bytes)
         return joblib.load(os.path.join(os.getcwd(), name))
     except Exception as e:
-        print(f'error with {name} with content {file_bytes} \n with traceback: {traceback.format_exc()}')
+        print(
+            f"error with {name} with content {file_bytes} \n with traceback: {traceback.format_exc()}"
+        )
 
 
 def to_s3_pickles(client, bucket_name, data, key_name):
     import pickle
     import zlib
+
     response = client.put_object(
         Bucket=bucket_name, Body=zlib.compress(pickle.dumps(data)), Key=key_name
     )
@@ -272,7 +295,14 @@ def to_s3_pickles(client, bucket_name, data, key_name):
 
 
 def to_s3(client, bucket_name, data, key_name):
-        response = client.put_object(
-            Bucket=bucket_name, Body=data, Key=key_name
-        )
-        return response
+    response = client.put_object(Bucket=bucket_name, Body=data, Key=key_name)
+    return response
+
+
+def start_session(aws_access_key_id, aws_secret_access_key, region_name):
+    session = boto3.Session(
+        region_name=region_name,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+    )
+    return session

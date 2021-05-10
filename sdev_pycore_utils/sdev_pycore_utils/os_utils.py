@@ -1038,3 +1038,48 @@ def convert_size(size_bytes):
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
+
+
+def dump_or_load(directory, name, data=None):
+    name = name + ".plk"
+    filepath = os.path.join(os.getcwd(), directory, name)
+
+    try:
+        with open(filepath, "rb") as f:
+            result = pickle.load(f)
+        return result
+    except Exception:
+        print("none")
+
+
+def load_pickle(directory, name):
+    name = name + ".plk"
+    filepath = os.path.join(os.getcwd(), directory, name)
+    try:
+        with open(filepath, "rb") as f:
+            result = pickle.load(f)
+    except Exception:
+        print("{} does not exist".format(filename))
+        result = "Failure"
+    return result
+
+
+def save_pickle(directory, name, data=None):
+    name = name + ".plk"
+    filepath = os.path.join(os.getcwd(), directory, name)
+    try:
+        with open(filepath, "wb") as f:
+            pickle.dump(f)
+        result = "Success"
+    except Exception:
+        print("{} could not be created".format(filename))
+        result = "Failure"
+    return result
+
+
+def dump_or_load_pickle(directory, name, data=None):
+    if data == None:
+        result = load_pickle(directory, name)
+    else:
+        result = save_pickle(directory, name, data)
+    return result

@@ -175,3 +175,7 @@ def snake_casify(letters):
             if i.isupper():
                 letters[idx] = "_" + i.lower()
     return "".join(letters)
+
+
+def any_until_char(character):
+    return "(*?){}+".format(character)
