@@ -1219,6 +1219,18 @@ def split_dataframe(df, sections=10):
     return result
 
 
+def chunk_dataframe(df, sections=10):
+
+    part_size = get_stride_len(df.shape[0], sections)
+    lb = 0
+    ub = part_size
+    for i in range(sections):
+        temp_df = df[lb:ub].copy()
+        lb = lb + part_size
+        ub = ub + part_size
+        yield temp_df
+
+
 def fill_na(df):
     for col in df:
         # get dtype for column
@@ -1701,3 +1713,47 @@ def np_deconstructed_mask(data: np.array, key, matching_key):
     np.vectorize(lambda x: x["eventType"] == uniq[0])(data_np)
     """
     return np.vectorize(lambda x: x[key] == matching_key)(data)
+
+
+def pd_list_to_pd(result, batches):
+    from math import ceil
+
+    chunk_len = int(ceil(len(result)) / batches)
+    final_df_result = []
+    for batch in range(batches + 1):
+        temp_batch = batch * chunk_len
+        for i in tqdm(range(chunk_len)):
+            if i == 0:
+                final_df = result[temp_batch]
+            else:
+                final_df = pd.concat([final_df, result[temp_batch + i]], axis=0)
+        final_df_result.append(final_df)
+    for idx, temp_df in tqdm(enumerate(final_df_result)):
+        if idx == 0:
+            final_df = temp_df
+        else:
+            final_df = pd.concat([final_df, temp_df], axis=0)
+    final_df.reset_index(inplace=True, drop=True)
+    return final_df
+
+
+def group_sort_unique(df, group_by, sort_by, unique=True):
+    if unique:
+        return (
+            df.groupby(group_by)
+            .apply(lambda x: len(x[sort_by].unique()))
+            .sort_values(ascending=False)
+        )
+    else:
+        return (
+            df.groupby(group_by)
+            .apply(lambda x: len(x[sort_by]))
+            .sort_values(ascending=False)
+        )
+
+
+def pd_table_fmt(df):
+    df = df.fillna("-")
+    cols = list(df.columns)
+    contents = df.to_numpy()
+    return [cols, [list(i) for i in contents]]
