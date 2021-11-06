@@ -93,6 +93,11 @@ def chunks(l, n):
         yield l[i : i + n]
 
 
+# def chunks(l, n):
+#     n = max(1, n)
+#     return (l[i : i + n] for i in range(0, len(l), n))
+
+
 def chunks_padded(iterable, n, padvalue=None):
     """
     Generate padded chunks from any iterable
@@ -364,4 +369,16 @@ def rolling_doubly_list(data):
     temp.extend(data)
     temp.extend([None])
     result = list(zip(temp[:], temp[1:], temp[2:]))
+    return result
+
+
+def chunks(l, n):
+    n = max(1, n)
+    return (l[i : i + n] for i in range(0, len(l), n))
+
+
+def depth_flatten(array, depth=2):
+    result = array
+    for i in range(depth):
+        result = functools.reduce(operator.iconcat, result, [])
     return result

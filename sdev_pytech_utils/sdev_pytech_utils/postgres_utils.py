@@ -588,3 +588,174 @@ order by
 """,
             con,
         )
+
+
+def init_closure_table(con):
+    temp_wait = con.execute(
+        """
+    CREATE TABLE IF NOT EXISTS nodes (
+    node_id INT PRIMARY KEY ,
+    node_name TEXT NOT NULL,
+    role_name TEXT NOT NULL,
+    node_histogram TEXT NOT NULL,
+    time_bin TEXT NOT NULL
+    ) WITHOUT ROWID;"""
+    )
+
+    temp_wait = con.execute(
+        """
+    CREATE TABLE IF NOT EXISTS tree_paths (
+    node_ancestor INT NOT NULL,
+    node_descendant  INT NOT NULL,
+    length INT,
+    PRIMARY KEY (node_ancestor, node_descendant),
+    FOREIGN KEY (node_ancestor)
+        REFERENCES nodes(node_id),
+    FOREIGN KEY(node_descendant)
+        REFERENCES nodes(node_id)
+    );"""
+    )
+
+    temp_wait = con.execute(
+        """
+    CREATE TRIGGER path_len_trigger
+    AFTER INSERT ON tree_paths
+    FOR EACH ROW
+    WHEN NEW.length IS NULL
+    BEGIN
+      UPDATE tree_paths
+      SET length = node_descendant - node_ancestor 
+      WHERE rowid = NEW.rowid;
+    END;
+    """
+    )
+
+    return 1
+
+
+def month_bin_fmt(date):
+    from datetime import datetime
+
+    temp = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%fZ")
+    temp = datetime.strptime(f"{temp.year}-{temp.month}", "%Y-%m")
+    return temp.isoformat(timespec="milliseconds")
+
+
+def day_bin_fmt(date):
+    from datetime import datetime
+
+    temp = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%fZ")
+    temp = datetime.strptime(f"{temp.year}-{temp.month}-{temp.day}", "%Y-%m-%d")
+    return temp.isoformat(timespec="milliseconds")
+
+
+def insert_node(con, node_id, direct_ancestor):
+    temp_wait = con.execute(
+        f"""
+INSERT INTO tree_paths (node_ancestor, node_descendant)
+SELECT node_ancestor, {node_id} FROM tree_paths
+WHERE node_descendant = {direct_ancestor}
+UNION ALL SELECT {node_id}, {node_id}
+;"""
+    )
+    return temp_wait
+
+
+def query_descendants(con, node_ancestor):
+    temp = pd.read_sql_query(
+        f"""
+select * from nodes n
+join tree_paths t
+ON (n.node_id = t.node_descendant)
+WHERE t.node_ancestor = {node_ancestor}
+    ;
+""",
+        con,
+    )
+    return temp
+
+
+def query_ancestors(con, node_descendant):
+    temp = pd.read_sql_query(
+        f"""
+select * from nodes n
+join tree_paths t
+ON (n.node_id = t.node_ancestor)
+WHERE t.node_descendant = {node_descendant}
+    ;
+""",
+        con,
+    )
+    return temp
+
+
+def delete_subtree(con, node_ancestor):
+    temp_wait = con.execute(
+        f"""
+DELETE FROM nodes
+where node_id IN
+(SELECT node_descendant FROM tree_paths
+where node_ancestor = {node_ancestor});
+"""
+    )
+    temp_wait = con.execute(
+        f"""
+DELETE FROM tree_paths
+where node_descendant IN
+(SELECT node_descendant FROM tree_paths
+where node_ancestor = {node_ancestor});
+"""
+    )
+    return 1
+
+
+def delete_leaf(con, node_descendant):
+    temp_wait = con.execute(
+        f"""
+    DELETE FROM tree_paths
+    where node_descendant =  {node_descendant};
+"""
+    )
+    temp_wait = con.execute(
+        f"""
+    DELETE FROM nodes
+    where node_id =  {node_descendant};
+"""
+    )
+    return 1
+
+
+def serialize_sqlite_buf(con):
+    import io
+
+    buff = io.StringIO()
+    [buff.write(f"{line}\n") for line in con.iterdump()]
+    buff.seek(0)
+    return buff
+
+
+def deserialize_sqlite_buf(con, buf):
+    t_str = buf.read()
+    con.executescript(t_str)
+    return con
+
+
+def buf_str(buff):
+    t_str = buf.read()
+    buf.seek(0)
+    return t_str
+
+
+def deserialize_sqlite_bytes(bytes_str):
+    t = sqlite3.connect(":memory:")
+    t_str = bytes_str.decode(errors="replace")
+    t.executescript(t_str)
+    t.commit()
+    return con
+
+
+def deserialize_sqlite_bytes(con, bytes_str):
+    temp_str = bytes_str.decode(errors="replace")
+    con.executescript(temp_str)
+    con.commit()
+    return con

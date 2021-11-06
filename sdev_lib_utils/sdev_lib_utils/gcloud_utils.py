@@ -29,6 +29,12 @@ def bigquery_aos(client, query):
     return result
 
 
+def time_delta_days(day_count):
+    import datetime
+
+    return datetime.datetime.now() - datetime.timedelta(days=day_count)
+
+
 def bucket_metadata(bucket_name):
     """Prints out a bucket's metadata."""
     # bucket_name = 'your-bucket-name'

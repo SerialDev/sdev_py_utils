@@ -1720,7 +1720,7 @@ def pd_list_to_pd(result, batches):
 
     chunk_len = int(ceil(len(result)) / batches)
     final_df_result = []
-    for batch in range(batches + 1):
+    for batch in range(batches):
         temp_batch = batch * chunk_len
         for i in tqdm(range(chunk_len)):
             if i == 0:
@@ -1757,3 +1757,53 @@ def pd_table_fmt(df):
     cols = list(df.columns)
     contents = df.to_numpy()
     return [cols, [list(i) for i in contents]]
+
+
+def dt_features(df, label=None):
+    """
+    Creates time series features from datetime index.
+    """
+    df = df.copy()
+    df["date"] = df.index
+    df["hour"] = df["date"].dt.hour
+    df["dayofweek"] = df["date"].dt.dayofweek
+    df["quarter"] = df["date"].dt.quarter
+    df["month"] = df["date"].dt.month
+    df["year"] = df["date"].dt.year
+    df["dayofyear"] = df["date"].dt.dayofyear
+    df["dayofmonth"] = df["date"].dt.day
+    df["weekofyear"] = df["date"].dt.weekofyear
+
+    X = df[
+        [
+            "hour",
+            "dayofweek",
+            "quarter",
+            "month",
+            "year",
+            "dayofyear",
+            "dayofmonth",
+            "weekofyear",
+        ]
+    ]
+    if label:
+        y = df[label]
+        return X, y
+    return X
+
+
+def datetime_features_inplace(df):
+    """
+    Creates time series features from datetime index.
+    """
+    df["date"] = df.index
+    df["hour"] = df["date"].dt.hour
+    df["dayofweek"] = df["date"].dt.dayofweek
+    df["quarter"] = df["date"].dt.quarter
+    df["month"] = df["date"].dt.month
+    df["year"] = df["date"].dt.year
+    df["dayofyear"] = df["date"].dt.dayofyear
+    df["dayofmonth"] = df["date"].dt.day
+    df["weekofyear"] = df["date"].dt.weekofyear
+
+    return df

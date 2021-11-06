@@ -5,14 +5,14 @@ def seaborn_setup():
     sns.set(style="whitegrid", palette="muted")
 
 
-def cat_factorplot(data, facet=None):
+def cat_factorplot(data):
     if len(data["category"]) > 10:
         result = sns.factorplot(
-            x="value", y="category", palette=["r", "c", "y"], data=data, facet=facet
+            x="value", y="category", palette=["r", "c", "y"], data=data
         )
     else:
         result = sns.factorplot(
-            x="category", y="value", palette=["r", "c", "y"], data=data, facet=facet
+            x="category", y="value", palette=["r", "c", "y"], data=data
         )
     return result
 
@@ -25,17 +25,12 @@ def cat_swarmplot(data):
         )
     else:
         result = sns.swarmplot(
-            x="category",
-            y="value",
-            palette=["r", "c", "y"],
-            hue="category",
-            data=data,
-            facet=facet,
+            x="category", y="value", palette=["r", "c", "y"], hue="category", data=data
         )
     return result
 
 
-def cat_manhattan(data):
+def cat_manhattan(data, facet=None):
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.swarmplot(
@@ -45,7 +40,11 @@ def cat_manhattan(data):
 
     else:
         result = sns.swarmplot(
-            x="category", y="value", palette=["r", "c", "y"], hue="category", data=data,
+            x="category",
+            y="value",
+            palette=["r", "c", "y"],
+            hue="category",
+            data=data,
         )
         result.set(xscale="log")
     return result
@@ -77,11 +76,11 @@ def cat_manhattan_bar(data, facet=None, height=5):
             height=height,
             aspect=2,  # height should be two times width
         )
-        result.set(yscale="log")
+        result.set(xscale="log")
     return result
 
 
-def cat_boxen(data):
+def cat_boxen(data, facet=None):
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.catplot(
@@ -104,11 +103,11 @@ def cat_boxen(data):
     return result
 
 
-def cat_box(data,):
+def cat_box(data):
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.catplot(
-            x="value", y="category", kind="box", palette=["r", "c", "y"], data=data,
+            x="value", y="category", kind="box", palette=["r", "c", "y"], data=data
         )
     else:
         result = sns.catplot(
@@ -122,7 +121,11 @@ def cat_box(data,):
     return result
 
 
-def cat_strip(data, jitter=False):
+def cat_strip(
+    data,
+    facet=None,
+    jitter=False,
+):
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.catplot(
@@ -160,7 +163,6 @@ def cat_violin(data, split=False, facet=None, inner="stick"):
             inner=inner,
             split=split,
             data=data,
-            facet=facet,
         )
     else:
         result = sns.catplot(
@@ -173,7 +175,6 @@ def cat_violin(data, split=False, facet=None, inner="stick"):
             hue="category",
             split=split,
             data=data,
-            facet=facet,
         )
     return result
 
@@ -186,7 +187,7 @@ def cat_dist_swarm(data, inner="violin", facet=None):
                 x="value", y="category", col=facet, kind="violin", inner=None, data=data
             )
             sns.swarmplot(
-                x="value", y="category", color="k", size=3, data=data, ax=result.ax
+                x="value", y="category", color="k", size=3, data=data, ax=g.ax
             )
 
         else:
@@ -194,7 +195,7 @@ def cat_dist_swarm(data, inner="violin", facet=None):
                 x="category", y="value", col=facet, kind="violin", inner=None, data=data
             )
             sns.swarmplot(
-                x="category", y="value", color="k", size=3, data=data, ax=result.ax
+                x="category", y="value", color="k", size=3, data=data, ax=g.ax
             )
 
     elif inner == "box":
@@ -263,7 +264,11 @@ def cat_count(data, rev=False, facet=None):
     else:
         if len(data["category"]) > 10:
             result = sns.catplot(
-                x="value", col=facet, kind="count", palette=["r", "c", "y"], data=data,
+                x="value",
+                col=facet,
+                kind="count",
+                palette=["r", "c", "y"],
+                data=data,
             )
         else:
             result = sns.catplot(
@@ -303,15 +308,35 @@ def sep_div(div):
 
 
 def seaborn_multi_facet(
-    df, core_facet=None, secondary_facet=None, plot_type=cat_manhattan_bar
+    df, core_facet, secondary_facet=None, plot_type=cat_manhattan_bar
 ):
     result = []
     for i in list(df[core_facet].unique()):
         result.append(
             b64_div(
                 convert_plt_b64(
-                    plot_type(df[df[core_facet] == i][:100], facet=core_facet)
+                    plot_type(df[df[core_facet] == i][:100], facet=core_facet, height=5)
                 )
             )
         )
     return sep_div(result)
+
+
+def preprocess_viz_node(node, user):
+    import distogram
+    import pandas as pd
+
+    hdf = {}
+    hdf["category"] = []
+    hdf["value"] = []
+    hdf["user"] = []
+
+    # TODO: add facet to sepparate based on zones/resources etc
+    for i in range(len(node["nodes"])):
+        hdf["category"].append(node["nodes"][i])
+        hdf["value"].append(distogram.count(node[node["nodes"][i]]))
+        hdf["user"].append(user)
+
+    h_df = pd.DataFrame(hdf, index=list(range(len(hdf["category"]))))
+
+    return h_df

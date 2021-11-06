@@ -179,3 +179,8 @@ def snake_casify(letters):
 
 def any_until_char(character):
     return "(*?){}+".format(character)
+
+
+def split_keep(s, delimiter):
+    split = s.split(delimiter)
+    return [substr + delimiter for substr in split[:-1]] + [split[-1]]

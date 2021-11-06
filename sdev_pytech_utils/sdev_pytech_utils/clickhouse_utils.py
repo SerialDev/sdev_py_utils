@@ -222,3 +222,231 @@ def enclose(data: str) -> str:
 
 def enclose_quote(data: str) -> str:
     return f"'{data}'"
+
+
+from subprocess import Popen, PIPE, DEVNULL
+import pandas as pd
+import os
+from timeit import default_timer as timer
+from string import Template
+from requests import post
+from datetime import date, timedelta
+import numpy as np
+from tqdm import tqdm
+import time
+
+# CLICKHOUSE_HOST
+def access_login(host):
+    p = Popen(
+        ["cloudflared", "access", "login", CLICKHOUSE_HOST],
+        stdout=PIPE,
+        stderr=DEVNULL,
+        encoding="UTF-8",
+        universal_newlines=True,
+    )
+    p.wait()
+    return p
+
+
+_macros = {
+    "zoneName": "dictGetString('zone', 'zone_name', toUInt64(zoneId))",
+    "userId": "dictGetUInt32('zone', 'user_id', toUInt64(zoneId))",
+    "colo": "dictGetString('colo', 'code', toUInt64(edgeColoId))",
+    "upperTierColo": "dictGetString('colo', 'code', toUInt64(upperTierColoId))",
+    "countryName": "dictGetString('country', 'name', toUInt64(clientCountry))",
+    "countryCode2": "dictGetString('country', 'alpha2', toUInt64(clientCountry))",
+    "countryCode3": "dictGetString('country', 'alpha3', toUInt64(clientCountry))",
+    "method": "dictGetString('method', 'name', toUInt64(clientRequestHTTPMethod))",
+    "video": "replaceRegexpAll(UUIDNumToString(videoId), '-', '')",
+    "impression": "replaceRegexpAll(UUIDNumToString(impressionId), '-', '')",
+    "today": "date=today() and datetime>toDateTime(today())",
+    "yesterday": "date=today()-1 and datetime>=toDateTime(today()-1) and datetime<toDateTime(today())",
+    "mime": "dictGetString('mime',  'name',  toUInt64(edgeResponseContentType))",
+    "startMs": "bitShiftRight(rayId, 28) % 100 * 10",
+    "cacheStatus": "dictGetString('cache_status', 'name', toUInt64(cacheStatus))",
+}
+
+
+def _preprocess_query(q):
+    return Template(q).substitute(_macros) + "\nFORMAT TabSeparatedWithNames"
+
+
+def _execute_query(q, host, **kwargs):
+    """kwargs can define the table name, data, and schema like:
+
+    table_name=(dataframe, 'col1 Type1, col2 Type2')
+    """
+    files = {}
+    params = {}
+    post_body = ""
+
+    if kwargs:
+        # If we're going to upload a file (i.e. kwargs are present), we need to
+        # URL-encode the query and include it in the URL
+        params["query"] = q
+    else:
+        # Otherwise it's safer to include it as a POST body
+        post_body = q
+
+    for name, v in kwargs.items():
+        # Table schema is always included in the URL
+        params[name + "_structure"] = v[1]
+        table_data = v[0]
+
+        # Do some type inference and try to encode correctly
+        if type(table_data) is pd.core.frame.DataFrame:
+            files[name] = table_data.to_csv(sep="\t", index=False, header=False)
+        elif type(table_data) is str:
+            # Strings must be pre-formatted as tsv
+            files[name] = (name, table_data)
+        elif type(table_data[0]) is str:
+            # List of strings can be joined
+            files[name] = (name, "\n".join(table_data))
+        else:
+            # List of lists can also be joined into TSV
+            files[name] = (name, "\n".join("\t".join(map(str, x)) for x in table_data))
+
+    if not str(host).startswith("https://"):
+        host = "https://%s" % host
+
+    try:
+        auth_token = (
+            Popen(
+                ["cloudflared", "access", "token", "-app=" + host],
+                stdout=PIPE,
+                stderr=DEVNULL,
+                encoding="UTF-8",
+                universal_newlines=True,
+            )
+            .communicate()[0]
+            .splitlines()[0]
+            .rstrip()
+        )
+    except IndexError:
+        print(
+            """
+There was an error fetching your CF access token.
+Make sure you have authenticated with CF Access first by running a command like:
+`%login clickhouse-pdx-root.bi.cfdata.org`
+"""
+        )
+        raise
+
+    response = post(
+        host,
+        data=post_body,
+        params=params,
+        files=files,
+        stream=True,
+        auth=(CLICKHOUSE_USER, CLICKHOUSE_PW),
+        cookies={"CF_Authorization": auth_token},
+    )
+    return response
+
+
+def query(q, host, silent=False, **kwargs):
+    """Main function for running clickhouse queries.
+
+    This is meant to be called primarily with the %%query cell magic. However it can also be called
+    directly as clickhouse.query() with kwargs if you want to pass an external table, e.g.:
+
+    clickhouse.query('''
+        SELECT ...
+        FROM requests_sample
+        WHERE date >= yesterday() - 1
+        AND clientIPv4 global in (select IPv4StringToNum(ip) from ip_table)
+        AND ...
+        ''', ip_table=(ips[['ip4']].values, 'ip String'))
+    """
+    start = timer()
+    full_q = _preprocess_query(q)
+    r = _execute_query(full_q, host, **kwargs)
+    end = timer()
+    if not r.ok:
+        # Probably a query parse error returned from Clickhouse
+        if "DB::Exception" in r.text:
+            print("Host: %s\n\n%s\n%s" % (host, r.text, full_q))
+            return
+        else:
+            raise RuntimeError(r.text)
+    if not silent:
+        print("Query finished in %.02fs" % (end - start))
+    return pd.read_csv(r.raw, sep="\t", parse_dates=True)
+
+
+def describe_table(tbl, host):
+    """ Returns dataframe with schema for a given table """
+    p = tbl.split(".")
+    if len(p) != 2:
+        db = "default"
+    else:
+        (db, tbl) = p
+    q = (
+        "select name, type, default_expression from system.columns \
+         where database = '%s' and table = '%s'"
+        % (db, tbl)
+    )
+    return query(q, host=host)
+
+
+def query_date_range(
+    query_text, start=None, end=date.today(), days=None, dfs=[], **kwargs
+):
+    """Runs `query` over multiple days from `start` to `end` and concatenates
+    into one dataframe.
+
+    If you include a column 'd' in your query output that represents a day,
+    it will add a nice new 'date' column as an index
+    """
+
+    day = timedelta(days=1)
+
+    if type(query_text) is str:
+        q = Template(query_text)
+    elif type(query_text) is Template:
+        q = query_text
+    else:
+        raise ValueError("Need a string or template for query")
+
+    # Replace "daterange" macro if it exists
+    q = Template(
+        q.substitute(
+            {
+                "daterange": "date = '$date1' \
+        and datetime >= toDateTime('$date1 00:00:00') \
+        and datetime <  toDateTime('$date2 00:00:00')"
+            }
+        )
+    )
+
+    # Get start date
+    if type(days) is int:
+        start_date = date.today() - timedelta(days=days)
+    elif type(start) is str:
+        start_date = parser.parse(start).date()
+    elif type(start) is date:
+        start_date = start
+    else:
+        raise ValueError("Need a start_date as a string or date, or a number of days")
+
+    # Get end date
+    if type(end) is str:
+        end_date = parser.parse(end).date()
+    elif type(end) is date:
+        end_date = end
+    else:
+        raise ValueError("Need an end_date as a string or a date (or None)")
+
+    d = start_date
+    while d < end_date:
+        date1 = d.isoformat()
+        date2 = (d + day).isoformat()
+        print(date1, date2)
+        dfs.append(query(q.substitute({"date1": date1, "date2": date2}), **kwargs))
+        d += day
+
+    df = pd.concat(dfs, sort=False)
+    if "d" in df:
+        df["date"] = pd.to_datetime(df.d)
+        df.set_index("date")
+    return df
