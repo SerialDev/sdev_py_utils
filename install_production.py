@@ -17,9 +17,9 @@ def walklevel(some_dir, level=1):
 
 def execute(cmd, working_directory=os.getcwd()):
     """
-        Purpose  : To execute a command and return exit status
-        Argument : cmd - command to execute
-        Return   : exit_code
+    Purpose  : To execute a command and return exit status
+    Argument : cmd - command to execute
+    Return   : exit_code
     """
     process = subprocess.Popen(
         cmd,

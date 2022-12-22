@@ -8,6 +8,97 @@ from google.oauth2 import service_account
 import googleapiclient.discovery
 
 
+def write_into_bigquery(
+    bq_write_client,
+    input_path: str,
+    table_info: dict,
+    table_name: str,
+    file_format: str,
+    mode: str,
+    partition_value: str,
+) -> None:
+    """
+    This function writes data to BigQuery table
+    [ Arguments ]
+        bq_write_client - intialized BigQuery client to write data
+        input_path - GCS path
+        table_info - Pass table description, labels & schema of table with field types & column descriptions in a dictionary
+        table_name - BigQuery table path. eg: ida.contract_churn_scores
+        file_format - File format to read. Default format is Parquet
+        mode - Mode to save. Append or Overwrite
+        partition_value - Partition column value
+    [ Returns ]
+        None
+    """
+    if file_format.lower() == "parquet":
+        format_type = bigquery.SourceFormat.PARQUET
+    elif file_format.lower() == "csv":
+        format_type = bigquery.SourceFormat.CSV
+    elif file_format.lower() == "avro":
+        format_type = bigquery.SourceFormat.AVRO
+    elif file_format.lower() == "orc":
+        format_type = bigquery.SourceFormat.ORC
+    elif file_format.lower() == "json":
+        format_type = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+    else:
+        raise f"unsupported file format: {file_format.lower()}"
+
+    if mode.lower() == "append":
+        write_type = bigquery.WriteDisposition.WRITE_APPEND
+    elif mode.lower() == "overwrite":
+        write_type = bigquery.WriteDisposition.WRITE_TRUNCATE
+    #         print(f"Write Type = {write_type}")
+    else:
+        write_type = bigquery.WriteDisposition.WRITE_EMPTY
+
+    if partition_value != "":
+        time_partition_config = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            field="model_run_month",  # field to use for partitioning
+            require_partition_filter=True,
+        )
+    else:
+        time_partition_config = bigquery.TimePartitioning()
+
+    job_config = bigquery.LoadJobConfig(
+        schema_update_options=bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
+        schema=table_info["table_schema"],
+        source_format=format_type,
+        write_disposition=write_type,
+        time_partitioning=time_partition_config,
+    )
+
+    _logger.info("Updating description & labels to the %s table", table_name)
+    table_id = table_name + "$" + partition_value.replace("-", "")
+    bq_dataset, bq_table = table_name.split(".")
+    job = bq_write_client.load_table_from_uri(
+        input_path, table_id, job_config=job_config
+    )
+
+    # Wait to ensure the table is created
+    time.sleep(5)
+
+    # Request results from the job
+    result = job.result()
+    table_ref = bq_write_client.dataset(bq_dataset).table(bq_table)
+
+    try:
+        table = bq_write_client.get_table(table_ref)
+    except Exception:  # pylint: disable=broad-except
+        _logger.exception("An exception occurred from getting table: %s", table_ref)
+
+    # Description
+    table.description = table_info["table_description"]
+    table = bq_write_client.update_table(table, ["description"])
+    assert table.description == table_info["table_description"]
+
+    # Labels
+    table.labels = table_info["table_labels"]
+    table = bq_write_client.update_table(table, ["labels"])
+    assert table.labels == table_info["table_labels"]
+    _logger.info("Written %s rows to %s", result.output_rows, result.destination)
+
+
 def bigquery_column_dtypes(project_name, dataset_name):
     query = f"""
 select column_name, data_type

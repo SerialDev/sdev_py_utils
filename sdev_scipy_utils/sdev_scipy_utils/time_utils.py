@@ -504,3 +504,15 @@ def mdeconstruct(dict_list, key_list):
     query += "]"
     print(query)
     return list(map(eval(query), dict_list))
+
+
+def min_max_ts(df, col):
+    end = df[col].max()
+    beg = df[col].min()
+    return (end, beg)
+
+
+def zero_pad_ts(df, end, beg, col):
+    return df.set_index(col).reindex(
+        pd.date_range(start=beg, end=end, freq="MS"), fill_value=0
+    )
