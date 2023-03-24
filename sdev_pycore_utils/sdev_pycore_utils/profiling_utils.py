@@ -697,3 +697,37 @@ class profile(object):
 #    called
 #    4
 #
+
+
+
+def print_usage(marker: str = None, unit: str = "MB") -> float:
+    """
+    Prints the current memory usage of the process.
+
+    This function takes in an optional marker string and an optional unit string and prints the current memory usage
+    of the process in the specified unit. It also returns the memory usage as a float value.
+
+    Args:
+        marker: An optional string to include in the printed output.
+        unit: The unit in which the memory usage should be reported. Can be "B" for bytes, "KB" for kilobytes,
+              "MB" for megabytes, or "GB" for gigabytes.
+
+    Returns:
+        The current memory usage of the process in the specified unit.
+    """
+    usage = psutil.Process(os.getpid()).memory_info().rss
+    if unit == "B":
+        usage_str = f"{usage} bytes"
+    elif unit == "KB":
+        usage /= 1024
+        usage_str = f"{usage:.2f} kilobytes"
+    elif unit == "MB":
+        usage /= 1024 ** 2
+        usage_str = f"{usage:.2f} megabytes"
+    elif unit == "GB":
+        usage /= 1024 ** 3
+        usage_str = f"{usage:.2f} gigabytes"
+    else:
+        raise ValueError(f"Invalid unit: {unit}")
+    print(f"***MEM USG @{marker}, {usage_str}")
+    return usage

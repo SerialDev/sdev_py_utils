@@ -1807,3 +1807,275 @@ def datetime_features_inplace(df):
     df["weekofyear"] = df["date"].dt.weekofyear
 
     return df
+
+
+
+def compare_dataframes(df1, df2, column_name1, column_name2):
+    """
+    Compare two DataFrames and return the rows that are missing in one DataFrame.
+
+    Args:
+        df1 (pd.DataFrame): The first DataFrame.
+        df2 (pd.DataFrame): The second DataFrame.
+        column_name1 (str): The name of the column in df1 to use for comparison.
+        column_name2 (str): The name of the column in df2 to use for comparison.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the rows that are missing in one of the input DataFrames.
+    """
+
+    # Merge the two DataFrames and keep all rows
+    merged_df = df1.merge(df2, left_on=column_name1, right_on=column_name2, how="outer")
+
+    # Get the rows from df1 that are not in df2
+    missing_rows = merged_df[merged_df[column_name2].isnull()]
+
+    # Print the number of rows in each DataFrame
+    print(f"Number of rows in df1: {len(df1)}")
+    print(f"Number of rows in df2: {len(df2)}")
+    print(f"Number of missing rows: {len(missing_rows)}")
+
+    # Return the missing rows
+    return missing_rows
+
+
+
+
+def LOOEncoding(
+    df,
+    cols,
+    target,
+    sigma=0.05,
+    inference=False,
+    bucket_name="",
+    blob_name="",
+    project_name="",
+):
+    """
+        Performs leave-one-out (LOO) encoding on the given dataframe.
+
+    Args:
+        df: The pandas dataframe to encode.
+        cols: A list of columns to encode.
+        target: The target column to use for encoding.
+        sigma: The standard deviation to use for LOO encoding.
+        inference: A boolean indicating whether the function is being called for inference or training.
+        bucket_name: The name of the cloud storage bucket to use for caching the fitted encoder.
+        blob_name: The name of the cloud storage blob to use for caching the fitted encoder.
+        project_name: The name of the Google Cloud project to use for caching the fitted encoder.
+
+    Returns:
+        A pandas dataframe with the encoded columns.
+    """
+    import dill as pickle
+    from io import BytesIO
+    import joblib
+    import cloudpickle
+
+
+    y = df[target]
+    X = pd.DataFrame(df, columns=cols)
+
+    if not inference:
+        # Fit the LeaveOneOutEncoder using the given columns and target
+        loo_encoder = ce.LeaveOneOutEncoder(df, cols=cols, sigma=sigma)
+        loo_encoder.fit(X, y)
+
+        # Save the fitted encoder to a cloud storage bucket
+        encoder_bytes = cloudpickle.dumps(loo_encoder)
+
+        bytes_container = BytesIO()
+        joblib.dump(loo_encoder, bytes_container)
+        bytes_container.seek(0)  # update to enable reading
+
+        upload_bytesio_blob(
+            bucket_name, blob_name, encoder_bytes, project_name, encode=False
+        )
+        print(
+            f"Saved fitted encoder to bucket '{bucket_name}', blob '{blob_name}', project '{project_name}'"
+        )
+        upload_bytesio_blob(
+            bucket_name,
+            blob_name + "_joblib",
+            bytes_container.read(),
+            project_name,
+            encode=False,
+        )
+        print(
+            f"Saved fitted encoder to bucket '{bucket_name}', blob '{blob_name+ '_joblib'}', project '{project_name}'"
+        )
+    else:
+
+        try:
+            # Download the encoder from the cloud storage bucket
+            encoder_bytes = download_bytesio_blob(bucket_name, blob_name, project_name)
+
+            loo_encoder = pickle.loads(encoder_bytes.getbuffer())
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
+            encoder_bytes_jl = download_bytesio_blob(
+            bucket_name, blob_name + "_joblib", project_name
+        )
+
+            loo_encoder = joblib.load(encoder_bytes_jl)
+
+        print(
+            f"Downloaded encoder from bucket '{bucket_name}', blob '{blob_name}', project '{project_name}'"
+        )
+
+    # Transform the data using the fitted encoder
+    X_encoded = loo_encoder.transform(X)
+    return X_encoded
+
+
+
+
+
+def uneven_binning(df, col, first_half=100, second_half=10):
+    """
+    Splits a numerical column of a DataFrame into uneven bins.
+
+    This function takes in a DataFrame, the name of a numerical column in that DataFrame, and the number of bins
+    to use for the first and second halves of the column's values. It generates evenly split ranges for the first
+    half of the values and for the second half of the values using the `np.linspace` function, and then combines
+    these ranges into a single list of bins. It then uses the `pd.cut` function to split the column's values into
+    the bins and returns a new categorical series with the split values.
+
+    Args:
+        df: The DataFrame containing the column to be split into bins.
+        col: The name of the numerical column to be split into bins.
+        first_half: The number of bins to use for the first half of the column's values.
+        second_half: The number of bins to use for the second half of the column's values.
+
+    Returns:
+        A categorical series with the values from the original column split into the specified bins.
+    """
+    # Use the np.linspace() function to generate 100 evenly split ranges for the first half of the values
+    bins_first_half = np.linspace(df[col].min(), df[col].max() / 2, 100)
+
+    # Use the np.linspace() function to generate 10 evenly split ranges for the second half of the values
+    bins_second_half = np.linspace(df[col].max() / 2, df[col].max(), 10)
+
+    # Combine the bins for the first and second halves into a single list of bins
+    bins = [-1] + list(bins_first_half) + list(bins_second_half)
+    bins = sorted(bins)
+
+    # Check the values of the bins to make sure they are sorted in the correct order
+    if not all(bins[i] <= bins[i + 1] for i in range(len(bins) - 1)):
+        raise ValueError("Bins are not sorted in the correct order")
+
+    u = pd.cut(df[col], bins=bins, labels=None, duplicates="drop")
+
+    return u.cat.rename_categories([col + str(x) for x in u.cat.categories])
+
+
+
+def create_cyclical_features(df, datetime_col, inplace=True):
+    """
+    Creates cyclical features from a datetime column in a dataframe.
+
+    This function takes in a dataframe, the name of a datetime column in the dataframe, and a boolean indicating
+    whether the original columns should be replaced or not. It extracts the month, day, and weekday from the
+    datetime column and creates sin and cosine-based features for these columns, as well as radial basis functions
+    for these columns. It then drops the original month, day, and weekday columns and returns the modified dataframe.
+
+    Args:
+        df: A Pandas dataframe containing a datetime column.
+        datetime_col: The name of the datetime column in the dataframe.
+        inplace: A boolean indicating whether the original columns should be replaced or not.
+
+    Returns:
+        The modified dataframe with the added cyclical features.
+    """
+    # Convert the datetime column to datetime type
+    if df[datetime_col].dtype == "datetime64[ns]":
+        df[datetime_col] = pd.to_datetime(df[datetime_col])
+    else:
+        df[datetime_col] = pd.to_datetime(df[datetime_col], errors="coerce")
+
+    # Extract the month, day, and weekday from the datetime column
+    df["month"] = df[datetime_col].dt.month
+    df["day"] = df[datetime_col].dt.day
+    df["weekday"] = df[datetime_col].dt.weekday
+
+    try:
+        # Create sine and cosine-based basis functions for the month, day, and weekday using numpy
+        df["sin_month"] = np.sin(2 * np.pi * df["month"] / 12)
+        df["cos_month"] = np.cos(2 * np.pi * df["month"] / 12)
+        df["sin_day"] = np.sin(2 * np.pi * df["day"] / 31)
+        df["cos_day"] = np.cos(2 * np.pi * df["day"] / 31)
+        df["sin_weekday"] = np.sin(2 * np.pi * df["weekday"] / 7)
+        df["cos_weekday"] = np.cos(2 * np.pi * df["weekday"] / 7)
+        # Create radial basis functions for the month, day, and weekday
+        df["rbf_month"] = np.exp(-1 * (df["month"] / 6) ** 2)
+        df["rbf_day"] = np.exp(-1 * (df["day"] / 15.5) ** 2)
+        df["rbf_weekday"] = np.exp(-1 * (df["weekday"] / 3.5) ** 2)
+
+    except:
+        # Create sine and cosine-based basis functions for the month, day, and weekday using Pandas
+        df["sin_month"] = df["month"].apply(lambda x: np.sin(2 * np.pi * x / 12))
+        df["cos_month"] = df["month"].apply(lambda x: np.cos(2 * np.pi * x / 12))
+        df["sin_day"] = df["day"].apply(lambda x: np.sin(2 * np.pi * x / 31))
+        df["cos_day"] = df["day"].apply(lambda x: np.cos(2 * np.pi * x / 31))
+        df["sin_weekday"] = df["weekday"].apply(lambda x: np.sin(2 * np.pi * x / 7))
+        df["cos_weekday"] = df["weekday"].apply(lambda x: np.cos(2 * np.pi * x / 7))
+        # Create radial basis functions for the month, day, and weekday
+        df["rbf_month"] = df["month"].apply(
+            lambda x: np.exp(-1 * (df["month"] / 6) ** 2)
+        )
+        df["rbf_day"] = df["day"].apply(lambda x: np.exp(-1 * (df["day"] / 15.5) ** 2))
+        df["rbf_weekday"] = df["weekday"].apply(
+            lambda x: np.exp(-1 * (df["weekday"] / 3.5) ** 2)
+        )
+
+    # Drop the original month, day, and weekday columns
+    if inplace:
+        df.drop(["month", "day", "weekday"], axis=1, inplace=True, errors="ignore")
+    else:
+        df = df.drop(["month", "day", "weekday"], axis=1, errors="ignore")
+    return df
+
+
+
+def check_for_nans(df):
+    rows_to_drop = {}
+    for col in df.columns:
+        if df[col].isna().any():
+            print(f"Column {col} has NaNs or None values in the following row:")
+            row_with_nans = df[df[col].isna()]
+            print(row_with_nans.sample(1))
+            rows_to_drop[col] = list(row_with_nans.index)
+            print()
+        
+    return rows_to_drop
+
+
+def fill_nans(df, rows_to_drop, method='mean', drop_method='drop'):
+    for col, rows in rows_to_drop.items():
+        print(f"Column {col} has NaNs or None values in the following rows:")
+        print(df.loc[rows])
+        if drop_method == 'drop':
+            df.drop(rows, inplace=True)
+            print(f"The rows with NaNs or None values in column {col} have been dropped.")
+        elif drop_method == 'fill':
+            print(f"NaNs or None values in column {col} have been filled using the '{method}' method.")
+            if method == 'mean' and pd.api.types.is_numeric_dtype(df[col]):
+                df[col].fillna(df[col].mean(), inplace=True)
+            elif method == 'median' and pd.api.types.is_numeric_dtype(df[col]):
+                df[col].fillna(df[col].median(), inplace=True)
+            elif method == 'mode' and pd.api.types.is_string_dtype(df[col]):
+                df[col].fillna(df[col].mode().iloc[0], inplace=True)
+            elif method == 'zero':
+                df[col].fillna(0, inplace=True)
+            else:
+                df[col].fillna(np.nan, inplace=True)
+        else:
+            print(f"Invalid drop method: {drop_method}. The rows with NaNs or None values in column {col} have not been dropped.")
+    return df
+
+
+
+

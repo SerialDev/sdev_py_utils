@@ -1,3 +1,4 @@
+
 from google.cloud import storage
 from google.cloud import bigquery
 import pprint
@@ -1374,12 +1375,36 @@ def generate_signed_url(
     return signed_url
 
 
-def upload_bytesio_blob(bucket_name, blob_name, content, encode=False):
+def upload_bytesio_blob(bucket_name, blob_name, content,project='cloudflare-ds-data', encode=False):
+    """
+    Uploads a BytesIO object to Google Cloud Storage as a blob.
+    
+    This function takes in a bucket name, a blob name, a BytesIO object, and a boolean indicating whether the
+    BytesIO object should be encoded. If the encode option is set to True, it encodes the BytesIO object before
+    uploading it to the specified bucket. It then prints a message indicating that the file has been uploaded.
+    
+    Args:
+        bucket_name: The name of the bucket to upload the blob to.
+        blob_name: The name of the blob to upload.
+        content: The BytesIO object to be uploaded as a blob.
+        encode: A boolean indicating whether the BytesIO object should be encoded before uploading.
+        
+    Returns:
+        None
+    """
+    
+    # Import the io module and Google Cloud Storage client
     import io
-
+    from google.cloud.storage import Client
+    
+    # Create a BytesIO object
     buff = io.BytesIO()
-    storage_client = storage.Client()
+    
+    # Create a Google Cloud Storage client
+    storage_client = Client(project=project)
     bucket = storage_client.bucket(bucket_name)
+    
+    # Encode the BytesIO object if necessary
     if encode:
         buff.seek(0)
         buff.write(content.encode())
@@ -1388,22 +1413,49 @@ def upload_bytesio_blob(bucket_name, blob_name, content, encode=False):
         buff.seek(0)
         buff.write(content)
         buff.seek(0)
-
+    
+    # Upload the BytesIO object to the specified bucket as a blob
     blob = bucket.blob(blob_name)
     blob.upload_from_file(buff)
-    print("File {} uploaded to {}.".format(blob_name, bucket_name))
+    
+    # Print a message indicating that the file has been uploaded
+    print(f"File {blob_name} uploaded to {bucket_name}.")
 
 
-def download_bytesio_blob(bucket_name, blob_name):
+def download_bytesio_blob(bucket_name, blob_name, project):
+    """
+    Downloads a blob from Google Cloud Storage as a BytesIO object.
+
+    This function takes in a bucket name, a blob name, and a project name and downloads the blob from the specified
+    bucket using the provided project. It returns the downloaded blob as a BytesIO object.
+
+    Args:
+        bucket_name: The name of the bucket to download the blob from.
+        blob_name: The name of the blob to download.
+        project: The name of the Google Cloud project to use.
+
+    Returns:
+        The downloaded blob as a BytesIO object.
+    """
+
+    # Import the io module and Google Cloud Storage client
     import io
 
-    client = storage.Client()
+    from google.cloud.storage import Client
+
+    # Create a Google Cloud Storage client
+    client = Client(project=project)
+
+    # Get the bucket and blob
     bucket = client.get_bucket(bucket_name)
-    blob = bucket.get_blob(blob_name)
+    blob = bucket.blob(blob_name)
+
+    # Create a BytesIO object and download the blob to it
     buffer = io.BytesIO()
     blob.download_to_file(buffer)
+
+    # Seek to the beginning of the BytesIO object and return it
     buffer.seek(0)
-    print("File {} downloaded from {}.".format(blob_name, bucket_name))
     return buffer
 
 
@@ -1634,3 +1686,348 @@ def bq_plan_inspect(bquery_job):
             temp_plan["steps"].append(temp_step)
         result.append(temp_plan)
     return result
+
+
+
+
+def upload_local_directory_to_gcs(local_path, bucket, gcs_path):
+    assert os.path.isdir(local_path)
+    import glob
+
+    for local_file in glob.glob(local_path + "/**"):
+        if not os.path.isfile(local_file):
+            upload_local_directory_to_gcs(
+                local_file, bucket, gcs_path + "/" + os.path.basename(local_file)
+            )
+        else:
+            remote_path = os.path.join(gcs_path, local_file[1 + len(local_path) :])
+            blob = bucket.blob(remote_path)
+            blob.upload_from_filename(local_file)
+
+
+def upload_from_directory(bucket, directory_path, dest_bucket_name, dest_blob_name):
+    rel_paths = glob.glob(directory_path + "/**", recursive=True)
+
+    for local_file in rel_paths:
+        remote_path = f'{dest_blob_name}/{"/".join(local_file.split(os.sep)[1:])}'
+        if os.path.isfile(local_file):
+            blob = bucket.blob(remote_path)
+            blob.upload_from_filename(local_file)
+
+
+def upload_parquet_to_gcs(
+    dataframe, storage_client, bucket_name, file_name, object_name, partition_cols=None
+):
+    """
+    Write a pandas DataFrame to a parquet file and upload it to Google Cloud Storage.
+
+    Parameters:
+    - dataframe (pandas DataFrame): the data to be written to the parquet file
+    - storage_client (google.cloud.storage.Client): a client for interacting with the GCS API
+    - bucket_name (str): the name of the GCS bucket where the file will be uploaded
+    - file_name (str): the name to give to the file in GCS
+    """
+    if partition_cols:
+        # Write the DataFrame to a parquet file
+        dataframe.to_parquet(file_name, partition_cols=partition_cols)
+    else:
+        import pyarrow
+
+        dataframe.to_parquet(file_name, index=False)
+
+    # Get a reference to the bucket where you want to upload the file
+    bucket = storage_client.get_bucket(bucket_name)
+
+    # Create a new GCS blob with the parquet file as its content
+    blob = bucket.blob(object_name)
+
+    try:
+        blob.upload_from_filename(file_name)
+        os.remove(file_name)
+
+    except Exception as e:
+        upload_from_directory(bucket, file_name, bucket_name, object_name)
+
+    # Delete the local copy of the file
+    return blob
+
+
+def save_model_to_gcs(model, bucket_name, file_name):
+    """Saves a model to Google Cloud Storage.
+
+    Parameters:
+    model (object): The model to save.
+    bucket_name (str): The name of the bucket to save the model to.
+    file_name (str): The file name to use for the saved model.
+
+    Returns:
+    None
+    """
+    # Create a Storage client
+    client = storage.Client()
+
+    # Get the bucket (creating it if it doesn't exist)
+    try:
+        bucket = client.create_bucket(bucket_name)
+    except Exception:
+        bucket = client.get_bucket(bucket_name)
+
+    caret.save_model(model, file_name)
+
+    # Save the model to the bucket
+    with open(file_name + ".pkl", "rb") as model_file:
+        bucket.blob(file_name).upload_from_file(model_file)
+
+
+
+
+
+def load_model_from_gcs(project, bucket_name, file_name):
+    """Loads a model from Google Cloud Storage.
+
+    Parameters:
+    bucket_name (str): The name of the bucket where the model is stored.
+    file_name (str): The file name of the saved model.
+
+    Returns:
+    object: The loaded model.
+    """
+    from pycaret import classification as caret
+
+    # Create a Storage client
+    client = storage.Client(project=project)
+
+    # Get the bucket
+    bucket = client.get_bucket(bucket_name)
+    # Get the blob (the saved model)
+    blob = bucket.get_blob(file_name)
+
+    # Download the model from the bucket to a local file
+    blob.download_to_filename(file_name + ".pkl")
+
+    # Load the model from the file
+    model = caret.load_model(file_name)
+
+    return model
+
+
+
+
+def encode_save_return_df(df, col, client, use_existing=False, account_name=''):
+    """
+    Encodes a column in a dataframe and saves the encoder to Google Cloud Storage.
+
+    This function takes in a dataframe, a column name, and a boolean indicating whether to use an existing encoder
+    or to create a new one. If a new encoder is to be created, it fits the encoder to the column in the dataframe
+    and then saves the encoder to Google Cloud Storage. It then transforms the column using the encoder, creates a
+    new dataframe with the encoded column, and returns the new dataframe.
+
+    Args:
+        df: A Pandas dataframe containing the column to be encoded.
+        col: The name of the column to be encoded.
+        use_existing: A boolean indicating whether to use an existing encoder or to create a new one.
+
+    Returns:
+        A dataframe containing the encoded column.
+    """
+    if use_existing:
+        # Load OneHotEncoder object from GCS
+        enc = load_encoder(client, account_name, f"encoder_{col}")
+        encoded_bin = enc.transform(df[[col]])
+
+    else:
+        # Create OneHotEncoder object with 'ignore' option for handling unknown values
+        enc = OneHotEncoder(handle_unknown="ignore", sparse=False)
+
+        # Fit and transform zi_rev_bin using OneHotEncoder
+        encoded_bin = enc.fit_transform(df[[col]])
+
+        # Save OneHotEncoder object to GCS
+        save_encoder(enc, client, account_name, f"encoder_{col}")
+
+    # Create dataframe with encoded zi_rev_bin
+    try:
+        df_res_encoded = pd.DataFrame(encoded_bin, columns=enc.get_feature_names())
+    except Exception as e:
+        df_res_encoded = pd.DataFrame(encoded_bin, columns=enc.get_feature_names_out())
+
+    return df_res_encoded
+
+
+
+
+def upload_blob_from_bytesio(bucket_name, blob_name, buff, project):
+    """
+    Uploads a BytesIO object to Google Cloud Storage as a blob using a specified project.
+
+    This function takes in a bucket name, a blob name, a BytesIO object, and a project name and uploads the
+    BytesIO object to the specified bucket using the provided project. It then prints a message indicating that
+    the file has been uploaded.
+
+    Args:
+        bucket_name: The name of the bucket to upload the blob to.
+        blob_name: The name of the blob to upload.
+        buff: The BytesIO object to be uploaded as a blob.
+        project: The name of the Google Cloud project to use.
+
+    Returns:
+        None
+    """
+
+    # Import the io module and Google Cloud Storage client
+    import io
+
+    from google.cloud.storage import Client
+
+    # Create a Google Cloud Storage client
+    storage_client = Client(project=project)
+    bucket = storage_client.bucket(bucket_name)
+
+    # Upload the BytesIO object to the specified bucket as a blob
+    blob = bucket.blob(blob_name)
+    blob.upload_from_file(buff)
+
+    # Print a message indicating that the file has been uploaded
+    print(f"File {blob_name} uploaded to {bucket_name}.")
+
+
+
+
+# Define save_encoder function
+def save_encoder(enc, client, bucket_name, blob_name, account_name):
+    """
+    Saves a OneHotEncoder object to Google Cloud Storage.
+
+    This function takes in a OneHotEncoder object, a Google Cloud Storage client, a bucket name, and a blob name
+    and saves the encoder object to the specified bucket using the provided blob name.
+
+    Args:
+        enc: A OneHotEncoder object to be saved.
+        client: A Google Cloud Storage client used to access the bucket.
+        bucket_name: The name of the bucket to save the encoder object to.
+        blob_name: The name of the blob to save the encoder object to.
+
+    Returns:
+        None
+    """
+    # Import OneHotEncoder, google.cloud.storage.Client, and io modules
+    from io import BytesIO  # Save OneHotEncoder object to GCS
+
+    from google.cloud.storage import Client
+    from joblib import dump
+    from sklearn.preprocessing import OneHotEncoder
+
+    enc_bytes = BytesIO()
+    dump(enc, enc_bytes)
+    enc_bytes.seek(0)
+    upload_blob_from_bytesio(bucket_name, blob_name, enc_bytes, account_name)
+
+
+
+
+# Define load_encoder function
+def load_encoder(client, bucket_name, blob_name, account_name):
+    """
+    Loads a OneHotEncoder object from Google Cloud Storage.
+
+    This function takes in a Google Cloud Storage client, a bucket name, and a blob name and loads the OneHotEncoder
+    object from the specified bucket and blob.
+
+    Args:
+        client: A Google Cloud Storage client used to access the bucket.
+        bucket_name: The name of the bucket to load the encoder object from.
+        blob_name: The name of the blob to load the encoder object from.
+
+    Returns:
+        The loaded OneHotEncoder object.
+    """
+    from io import BytesIO  # Save OneHotEncoder object to GCS
+
+    from joblib import load
+
+    # Load OneHotEncoder object from GCS
+    enc_bytes = download_bytesio_blob(bucket_name, blob_name, account_name)
+    enc_bytes.seek(0)
+    return load(enc_bytes)
+
+
+def get_blob_names(bucket, string):
+    """Returns a list of the names of the blobs in the provided bucket where the name contains the provided string.
+
+    Args:
+      bucket (google.cloud.storage.bucket.Bucket): The bucket to search.
+      string (str): The string to search for in the blob names.
+
+    Returns:
+      List[str]: The names of the blobs that contain the string.
+    """
+    # Use a list comprehension to get the names of the blobs that contain the string
+    blob_names = [blob.name for blob in bucket.list_blobs() if string in blob.name]
+
+    return blob_names
+
+
+
+
+def query_and_cache(client, query, gcp=False, force=False, bucket_name = '', account_name=''):
+    """
+    Query a client and cache the results of the query in a local or remote location.
+
+    Args:
+        client (object): The client to be queried.
+        query (str): The query to be executed.
+        gcp (bool, optional): Whether to use Google Cloud Platform for caching. Defaults to False.
+        force (bool, optional): Whether to force the function to re-query the client and update the cache. Defaults to False.
+
+    Returns:
+        pd.DataFrame: The resulting DataFrame object.
+    """
+
+    import binascii
+    import io
+
+    # Create a query_hash by hashing the query and encoding it as hexadecimal
+    query_hash = binascii.hexlify(str(hash(query)).encode()).decode()
+
+    # Check if gcp is False
+    if gcp == False:
+        # Check if force is True
+        if force:
+            # Query the client and save the results to a file with the same name as the query_hash
+            df = client.query(query).to_dataframe()
+            df.to_parquet(f"{str(query_hash)}.plk")
+            return df
+
+        # If force is not True, try to read the DataFrame from a file with the same name as the query_hash
+        try:
+            df = pd.read_parquet(f"{str(query_hash)}.plk")
+        # If the file does not exist, query the client and save the results to a file with the same name as the query_hash
+        except Exception:
+            df = client.query(query).to_dataframe()
+            df.to_parquet(f"{str(query_hash)}.plk")
+
+        # Return the DataFrame
+        return df
+
+    # If gcp is True, follow a similar process but use the download_bytesio_blob and upload_blob_from_bytesio functions to read from and write to a remote location
+    if gcp == True:
+        if force:
+            df = client.query(query).to_dataframe()
+            buff = io.BytesIO()
+            df.to_parquet(buff)
+            buff.seek(0)
+            upload_blob_from_bytesio(
+                bucket_name, query_hash, buff, account_name
+            )
+            return df
+        try:
+            buff = download_bytesio_blob(
+                bucket_name, query_hash, account_name
+            )
+            df = pd.read_parquet(buff)
+        except Exception:
+            df = client.query(query).to_dataframe()
+            buff = io.BytesIO()
+            df.to_parquet(buff)
+            buff.seek(0)
+            upload_blob_from_bytes
