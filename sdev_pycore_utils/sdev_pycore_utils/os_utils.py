@@ -35,7 +35,15 @@ import dill as pickle  # Required to pickle lambda functions
 
 def checkIfProcessRunning(processName):
     """
-    Check if there is any running process that contains the given name processName.
+    * ---------------{Function}---------------
+    * Check if there is any running process that contains the given name processName
+    * ----------------{Returns}---------------
+    * -> result    ::Bool       |True if the process is running, False otherwise
+    * ----------------{Params}----------------
+    * : processName ::str        |The name of the process to check for
+    * ----------------{Usage}-----------------
+    * >>> checkIfProcessRunning('python')
+    * True
     """
     import psutil
 
@@ -51,6 +59,17 @@ def checkIfProcessRunning(processName):
 
 
 def pickle_to_buffer(data):
+    """
+    * ---------------{Function}---------------
+    * Serializes the given data into a BytesIO buffer using pickle.
+    * ----------------{Returns}---------------
+    * -> buffer    ::BytesIO   |A BytesIO buffer containing the serialized data
+    * ----------------{Params}----------------
+    * : data       ::Any       |The data to be serialized
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+    * >>> buffer = pickle_to_buffer(data)
+    """
     import io
 
     buffer = io.BytesIO()
@@ -60,28 +79,87 @@ def pickle_to_buffer(data):
 
 
 def b64encode_buffer(buffer):
+    """
+    * ---------------{Function}---------------
+    * Encodes the given BytesIO buffer into base64 format.
+    * ----------------{Returns}---------------
+    * -> encoded   ::str       |The base64 encoded string of the buffer
+    * ----------------{Params}----------------
+    * : buffer     ::BytesIO   |The BytesIO buffer to be encoded
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+    * >>> buffer = pickle_to_buffer(data)
+    * >>> encoded = b64encode_buffer(buffer)
+    """
     import base64
 
     return base64.b64encode(buffer.read())
 
 
 def b64decode_data(data):
+    """
+    * ---------------{Function}---------------
+    * Decodes Base64-encoded data into its original form
+    * ----------------{Returns}---------------
+    * -> decoded_data ::bytes     |The decoded data in bytes
+    * ----------------{Params}----------------
+    * : data         ::str       |The Base64-encoded data to be decoded
+    * ----------------{Usage}-----------------
+    * >>> b64decode_data('SGVsbG8gV29ybGQ=')   # 'Hello World' in Base64
+    * b'Hello World'
+    """
     import base64
 
     return base64.b64decode(data)
 
 
 def b64encode_data(data):
+    """
+    * ---------------{Function}---------------
+    * Encodes data in Base64 format
+    * ----------------{Returns}---------------
+    * -> encoded_data ::bytes    |The Base64-encoded data in bytes
+    * ----------------{Params}----------------
+    * : data         ::bytes    |The data to be encoded
+    * ----------------{Usage}-----------------
+    * >>> b64encode_data(b'Hello World')
+    * b'SGVsbG8gV29ybGQ='
+    """
     import base64
 
     return base64.b64encode(data)
 
 
 def load_pickle_from_b64(data):
+    """
+    * ---------------{Function}---------------
+    * Loads a pickle object from base64 encoded data
+    * ----------------{Returns}---------------
+    * -> pickle_object  ::Any        |The deserialized pickle object
+    * ----------------{Params}----------------
+    * : data            ::bytes      |The base64 encoded data to be loaded as a pickle object
+    * ----------------{Usage}-----------------
+    * >>> data = b'gANjYXJyYXlfZGF0YQpTJ3Rlc3QnCnEAKYFxAX1xAihYBgAAAHJvb21zX3Rlc3QKcRQAAABUb2tlbi4=\n'
+    * >>> load_pickle_from_b64(data)
+    * {'array_data': 'test\n', 'random_test': 'Token.'}
+    """
     return pickle.loads(b64decode_data(data))
 
 
 def cast_bytesio_encoding(data):
+    """
+    * ---------------{Function}---------------
+    * Converts a bytesIO object to a base64 encoded bytes object
+    * ----------------{Returns}---------------
+    * -> b64_encoded  ::bytes      |The base64 encoded bytes object
+    * ----------------{Params}----------------
+    * : data         ::BytesIO    |The BytesIO object to be converted to base64 encoding
+    * ----------------{Usage}-----------------
+    * >>> from io import BytesIO
+    * >>> data = BytesIO(b'This is a test string')
+    * >>> cast_bytesio_encoding(data)
+    * b'VGhpcyBpcyBhIHRlc3Qgc3RyaW5n'
+    """
     from base64 import b64encode
 
     data.seek(0)
@@ -89,6 +167,19 @@ def cast_bytesio_encoding(data):
 
 
 def cast_encoding_bytesio(data):
+    """
+    * ---------------{Function}---------------
+    * Converts a base64 encoded bytes object to a bytesIO object
+    * ----------------{Returns}---------------
+    * -> BytesIO  ::io.BytesIO |The BytesIO object created from the given base64 encoded bytes object
+    * ----------------{Params}----------------
+    * : data     ::bytes        |The base64 encoded bytes object to be converted to a BytesIO object
+    * ----------------{Usage}-----------------
+    * >>> from io import BytesIO
+    * >>> data = b'VGhpcyBpcyBhIHRlc3Qgc3RyaW5n'
+    * >>> cast_encoding_bytesio(data)
+    * <_io.BytesIO object at 0x0000021D230A9AD0>
+    """
     from base64 import b64decode
     from io import BytesIO
 
@@ -99,7 +190,19 @@ def cast_encoding_bytesio(data):
 
 
 def path_split_into_list(path):
-    # Gets all parts of the path as a list, excluding path separators
+    """
+    * ---------------{Function}---------------
+    * Returns all parts of the path as a list, excluding path separators
+    * ----------------{Returns}---------------
+    * -> parts     ::List[str] |List of path components in the given path, excluding path separators
+    * ----------------{Params}----------------
+    * : path       ::str        |The path to split into parts
+    * ----------------{Usage}-----------------
+    * >>> path_split_into_list('/home/user/data/sample.txt')
+    * ['home', 'user', 'data', 'sample.txt']
+    * >>> path_split_into_list('C:\\Users\\user\\data\\sample.txt')
+    * ['C:', 'Users', 'user', 'data', 'sample.txt']
+    """
     parts = []
     while True:
         newpath, tail = os.path.split(path)
@@ -174,13 +277,35 @@ def move_walked_files(
 
 
 def extract_basename(path):
-    """Extracts basename of a given path. Should Work with any OS Path on any OS"""
+    """
+    * ---------------{Function}---------------
+    * Extracts the basename of a given path. Should work with any OS path on any OS.
+    * ----------------{Returns}---------------
+    * -> basename  ::str        |The basename extracted from the given path
+    * ----------------{Params}----------------
+    * : path       ::str        |The path from which the basename should be extracted
+    * ----------------{Usage}-----------------
+    * >>> extract_basename("/home/user/data/sample.txt")
+    * 'sample.txt'
+    * >>> extract_basename("C:\\Users\\user\\data\\sample.txt")
+    * 'sample.txt'
+    """
     basename = re.search(r"[^\\/]+(?=[\\/]?$)", path)
     if basename:
         return basename.group(0)
 
 
 def os_path_separators():
+    """
+    * ---------------{Function}---------------
+    * Get the path separators used by the operating system
+    * ----------------{Returns}---------------
+    * -> seps      ::list       |A list of path separators used by the operating system
+    * ----------------{Usage}-----------------
+    * >>> os_path_separators()
+    * ['/']  # Linux and macOS
+    * ['\\', '/']  # Windows
+    """
     seps = []
     for sep in os.path.sep, os.path.altsep:
         if sep:
@@ -503,8 +628,17 @@ def find_filenames(path_to_dir, suffix=".csv"):
 
 
 def safestat(filename):
-    """lstat sometimes get Interrupted system calls; wrap it up so we can
-    retry"""
+    """
+    * ---------------{Function}---------------
+    * Safely get the status of a file, handling interrupted system calls
+    * ----------------{Returns}---------------
+    * -> statdata   ::os.stat_result |File status information
+    * ----------------{Params}----------------
+    * : filename    ::str        |The input file name
+    * ----------------{Usage}-----------------
+    * >>> safestat("test.txt")
+    * os.stat_result(st_mode=33188, st_ino=20525453, st_dev=16777220, st_nlink=1, st_uid=501, st_gid=20, st_size=17, st_atime=1646344213, st_mtime=1646344213, st_ctime=1646344213)
+    """
     while True:
         try:
             statdata = os.lstat(filename)
@@ -516,9 +650,16 @@ def safestat(filename):
 
 def execute(cmd, working_directory=os.getcwd()):
     """
-    Purpose  : To execute a command and return exit status
-    Argument : cmd - command to execute
-    Return   : exit_code
+    * ---------------{Function}---------------
+    * Execute a command and return its exit status and output
+    * ----------------{Returns}---------------
+    * -> result    ::bytes      |The output of the command execution
+    * ----------------{Params}----------------
+    * : cmd        ::str        |The command to execute
+    * : working_directory ::str |The working directory for the command (default is the current working directory)
+    * ----------------{Usage}-----------------
+    * >>> execute("echo 'Hello, World!'")
+    * b'Hello, World!\n'
     """
     process = subprocess.Popen(
         cmd,
@@ -538,7 +679,17 @@ def execute(cmd, working_directory=os.getcwd()):
 
 
 def subdirs(path):
-    """Yield directory names not starting with '.' under given path."""
+    """
+    * ---------------{Function}---------------
+    * Yield directory names not starting with '.' under given path
+    * ----------------{Returns}---------------
+    * -> generator  ::generator  |A generator object yielding directory names
+    * ----------------{Params}----------------
+    * : path        ::str        |The input path for scanning subdirectories
+    * ----------------{Usage}-----------------
+    * >>> list(subdirs("/example_directory"))
+    * ['/example_directory/subdir1', '/example_directory/subdir2']
+    """
     for entry in os.scandir(path):
         if not entry.name.startswith(".") and entry.is_dir():
             yield os.path.join(path, entry.name)
@@ -574,11 +725,34 @@ def walklevel(some_dir, level=1):
 
 
 def path_leaf(path):
+    """
+    * ---------------{Function}---------------
+    * Extract the file or directory name from a given path
+    * ----------------{Returns}---------------
+    * -> tail       ::str        |File or directory name extracted from the path
+    * ----------------{Params}----------------
+    * : path        ::str        |The input path string
+    * ----------------{Usage}-----------------
+    * >>> path_leaf("C:/Users/user/documents/test.txt")
+    * 'test.txt'
+    """
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
 
 
 def os_path_split_asunder(path, debug=False):
+    """
+    * ---------------{Function}---------------
+    * Split a given path into its components
+    * ----------------{Returns}---------------
+    * -> parts      ::List[str]  |List of components that make up the path
+    * ----------------{Params}----------------
+    * : path        ::str        |The input path string
+    * : debug       ::bool       |Prints debugging information if set to True (default is False)
+    * ----------------{Usage}-----------------
+    * >>> os_path_split_asunder("C:/Users/user/documents/test.txt")
+    * ['C:', 'Users', 'user', 'documents', 'test.txt']
+    """
     parts = []
     while True:
         newpath, tail = os.path.split(path)
@@ -596,6 +770,19 @@ def os_path_split_asunder(path, debug=False):
 
 
 def spacedman_parts(path):
+    """
+    * ---------------{Function}---------------
+    * Splits the given path into its components, in a way that is compatible with the spacedman convention
+    * ----------------{Returns}---------------
+    * -> components ::list |The components of the path, in spacedman convention
+    * ----------------{Params}----------------
+    * : path ::str |The path to split
+    * ----------------{Usage}-----------------
+    * >>> spacedman_parts('/path/to/file')
+    * ['/', 'path', 'to', 'file']
+    * >>> spacedman_parts('C:\path\to\file')
+    * ['C:', 'path', 'to', 'file']
+    """
     components = []
     while True:
         (path, tail) = os.path.split(path)
@@ -800,6 +987,25 @@ except Exception:
 
 
 def dates_to_list(days=1, weeks=0, formating="%Y-%m-%d"):
+    """
+    * ---------------{Function}---------------
+    * Generate a list of dates in reverse chronological order from today.
+    * ----------------{Returns}---------------
+    * -> dates     ::List[str]  |List of formatted date strings
+    * ----------------{Params}----------------
+    * : days       ::int        |Number of days to include in the list (default is 1)
+    * : weeks      ::int        |Number of weeks to include in the list (default is 0)
+    * : formating  ::str        |Date format string to use for output (default is "%Y-%m-%d")
+    * ----------------{Usage}-----------------
+    * >>> dates_to_list()
+    * ['2023-04-26']
+    * >>> dates_to_list(days=3)
+    * ['2023-04-26', '2023-04-25', '2023-04-24', '2023-04-23']
+    * >>> dates_to_list(weeks=1)
+    * ['2023-04-26', '2023-04-25', '2023-04-24', '2023-04-23', '2023-04-22', '2023-04-21', '2023-04-20', '2023-04-19']
+    * >>> dates_to_list(days=2, weeks=1, formating="%m/%d/%Y")
+    * ['04/26/2023', '04/25/2023', '04/24/2023', '04/23/2023', '04/22/2023', '04/21/2023', '04/20/2023', '04/19/2023', '04/18/2023']
+    """
     days += weeks * 7
     dates = []
     dates.append(date.today().strftime(formating))
@@ -957,6 +1163,21 @@ class open_atomic(object):
 
 
 def load_or_create(data, path, force=False):
+    """
+    * ---------------{Function}---------------
+    * Load data from a file or create and save the data to a file if it doesn't exist.
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |Data loaded from the file or the input data after being saved
+    * ----------------{Params}----------------
+    * : data       ::Any        |Data to be saved; use None to load data from the file
+    * : path       ::str        |Path of the file to load or save
+    * : force      ::bool       |Force data to be saved even if the file exists (default is False)
+    * ----------------{Usage}-----------------
+    * >>> data = {"example": "data"}
+    * >>> load_or_create(data, "example_data.pkl")
+    * >>> loaded_data = load_or_create(None, "example_data.pkl")
+    * >>> load_or_create(data, "example_data.pkl", force=True)
+    """
     if force == True:
         with open(path, "wb") as f:
             pickle.dump(data, f)
@@ -972,6 +1193,22 @@ def load_or_create(data, path, force=False):
 
 
 def load_or_create_locked(data, path, force=False, timeout=1):
+    """
+    * ---------------{Function}---------------
+    * Load data from a file or create and save the data to a file if it doesn't exist, using a file lock.
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |Data loaded from the file or the input data after being saved
+    * ----------------{Params}----------------
+    * : data       ::Any        |Data to be saved; use None to load data from the file
+    * : path       ::str        |Path of the file to load or save
+    * : force      ::bool       |Force data to be saved even if the file exists (default is False)
+    * : timeout    ::int        |Timeout for acquiring the file lock (default is 1 second)
+    * ----------------{Usage}-----------------
+    * >>> data = {"example": "data"}
+    * >>> load_or_create_locked(data, "example_data.pkl")
+    * >>> loaded_data = load_or_create_locked(None, "example_data.pkl")
+    * >>> load_or_create_locked(data, "example_data.pkl", force=True)
+    """
     from filelock import Timeout, FileLock
 
     lock = FileLock(path + ".lock")
@@ -991,14 +1228,48 @@ def load_or_create_locked(data, path, force=False, timeout=1):
 
 
 def file_exists(path):
+    """
+    * ---------------{Function}---------------
+    * Check if a file exists at the given path.
+    * ----------------{Returns}---------------
+    * -> bool      ::Bool       |True if the file exists, False otherwise
+    * ----------------{Params}----------------
+    * : path       ::str        |Path of the file to check
+    * ----------------{Usage}-----------------
+    * >>> exists = file_exists("example.txt")
+    * >>> print(exists)
+    * True
+    """    
     return os.path.isfile(path)
 
 
 def file_is_readable(path):
+    """
+    * ---------------{Function}---------------
+    * Check if a file is readable at the given path.
+    * ----------------{Returns}---------------
+    * -> bool      ::Bool       |True if the file is readable, False otherwise
+    * ----------------{Params}----------------
+    * : path       ::str        |Path of the file to check
+    * ----------------{Usage}-----------------
+    * >>> readable = file_is_readable("example.txt")
+    * >>> print(readable)
+    * True
+    """
     return os.access(path, os.R_OK)
 
 
 def try_makedir(name):
+    """
+    * ---------------{Function}---------------
+    * Create a directory with the given name if it does not already exist.
+    * ----------------{Returns}---------------
+    * None
+    * ----------------{Params}----------------
+    * : name       ::str        |Name of the directory to create
+    * ----------------{Usage}-----------------
+    * >>> try_makedir("example_directory")
+    """
     try:
         os.mkdir(os.path.join(os.getcwd(), name))
     except FileExistsError:
@@ -1031,6 +1302,16 @@ def local_caching(data, name, force=False):
 
 
 def convert_size(size_bytes):
+    """
+    * ---------------{Function}---------------
+    * Convert a given size in bytes to a human-readable size string with unit
+    * ----------------{Returns}---------------
+    * -> size_str  ::str        |Size in a human-readable format (e.g., '2.53 KB')
+    * ----------------{Params}----------------
+    * : size_bytes ::int        |Size in bytes to be converted
+    * ----------------{Usage}-----------------
+    * size_str = convert_size(2590) # '2.53 KB'
+    """
     if size_bytes == 0:
         return "0B"
     size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
@@ -1041,6 +1322,17 @@ def convert_size(size_bytes):
 
 
 def dump_or_load(directory, name, data=None):
+    """
+    * ---------------{Function}---------------
+    * Load a pickled object from the specified directory and name if data is None,
+    * otherwise save the given data as a pickled object
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |Loaded pickled object or None if an error occurs
+    * ----------------{Params}----------------
+    * : directory ::str         |Directory where the pickle file is located or will be saved
+    * : name      ::str         |Name of the pickle file without the extension
+    * : data      ::Any (Optional) |Object to be pickled, or None to load an existing pickle file
+    """
     name = name + ".plk"
     filepath = os.path.join(os.getcwd(), directory, name)
 
@@ -1053,6 +1345,15 @@ def dump_or_load(directory, name, data=None):
 
 
 def load_pickle(directory, name):
+    """
+    * ---------------{Function}---------------
+    * Load a pickled object from the specified directory and name
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |Loaded pickled object or 'Failure' if an error occurs
+    * ----------------{Params}----------------
+    * : directory ::str         |Directory where the pickle file is located
+    * : name      ::str         |Name of the pickle file without the extension
+    """
     name = name + ".plk"
     filepath = os.path.join(os.getcwd(), directory, name)
     try:
@@ -1065,6 +1366,16 @@ def load_pickle(directory, name):
 
 
 def save_pickle(directory, name, data=None):
+    """
+    * ---------------{Function}---------------
+    * Save a pickled object to the specified directory and name
+    * ----------------{Returns}---------------
+    * -> result    ::str        |'Success' if the object is saved, 'Failure' if an error occurs
+    * ----------------{Params}----------------
+    * : directory ::str         |Directory where the pickle file will be saved
+    * : name      ::str         |Name of the pickle file without the extension
+    * : data      ::Any         |Object to be pickled
+    """
     name = name + ".plk"
     filepath = os.path.join(os.getcwd(), directory, name)
     try:
@@ -1078,6 +1389,16 @@ def save_pickle(directory, name, data=None):
 
 
 def dump_or_load_pickle(directory, name, data=None):
+    """
+    * ---------------{Function}---------------
+    * Load or save a pickled object depending on the data parameter
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |Loaded pickled object, 'Success' if saved, or 'Failure' if an error occurs
+    * ----------------{Params}----------------
+    * : directory ::str         |Directory where the pickle file is located or will be saved
+    * : name      ::str         |Name of the pickle file without the extension
+    * : data      ::Any (Optional) |Object to be pickled, or None to load an existing pickle file
+    """
     if data == None:
         result = load_pickle(directory, name)
     else:
