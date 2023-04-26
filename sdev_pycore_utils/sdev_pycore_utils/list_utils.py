@@ -130,6 +130,18 @@ def chunks_padded(iterable, n, padvalue=None):
 
 
 def uniquify_list_transform(seq, idfun=None):  # Alex Martelli ******* order preserving
+    """
+    * ---------------{Function}---------------
+    * Remove duplicates from a list while preserving the order and allowing for a custom transform function
+    * ----------------{Returns}---------------
+    * -> result    ::List       |A new list with duplicates removed
+    * ----------------{Params}----------------
+    * : seq        ::List       |The input list to remove duplicates from
+    * : idfun      ::Callable   |A transform function for comparison (default is None)
+    * ----------------{Usage}-----------------
+    * >>> uniquify_list_transform([1, 2, 2, 3, 4, 4, 5], lambda x: x * 2)
+    * [1, 2, 3, 4, 5]
+    """
     if idfun is None:
 
         def idfun(x):
@@ -150,21 +162,65 @@ def uniquify_list_transform(seq, idfun=None):  # Alex Martelli ******* order pre
 
 
 def uniquify_list(seq):  # Dave Kirby
-    # Order preserving
+    """
+    * ---------------{Function}---------------
+    * Remove duplicates from a list while preserving the order
+    * ----------------{Returns}---------------
+    * -> result    ::List       |A new list with duplicates removed
+    * ----------------{Params}----------------
+    * : seq        ::List       |The input list to remove duplicates from
+    * ----------------{Usage}-----------------
+    * >>> uniquify_list([1, 2, 2, 3, 4, 4, 5])
+    * [1, 2, 3, 4, 5]
+    """
     seen = set()
     return [x for x in seq if x not in seen and not seen.add(x)]
 
 
 def not_in_list(lst, val):
+    """
+    * ---------------{Function}---------------
+    * Remove elements containing a specific value from a list
+    * ----------------{Returns}---------------
+    * -> result    ::List       |A new list with elements containing the value removed
+    * ----------------{Params}----------------
+    * : lst        ::List       |The input list to remove elements from
+    * : val        ::Any        |The value to search for and remove
+    * ----------------{Usage}-----------------
+    * >>> not_in_list(['abc', 'def', 'ghi'], 'b')
+    * ['def', 'ghi']
+    """
     return [x for x in lst if val not in x]
 
 
 def chunkwise_window(t):
+    """
+    * ---------------{Function}---------------
+    * Create a generator for sliding window pairs from a list
+    * ----------------{Returns}---------------
+    * -> result    ::Generator  |Generator yielding tuple pairs from the list
+    * ----------------{Params}----------------
+    * : t          ::List       |The input list for generating sliding window pairs
+    * ----------------{Usage}-----------------
+    * >>> list(chunkwise_window([1, 2, 3, 4]))
+    * [(1, 2), (2, 3), (3, 4)]
+    """
     for x, y in zip(t, t[1:]):
         yield (x, y)
 
 
 def fastest_argmax(array):
+    """
+    * ---------------{Function}---------------
+    * Find the index of the largest element in a list
+    * ----------------{Returns}---------------
+    * -> result    ::int        |Index of the largest element
+    * ----------------{Params}----------------
+    * : array      ::List       |The input list to search for the largest element
+    * ----------------{Usage}-----------------
+    * >>> fastest_argmax([1, 3, 5, 2, 4])
+    * 2
+    """
     array = list(array)
     return array.index(max(array))
 
@@ -306,6 +362,18 @@ def dup_detect(source_list):
 
 
 def list_argmax(current):
+    """
+    * ---------------{Function}---------------
+    * Find the index and length of the longest list in a list of lists
+    * ----------------{Returns}---------------
+    * -> max_index ::int        |Index of the longest list
+    * -> max_num   ::int        |Length of the longest list
+    * ----------------{Params}----------------
+    * : current    ::List[List] |The input list of lists
+    * ----------------{Usage}-----------------
+    * >>> list_argmax([[1, 2], [1, 2, 3], [1]])
+    * (1, 3)
+    """
     max_num = 0
     max_index = 0
     for index, row in enumerate(current):
@@ -373,11 +441,35 @@ def rolling_doubly_list(data):
 
 
 def chunks(l, n):
+    """
+    * ---------------{Function}---------------
+    * Yield successive n-sized chunks from a list
+    * ----------------{Returns}---------------
+    * -> result    ::Generator  |Generator yielding chunks of the list
+    * ----------------{Params}----------------
+    * : l          ::List       |The input list to be chunked
+    * : n          ::int        |The size of the chunks
+    * ----------------{Usage}-----------------
+    * >>> list(chunks([1, 2, 3, 4, 5], 2))
+    * [[1, 2], [3, 4], [5]]
+    """
     n = max(1, n)
     return (l[i : i + n] for i in range(0, len(l), n))
 
 
 def depth_flatten(array, depth=2):
+    """
+    * ---------------{Function}---------------
+    * Flatten a nested list up to a specified depth
+    * ----------------{Returns}---------------
+    * -> result    ::List       |The flattened list
+    * ----------------{Params}----------------
+    * : array      ::List       |The input nested list to be flattened
+    * : depth      ::int        |The depth to flatten up to (default: 2)
+    * ----------------{Usage}-----------------
+    * >>> depth_flatten([[1, [2, 3]], [4, [5, 6]]], 1)
+    * [1, 2, 3, 4, 5, 6]
+    """
     result = array
     for i in range(depth):
         result = functools.reduce(operator.iconcat, result, [])
