@@ -144,6 +144,21 @@ def get_position_key(dictionary, key):
 
 
 def _finditem(obj, key):
+    """
+    * ---------------{Function}---------------
+    * Recursively searches for a value corresponding to the specified key in a (possibly nested) dictionary
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |The value corresponding to the specified key, or None if the key is not found
+    * ----------------{Params}----------------
+    * : obj        ::Dict       |The (possibly nested) dictionary to search
+    * : key        ::Any        |The key to search for in the dictionary
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+    * >>> _finditem(data, 'c')
+    * 2
+    * >>> _finditem(data, 'x')
+    * None
+    """
     if key in obj:
         return obj[key]
     for k, v in obj.items():
@@ -154,9 +169,21 @@ def _finditem(obj, key):
 
 
 def search(d, key, default=None):
-    """Return a value corresponding to the specified key in the (possibly
-    nested) dictionary d. If there is no item with that key, return
-    default.
+   """
+    * ---------------{Function}---------------
+    * Searches for a value corresponding to the specified key in a (possibly nested) dictionary
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |The value corresponding to the specified key, or the default value if the key is not found
+    * ----------------{Params}----------------
+    * : d          ::Dict       |The (possibly nested) dictionary to search
+    * : key        ::Any        |The key to search for in the dictionary
+    * : default    ::Any        |The default value to return if the key is not found (default is None)
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+    * >>> search(data, 'c')
+    * 2
+    * >>> search(data, 'x', default='Not Found')
+    * 'Not Found'
     """
     stack = [iter(d.items())]
     while stack:
@@ -236,6 +263,25 @@ def transform_dict_ltuples(data):
 
 
 def type_executor(tuple_list, data_param):
+    """
+    * ---------------{Function}---------------
+    * Executes a function based on the input data type from a list of type-function pairs
+    * ----------------{Returns}---------------
+    * -> result    ::Dict       |A dictionary with a single key-value pair, where the key is the type of the data and the value is the result of executing the corresponding function
+    * ----------------{Params}----------------
+    * : tuple_list ::List[Tuple[Type, Callable]]|A list of tuples where each tuple contains a data type and a corresponding function to execute
+    * : data_param ::Any        |The input data to be processed by the appropriate function based on its type
+    * ----------------{Usage}-----------------
+    * >>> def double(x):
+    * ...     return x * 2
+    * >>> def to_upper(x):
+    * ...     return x.upper()
+    * >>> type_executors = [(int, double), (str, to_upper)]
+    * >>> type_executor(type_executors, 5)
+    * {'int': 10}
+    * >>> type_executor(type_executors, 'hello')
+    * {'str': 'HELLO'}
+    """
     import re
 
     result = {}
@@ -257,6 +303,18 @@ def type_executor(tuple_list, data_param):
 
 
 def print_return(x, key=""):
+    """
+    * ---------------{Function}---------------
+    * Returns a string formed by concatenating a given key and a value separated by an underscore
+    * ----------------{Returns}---------------
+    * -> result    ::str        |A string containing the key and value separated by an underscore
+    * ----------------{Params}----------------
+    * : x          ::Any        |The value to be concatenated with the key
+    * : key        ::str        |The key to be concatenated with the value (default is an empty string)
+    * ----------------{Usage}-----------------
+    * >>> print_return('value', 'key')
+    * 'key_value'
+    """
     if key == None:
         key = ""
     # print(x)
@@ -264,11 +322,34 @@ def print_return(x, key=""):
 
 
 def identity(x):
+    """
+    * ---------------{Function}---------------
+    * Identity function that returns its input unchanged
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |The input value
+    * ----------------{Params}----------------
+    * : x          ::Any        |The value to be returned
+    * ----------------{Usage}-----------------
+    * >>> identity(42)
+    * 42
+    """
     return x
 
 
 def flatten_dict(current_dict, key=None):
-
+    """
+    * ---------------{Function}---------------
+    * Flattens a nested dictionary into a single dictionary
+    * ----------------{Returns}---------------
+    * -> result    ::Dict       |A flattened dictionary containing the combined key-value pairs from the input nested dictionary
+    * ----------------{Params}----------------
+    * : current_dict ::Dict      |A nested dictionary to be flattened
+    * : key          ::Any       |An optional key used for handling specific cases (default is None)
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': 1, 'b': {'c': 2, 'd': {'e': 3}}}
+    * >>> flatten_dict(data)
+    * {'a': 1, 'c': 2, 'e': 3}
+    """
     flattened_dict = {}
     for key in current_dict.keys():
         type_executors = [
@@ -297,7 +378,19 @@ def flatten_dict(current_dict, key=None):
 
 
 def flatten_dict_list(current_list, key=None):
-
+    """
+    * ---------------{Function}---------------
+    * Flattens a list of dictionaries into a single dictionary
+    * ----------------{Returns}---------------
+    * -> result    ::Dict       |A flattened dictionary containing the combined key-value pairs from the input list of dictionaries
+    * ----------------{Params}----------------
+    * : current_list ::List[Dict]|A list of dictionaries to be flattened
+    * : key          ::Any       |An optional key used for handling specific cases (default is None)
+    * ----------------{Usage}-----------------
+    * >>> data = [{'a': 1, 'b': 2}, {'a': 3, 'c': 4}]
+    * >>> flatten_dict_list(data)
+    * {'a': 3, 'b': 2, 'c': 4}
+    """
     flattened_dict = {}
     type_executors = [
         (str, lambda x: print_return(x, key)),
@@ -323,10 +416,36 @@ def flatten_dict_list(current_list, key=None):
 
 
 def deconstruct(dict_list, key):
+    """
+    * ---------------{Function}---------------
+    * Extracts a specific key's values from a list of dictionaries
+    * ----------------{Returns}---------------
+    * -> result    ::List       |A list containing the values of the specified key
+    * ----------------{Params}----------------
+    * : dict_list  ::List[Dict] |A list of dictionaries
+    * : key        ::str        |The key to extract the values from
+    * ----------------{Usage}-----------------
+    * >>> data = [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}, {'a': 5, 'b': 6}]
+    * >>> deconstruct(data, 'a')
+    * [1, 3, 5]
+    """
     return list(map(lambda x: x[key], dict_list))
 
 
 def multi_deconstruct(dict_list, key_list):
+    """
+    * ---------------{Function}---------------
+    * Extracts multiple keys' values from a list of dictionaries
+    * ----------------{Returns}---------------
+    * -> result    ::List[List] |A list of lists containing the values of the specified keys
+    * ----------------{Params}----------------
+    * : dict_list  ::List[Dict] |A list of dictionaries
+    * : key_list   ::List[str]  |A list of keys to extract the values from
+    * ----------------{Usage}-----------------
+    * >>> data = [{'a': 1, 'b': 2, 'c': 3}, {'a': 4, 'b': 5, 'c': 6}, {'a': 7, 'b': 8, 'c': 9}]
+    * >>> multi_deconstruct(data, ['a', 'c'])
+    * [[1, 3], [4, 6], [7, 9]]
+    """
     query = "lambda x:["
     for i in key_list:
         query += f"x['{i}'],"
@@ -334,9 +453,20 @@ def multi_deconstruct(dict_list, key_list):
     query += "]"
     return list(map(eval(query), dict_list))
 
-
 def get_by_path(root, items):
-    """Access a nested object in root by item sequence."""
+    """
+    * ---------------{Function}---------------
+    * Access a nested object in root by item sequence
+    * ----------------{Returns}---------------
+    * -> result    ::Any        |The value in the nested object specified by the item sequence
+    * ----------------{Params}----------------
+    * : root       ::Dict       |The root dictionary containing the nested object
+    * : items      ::List       |The sequence of keys to access the nested object
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': {'b': {'c': 42}}}
+    * >>> get_by_path(data, ['a', 'b', 'c'])
+    * 42
+    """
     from functools import reduce  # forward compatibility for Python 3
     import operator
 
@@ -344,16 +474,53 @@ def get_by_path(root, items):
 
 
 def set_by_path(root, items, value):
-    """Set a value in a nested object in root by item sequence."""
+    """
+    * ---------------{Function}---------------
+    * Set a value in a nested object in root by item sequence
+    * ----------------{Params}----------------
+    * : root       ::Dict       |The root dictionary containing the nested object
+    * : items      ::List       |The sequence of keys to access the nested object
+    * : value      ::Any        |The value to set in the nested object
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': {'b': {'c': 42}}}
+    * >>> set_by_path(data, ['a', 'b', 'c'], 13)
+    * >>> data
+    * {'a': {'b': {'c': 13}}}
+    """
     get_by_path(root, items[:-1])[items[-1]] = value
 
 
 def del_by_path(root, items):
-    """Delete a key-value in a nested object in root by item sequence."""
+    """
+    * ---------------{Function}---------------
+    * Delete a key-value in a nested object in root by item sequence
+    * ----------------{Params}----------------
+    * : root       ::Dict       |The root dictionary containing the nested object
+    * : items      ::List       |The sequence of keys to access the nested object
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': {'b': {'c': 42}}}
+    * >>> del_by_path(data, ['a', 'b', 'c'])
+    * >>> data
+    * {'a': {'b': {}}}
+    """
     del get_by_path(root, items[:-1])[items[-1]]
 
 
 def flatten_dictionary(d, parent_key="", sep="_"):
+    """
+    * ---------------{Function}---------------
+    * Flatten a nested dictionary into a single-level dictionary
+    * ----------------{Returns}---------------
+    * -> result    ::Dict       |The flattened dictionary
+    * ----------------{Params}----------------
+    * : d          ::Dict       |The nested dictionary to flatten
+    * : parent_key ::str        |The parent key, used internally for recursion (default: "")
+    * : sep        ::str        |The separator to use when concatenating keys (default: "_")
+    * ----------------{Usage}-----------------
+    * >>> data = {'a': {'b': {'c': 42}}}
+    * >>> flatten_dictionary(data)
+    * {'a_b_c': 42}
+    """
     import collections
 
     items = []
