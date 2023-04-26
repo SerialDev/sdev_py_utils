@@ -1,5 +1,78 @@
 """Python functional utilitites"""
 
+
+class Result:
+    def __init__(self, value=None, error=None):
+        self.value = value
+        self.error = error
+
+    def is_ok(self):
+        return self.error is None
+
+    def is_err(self):
+        return self.error is not None
+
+    def __repr__(self):
+        if self.is_ok():
+            return f"Ok({self.value})"
+        else:
+            return f"Err({self.error})"
+
+
+
+def try_catch(func, *args, **kwargs):
+    """
+    * ---------------{Function}---------------
+    * try-catch wrapper using the AST library to reduce code noise
+    * ----------------{Returns}---------------
+    * -> result    ::Result     |Result of the function or Err with exception
+    * ----------------{Params}----------------
+    * : func       ::callable   |Function to be executed
+    * : *args      ::tuple      |Positional arguments for the function
+    * : **kwargs   ::dict       |Keyword arguments for the function
+    * ----------------{Usage}-----------------
+    * def test_function(a, b):
+    *     return a / b
+    *
+    * result = try_catch(test_function, 4, 2)
+    * if result.is_ok():
+    *     print("Success:", result.value)
+    * else:
+    *     print("Error:", result.error)
+    """
+    try:
+        return Result(value=func(*args, **kwargs))
+    except Exception as e:
+        return Result(error=e)
+
+
+def maybe(func, *args, **kwargs):
+    """
+    * ---------------{Function}---------------
+    * Option monad horrible hack but sometimes why not
+    * ----------------{Returns}---------------
+    * -> result    ::Result     |Result of the function or Err with exception
+    * ----------------{Params}----------------
+    * : func       ::callable   |Function to be executed
+    * : *args      ::tuple      |Positional arguments for the function
+    * : **kwargs   ::dict       |Keyword arguments for the function
+    * ----------------{Usage}-----------------
+    * def test_function(a, b):
+    *     return a / b
+    *
+    * result = maybe(test_function, 4, 2)
+    * if result.is_ok():
+    *     print("Success:", result.value)
+    * else:
+    *     print("Error:", result.error)
+    """
+    try:
+        return Result(value=func(*args, **kwargs))
+    except Exception as e:
+        return Result(error=e)
+
+
+
 def match(value, patterns):
     """
     Works like the 'match' keyword in Rust. Evaluates each pattern function in the 'patterns' list with the 'value' as an argument.
