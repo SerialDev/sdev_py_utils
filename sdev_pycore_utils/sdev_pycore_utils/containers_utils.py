@@ -46,12 +46,38 @@ def b64_pickle(data):
 
 
 def md5_hex(data):
+    """
+    * ---------------{Function}---------------
+    * Calculates the MD5 hash of a byte string and returns its hexadecimal representation.
+    * ----------------{Returns}---------------
+    * -> hash_hex  ::str        |The hexadecimal representation of the MD5 hash
+    * ----------------{Params}----------------
+    * : data      ::bytes       |The byte string to hash
+    * ----------------{Usage}-----------------
+    * >>> md5_hex(b"hello world")
+    * '5eb63bbbe01eeed093cb22bb8f5acdc3'
+    """
     from hashlib import md5
 
     return md5(data).hexdigest()
 
 
 def hash_runtime(data):
+    """
+    * ---------------{Function}---------------
+    * Computes the MD5 hash of a Base64-encoded pickled object.
+    * ----------------{Returns}---------------
+    * -> hashed    ::str | The MD5 hash of the Base64-encoded pickled object
+    * ----------------{Params}----------------
+    * : data       ::Any | The data to be pickled and hashed
+    * ----------------{Usage}-----------------
+    * >>> hash_runtime("example string")
+    * '78d699abb4e9b4f08e2f0a66eb23ecb5'
+    * ----------------{Notes}-----------------
+    * This function requires the `md5_hex()` and `b64_pickle()` functions to be defined elsewhere.
+    * `md5_hex()` computes the MD5 hash of a string and returns the result as a hexadecimal string.
+    * `b64_pickle()` pickles an object and returns the result as a Base64-encoded string.
+    """
     return md5_hex(b64_pickle(data))
 
 
@@ -185,4 +211,23 @@ class RecentlyUsedContainer(MutableMapping):
 
 
 def generator_range(generator, count):
+    """
+    * ---------------{Function}---------------
+    * Iterates over the given generator and yields `count` values from it.
+    * ----------------{Returns}---------------
+    * -> generator   ::generator |A generator that yields `count` values from the original generator.
+    * ----------------{Params}----------------
+    * : generator    ::generator |The original generator to iterate over.
+    * : count        ::int       |The number of values to yield from the generator.
+    * ----------------{Usage}-----------------
+    * >>> def my_generator():
+    * ...     for i in range(10):
+    * ...         yield i
+    * ...
+    * >>> for value in generator_range(my_generator(), 3):
+    * ...     print(value)
+    * 0
+    * 1
+    * 2
+    """
     return [generator.__next__() for i in range(count)]

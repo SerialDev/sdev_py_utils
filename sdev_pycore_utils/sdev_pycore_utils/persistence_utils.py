@@ -229,6 +229,19 @@ import numpy as np
 
 
 def to_buffer(data):
+    """
+    * ---------------{Function}---------------
+    * Serializes the given data object using dill and returns it as a byte buffer.
+    * ----------------{Returns}---------------
+    * -> buf       ::BytesIO   |A byte buffer containing the serialized data object
+    * ----------------{Params}----------------
+    * : data      ::Any        |The data object to be serialized
+    * ----------------{Usage}-----------------
+    * >>> data = {'name': 'John', 'age': 30, 'city': 'New York'}
+    * >>> buf = to_buffer(data)
+    * >>> buf.getvalue()
+    * b'\x80\x04\x95(\x00\x00\x00\x00\x00\x00\x00}\x94(\x8c\x04name\x94\x8c\x04John\x94\x8c\x03age\x94K\x1e\x8c\x04city\x94\x8c\x08New York\x94u.'
+    """
     import io
     import dill as pickle  # Dill allows serializing lambdas
 
@@ -239,6 +252,20 @@ def to_buffer(data):
 
 
 def from_buffer(buf):
+    """
+    * ---------------{Function}---------------
+    * Deserializes a buffer and returns the deserialized object.
+    * ----------------{Returns}---------------
+    * -> data    ::Any        |The deserialized object
+    * ----------------{Params}----------------
+    * : buf     ::io.BytesIO |The buffer containing the serialized object
+    * ----------------{Usage}-----------------
+    * >>> with open('data.pkl', 'rb') as f:
+    * ...     buf = io.BytesIO(f.read())
+    * >>> data = from_buffer(buf)
+    * >>> print(data)
+    * {'name': 'John', 'age': 30, 'city': 'New York'}
+    """
     import dill as pickle  # Dill allows serializing lambdas
 
     buf.seek(0)
@@ -247,6 +274,20 @@ def from_buffer(buf):
 
 
 def salty_hash(content, salt="deadbeeffeebdaed"):
+    """
+    * ---------------{Function}---------------
+    * Hashes a given content with SHA512 and a given salt
+    * ----------------{Returns}---------------
+    * -> hashed  ::str        |The hashed content in hexadecimal format
+    * ----------------{Params}----------------
+    * : content  ::str        |The content to be hashed
+    * : salt     ::str        |A salt to be used in the hashing process (default is 'deadbeeffeebdaed')
+    * ----------------{Usage}-----------------
+    * >>> salty_hash("password")
+    * '2b3e69c61f18e20aa8c83d86b46c273da9abbd7d02c20a11e7c5b37cf45a7f0a8ed03d496f3a55df9e7d5488d45d1927a4ce6b4dd6ad4ed6d0a6e0b2979ac110'
+    * >>> salty_hash("password", "1a2b3c4d")
+    * 'd6a5c6f9df30a5c5d5d14ec29c510b27e7a36a8a28f64cd3a3a9f7e10d8c3109637a3c181ef40a2f86478c8d42629d97a25c9bb0ec0d87c85a7f0a67c167b7e8'
+    """
     import hashlib
 
     hashed = hashlib.sha512(content.encode("utf-8") + salt.encode("utf-8")).hexdigest()

@@ -141,9 +141,21 @@ def similar(a, b):
 
 
 def similarity_string_list(list_to_check):
-    # Run  Ratcliff/Obershelp algorithm  between two strings using the built in sequenceMatcher.
-    # This has a O(n^2) overhead and would not be suitable in production [same issue with using Levenshtein Distance]
-    # Approximate algorithms are better in this case but overkill for a quick cleanup [Eg, Minhash with LSH]
+    """
+    * ---------------{Function}---------------
+    * Compares the similarity between strings in a list using the Ratcliff/Obershelp algorithm.
+    * ----------------{Returns}---------------
+    * -> similars    ::List[Tuple] |A list of pairs of similar strings with a similarity score > 0.8 and < 1.0
+    * ----------------{Params}----------------
+    * : list_to_check ::List[str]   |A list of strings to be compared
+    * ----------------{Usage}-----------------
+    * >>> similarity_string_list(["apple", "banana", "pineapple", "pen", "pencil"])
+    * [('apple', 'pineapple')]
+    * ----------------{Notes}-----------------
+    * Run  Ratcliff/Obershelp algorithm  between two strings using the built in sequenceMatcher.
+    * This has a O(n^2) overhead and would not be suitable in production [same issue with using Levenshtein Distance]
+    * Approximate algorithms are better in this case but overkill for a quick cleanup [Eg, Minhash with LSH]
+    """
     similars = []
     for i in list_to_check:
         for j in list_to_check:
@@ -178,9 +190,37 @@ def snake_casify(letters):
 
 
 def any_until_char(character):
+    """
+    * ---------------{Function}---------------
+    * Returns a regular expression pattern that matches any characters until a given character.
+    * ----------------{Returns}---------------
+    * -> pattern ::str   |A regular expression pattern
+    * ----------------{Params}----------------
+    * : character ::str  |A character to match until
+    * ----------------{Usage}-----------------
+    * >>> import re
+    * >>> text = "This is a test sentence. Stop at period."
+    * >>> pattern = any_until_char('.')
+    * >>> re.search(pattern, text).group(0)
+    * 'This is a test sentence'
+    """
     return "(*?){}+".format(character)
 
 
 def split_keep(s, delimiter):
+    """
+    * ---------------{Function}---------------
+    * Splits a string by a given delimiter while keeping the delimiter at the end of each substring, except for the last one
+    * ----------------{Returns}---------------
+    * -> substrings :: List[str] |A list of substrings with the delimiter at the end of each substring, except for the last one
+    * ----------------{Params}----------------
+    * : s        :: str  |The string to be split
+    * : delimiter:: str  |The delimiter to use for splitting the string
+    * ----------------{Usage}-----------------
+    * >>> split_keep('example-string', '-')
+    * ['example-', 'string']
+    * ----------------{Notes}-----------------
+    * This function is useful when the delimiter is important to keep track of for further processing, but is not desirable to remove from the substrings.
+    """    
     split = s.split(delimiter)
     return [substr + delimiter for substr in split[:-1]] + [split[-1]]

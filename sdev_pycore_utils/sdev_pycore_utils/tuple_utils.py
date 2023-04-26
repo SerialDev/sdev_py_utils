@@ -4,6 +4,18 @@ import pandas as pd
 
 
 def map_tuple_gen(func, tup):
+    """
+    * ---------------{Function}---------------
+    * Applies a given function to each element of a tuple and returns the resulting tuple
+    * ----------------{Returns}---------------
+    * -> result    ::Tuple  |The resulting tuple after applying the given function to each element of input tuple
+    * ----------------{Params}----------------
+    * : func       ::function |The function to apply to each element of the input tuple
+    * : tup        ::Tuple   |The input tuple to apply the function on
+    * ----------------{Usage}-----------------
+    * >>> map_tuple_gen(lambda x: x * 2, (1, 2, 3))
+    * (2, 4, 6)
+    """
     return tuple(func(itup) for itup in tup)
 
 

@@ -50,7 +50,17 @@ def pretty_size(
 
 
 def lsos(all_obj=globals(), n=10):
-    # Usage lsos(globals())
+    """
+    * ---------------{Function}---------------
+    * Prints out the sizes in megabytes and ids of the `n` largest objects in the given scope.
+    * ----------------{Returns}---------------
+    * -> d     ::list       | A sorted list of tuples containing object names, sizes in MB, and object ids
+    * ----------------{Params}----------------
+    * : all_obj    ::dict      | Optional, dictionary of objects to inspect. Default is the current global scope.
+    * : n          ::int       | Optional, the number of largest objects to print. Default is 10.
+    * ----------------{Usage}-----------------
+    * >>> lsos(globals())
+    """
 
     import sys
 
@@ -133,6 +143,22 @@ def total_size(o, handlers={}, verbose=False):
 
 
 def dumpstacks(signal, frame):
+    """
+    * ---------------{Function}---------------
+    * Prints the stack trace for all currently running threads in the program
+    * ----------------{Returns}---------------
+    * None
+    * ----------------{Params}----------------
+    * : signal ::object  |The signal passed to the function by the signal handler
+    * : frame  ::object  |The current stack frame
+    * ----------------{Usage}-----------------
+    * This function is usually called from a signal handler to print the stack trace when a signal is caught:
+    *
+    * >>> import signal
+    * >>> signal.signal(signal.SIGQUIT, dumpstacks)
+    *
+    * This will print the stack trace for all threads when the program receives a SIGQUIT signal (e.g., when Ctrl+\ is pressed).
+    """
     id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
     code = []
     for threadId, stack in sys._current_frames().items():

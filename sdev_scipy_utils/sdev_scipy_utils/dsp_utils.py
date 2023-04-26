@@ -570,6 +570,27 @@ from sklearn import cluster
 
 
 def bayesian_changepoint(data):
+    """
+    * ---------------{Function}---------------
+    * Implements the Bayesian Changepoint Detection algorithm to detect changes in the underlying distribution of a sequence of data
+    * ----------------{Returns}---------------
+    * -> y ::List[float] |A list of posterior probabilities for each time step being a changepoint
+    * -> zz ::int |The index of the changepoint with the highest posterior probability
+    * -> mean1 ::float |The mean of the data up to the changepoint
+    * -> mean2 ::float |The mean of the data after the changepoint
+    * -> p ::List[int] |The indices of the top 5 changepoints with the highest posterior probabilities
+    * ----------------{Params}----------------
+    * : data ::List[float] |A list of numerical data
+    * ----------------{Usage}-----------------
+    * >>> bayesian_changepoint([1,2,3,4,5,6,7,8,9,10])
+    * ([0.0, 0.4734455262454487, 6.634482216567264, 9.368698106198455, 8.421528117252147, 5.665903308613675, 2.4870415230581857, 0.8398807664147167, 0.14159425310363395],
+    * 1,
+    * 1.5,
+    * 6.0,
+    * [1, 2, 3, 4, 5])
+    * ----------------{References}-----------------
+    * https://projecteuclid.org/journals/annals-of-statistics/volume-23/issue-4/Estimation-of-Change-Point-Vectors-by-the-Bayesian-Information-Criterion/10.1214/aos/1176325766.full
+    """
     n = len(data)
     # dbar = sum( data )/float(n)
     dbar = np.mean(data)
@@ -840,7 +861,20 @@ def complexity_correction_factor(t1, t2):
 
 
 def euclidean(t1, t2, **kwargs):
-    return np.sqrt(np.sum(np.abs(t1 ** 2 - t2 ** 2)))
+   """
+    * ---------------{Function}---------------
+    * Computes the Euclidean distance between two vectors using the numpy library.
+    * ----------------{Returns}---------------
+    * -> distance    ::float | The Euclidean distance between the two input vectors.
+    * ----------------{Params}----------------
+    * : t1           ::array | The first input vector.
+    * : t2           ::array | The second input vector.
+    * : **kwargs     ::dict  | Additional keyword arguments to be passed to the function (not used in this implementation).
+    * ----------------{Usage}-----------------
+    * >>> euclidean([1, 2, 3], [4, 5, 6])
+    * 5.196152422706632
+    """
+   return np.sqrt(np.sum(np.abs(t1 ** 2 - t2 ** 2)))
 
 
 # ------{From High Energy Physics}------#
