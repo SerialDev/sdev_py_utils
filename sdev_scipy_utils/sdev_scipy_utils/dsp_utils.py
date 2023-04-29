@@ -629,6 +629,26 @@ def bayesian_changepoint(data):
 
 
 def sliding_window(data, segment_length, slide_length, flag="chunks"):
+    """
+        * type-def ::[Array] ::Int ::Int ::str -> [List[Array]] | iterator
+    * ---------------{Function}---------------
+        * Generates sliding window segments of the input data.
+    * ----------------{Returns}---------------
+        * -> segments ::List[Array[float]] | A list of the sliding window segments
+        * -> iterator ::iterator | An iterator over the sliding window segments
+    * ----------------{Params}----------------
+        * : data          ::Array[float] | The input data array
+        * : segment_length ::int | The length of each segment
+        * : slide_length  ::int | The step size between segments
+        * : flag          ::str | "chunks" for a list of segments, "lazy" for an iterator
+    * ----------------{Usage}-----------------
+        * >>> sliding_window(data, segment_length, slide_length)
+        * [array([segment_1_element_1, ...]), array([segment_2_element_1, ...]), ...]
+    * ----------------{Notes}-----------------
+        * The function has two modes, determined by the 'flag' parameter.
+        * If 'flag' is set to "chunks", the function returns a list of all segments.
+        * If 'flag' is set to "lazy", the function returns an iterator that generates segments on the fly.
+    """
     def iter_sliding_window(data, segment_length, slide_length):
         for start_position in range(0, len(data), slide_length):
             end_position = start_position + segment_length
@@ -655,9 +675,23 @@ def sliding_window(data, segment_length, slide_length, flag="chunks"):
 
 def spectral_centroid(x, samplerate=44100):
     """
-    weighted mean of the frequencies present in the signal,
-    determined using a Fourier transform,
-    with their magnitudes as the weights
+        * type-def ::[Array] ::Int -> float
+    * ---------------{Function}---------------
+        * Computes the spectral centroid of the input signal.
+    * ----------------{Returns}---------------
+        * -> centroid ::float | The spectral centroid of the input signal
+    * ----------------{Params}----------------
+        * : x          ::Array[float] | The input signal data array
+        * : samplerate ::int | The sample rate of the input signal (default: 44100 Hz)
+    * ----------------{Usage}-----------------
+        * >>> spectral_centroid(x, samplerate)
+        * 5321.784295378295
+    * ----------------{Notes}-----------------
+        * The spectral centroid is a measure used in digital signal processing to characterize the spectral content of a signal.
+        * It represents the center of mass of the spectrum and can be used to differentiate sounds with different timbral qualities.
+        * weighted mean of the frequencies present in the signal,
+        * determined using a Fourier transform,
+        * with their magnitudes as the weights
     """
     magnitudes = np.abs(np.fft.rfft(x))  # magnitudes of positive frequencies
     length = len(x)
@@ -668,10 +702,36 @@ def spectral_centroid(x, samplerate=44100):
 
 
 def rectangular_window_func(data, segment_length):
+    """
+        * type-def ::[Array] ::Int -> [Array]'
+    * ---------------{Function}---------------
+        * Returns the input data unmodified (rectangular window).
+    * ----------------{Returns}---------------
+        * -> data ::Array[float] | The unmodified input data
+    * ----------------{Params}----------------
+        * : data          ::Array[float] | The input data array
+        * : segment_length ::int | The length of the window (unused)
+    * ----------------{Usage}-----------------
+        * >>> rectangular_window_func(data, segment_length)
+        * array([data_element_1, data_element_2, ...])
+    """
     return data
 
 
 def sin_window_func(data, segment_length):
+    """
+        * type-def ::[Array] ::Int -> [Array]'
+    * ---------------{Function}---------------
+        * Applies a sin^2 window function to the input data.
+    * ----------------{Returns}---------------
+        * -> windowed_segment ::Array[float] | The input data with the sin^2 window applied
+    * ----------------{Params}----------------
+        * : data          ::Array[float] | The input data array
+        * : segment_length ::int | The length of the window
+    * ----------------{Usage}-----------------
+        * >>> sin_window_func(data, segment_length)
+        * array([windowed_data_element_1, windowed_data_element_2, ...])
+    """
     window_rads = np.linspace(0, np.pi, segment_length)
     window = np.sin(window_rads) ** 2
     windowed_segment = data * window
@@ -679,6 +739,18 @@ def sin_window_func(data, segment_length):
 
 
 def inf_nan_tozero(data):
+    """
+        * type-def ::[Array] -> [Array]'
+    * ---------------{Function}---------------
+        * Replaces infinite and NaN values in the input data with zeros.
+    * ----------------{Returns}---------------
+        * -> data ::Array[float] | The input data with infinite and NaN values replaced by zeros
+    * ----------------{Params}----------------
+        * : data       ::Array[float] | The input data array
+    * ----------------{Usage}-----------------
+        * >>> inf_nan_tozero(data)
+        * array([data_element_1, data_element_2, ...])
+    """
     data[data == -np.inf] = 0
     data[data == np.inf] = 0
     data = np.nan_to_num(data)
@@ -686,6 +758,19 @@ def inf_nan_tozero(data):
 
 
 def log10_window_func(data, segment_length):
+    """
+        * type-def ::[Array] ::Int -> [Array]'
+    * ---------------{Function}---------------
+        * Applies a log10 window function to the input data.
+    * ----------------{Returns}---------------
+        * -> windowed_segment ::Array[float] | The input data with the log10 window applied
+    * ----------------{Params}----------------
+        * : data          ::Array[float] | The input data array
+        * : segment_length ::int | The length of the window (unused)
+    * ----------------{Usage}-----------------
+        * >>> log10_window_func(data, segment_length)
+        * array([windowed_data_element_1, windowed_data_element_2, ...])
+    """
     window = np.log10(data)
     windowed_segment = data * window
     return inf_nan_tozero(windowed_segment)
@@ -890,12 +975,44 @@ from scipy.stats import percentileofscore, poisson
 
 
 def evaluate_statistic(data, mc, verbose=False, edges=None):
+    """
+        * type-def ::[Array] ::[Array] ::Bool ::[Array] -> Tuple[float, Tuple[int, int]]
+    * ---------------{Function}---------------
+        * Evaluates the bumphunter statistic for given data and Monte Carlo values, returning the minimum p-value and its corresponding interval.
+    * ----------------{Returns}---------------
+        * -> min_pvalue_log ::float | The negative logarithm of the minimum p-value found
+        * -> (lo, hi)       ::Tuple[int, int] | The lower and upper bin indices of the interval corresponding to the minimum p-value
+    * ----------------{Params}----------------
+        * : data       ::Array[float] | The array of input data values
+        * : mc         ::Array[float] | The array of Monte Carlo values
+        * : verbose    ::bool | Optional; if True, print additional information (default: False)
+        * : edges      ::Array[float] | Optional; the bin edges of the input histograms (default: None)
+    * ----------------{Usage}-----------------
+        * >>> evaluate_statistic(data, mc)
+        * (-log(min_pvalue), (lo, hi))
+    * ----------------{Notes}-----------------
+        * This function computes the p-value for all possible windows within the search range.
+        * The search range is determined by the first and last non-zero bins of the Monte Carlo values.
+        * The function uses the `poisson.cdf()` function from the `scipy.stats` library to compute p-values.
+    """
     # Get search range (first bin with data, last bin with data)
     nzi, = mc.nonzero()  # nzi = non-zero indices
     search_lo, search_hi = nzi[0], nzi[-1]
 
     def all_windows():
-        "Iterator returning [lo, hi) for all windows"
+        """
+            * type-def ::None -> Iterator[Tuple[int, int]]
+        * ---------------{Function}---------------
+            * Iterator that yields tuples of (lo, hi) bin indices for all possible windows within the search range.
+        * ----------------{Yields}---------------
+            * -> (lo, hi) ::Tuple[int, int] | The lower and upper bin indices of a window
+        * ----------------{Usage}-----------------
+            * >>> for lo, hi in all_windows():
+            * ...     # Process the window from lo to hi
+        * ----------------{Notes}-----------------
+            * The window sizes range from one bin up to half of the full search range.
+            * The step size is half the binwidth.
+        """
         # Try windows from one bin in width up to half of the full range
         min_win_size, max_win_size = 1, (search_hi - search_lo) // 2
         for binwidth in range(min_win_size, max_win_size):
@@ -906,7 +1023,24 @@ def evaluate_statistic(data, mc, verbose=False, edges=None):
                 yield pos, pos + binwidth
 
     def pvalue(lo, hi):
-        "Compute p value in window [lo, hi)"
+        """
+            * type-def ::Int ::Int -> float
+        * ---------------{Function}---------------
+            * Computes the p-value for the given window [lo, hi) using the data and Monte Carlo values.
+        * ----------------{Returns}---------------
+            * -> p ::float | The computed p-value for the given window
+        * ----------------{Params}----------------
+            * : lo ::int | The lower bin index of the window
+            * : hi ::int | The upper bin index of the window
+        * ----------------{Usage}-----------------
+            * >>> p = pvalue(3, 5)
+            * >>> print(p)
+            * 0.12345
+        * ----------------{Notes}-----------------
+            * If the Monte Carlo prediction for the window is zero, the function asserts that the data is also zero.
+            * If the data value is less than the Monte Carlo value, the function returns a p-value of 1 (ignoring dips).
+            * The function uses the `poisson.cdf()` function from the `scipy.stats` library to compute p-values.
+        """
         d, m = data[lo:hi].sum(), mc[lo:hi].sum()
         if m == 0:
             # MC prediction is zero. Not sure what then..
@@ -933,12 +1067,48 @@ def evaluate_statistic(data, mc, verbose=False, edges=None):
 
 
 def make_toys(prediction, n):
-    "fluctuate `prediction` input distribution `n` times"
+    """
+        * type-def ::[Array] ::Int -> [Array]'
+    * ---------------{Function}---------------
+        * Fluctuates the input `prediction` distribution `n` times using Poisson distribution.
+    * ----------------{Returns}---------------
+        * -> fluctuated_predictions ::Array[float] | The array of fluctuated predictions
+    * ----------------{Params}----------------
+        * : prediction  ::Array[float] | The input distribution to fluctuate
+        * : n           ::int | The number of times to fluctuate the input distribution
+    * ----------------{Usage}-----------------
+        * >>> make_toys(prediction, 100)
+        * array([[fluctuated_prediction_1], [fluctuated_prediction_2], ...])
+    * ----------------{Notes}-----------------
+        * This function uses the `random.mtrand.poisson()` function from the `numpy` library to generate Poisson-distributed random fluctuations of the input distribution.
+    """
     return random.mtrand.poisson(prediction, size=(n, len(prediction)))
 
 
 def bumphunter(hdata, hmc, n):
-    "Compute the bumphunter statistic and run `n` pseudo-experiments"
+    """
+        * type-def ::[Array] ::[Array] ::Int -> Tuple[float, Tuple[float, float], List[float], float, float]
+    * ---------------{Function}---------------
+        * Computes the bumphunter statistic, runs `n` pseudo-experiments, and returns the measurement, interval, and p-value.
+    * ----------------{Returns}---------------
+        * -> measurement        ::float | The bumphunter statistic measurement
+        * -> (lo, hi)           ::Tuple[float, float] | The lower and upper bounds of the interval
+        * -> pseudo_experiments ::List[float] | The list of bumphunter statistic values from the pseudo-experiments
+        * -> pvalue             ::float | The computed p-value
+        * -> pvalue_uncertainty ::float | The uncertainty of the p-value
+    * ----------------{Params}----------------
+        * : hdata       ::Array[float] | The array of input data values
+        * : hmc         ::Array[float] | The array of Monte Carlo values
+        * : n           ::int | The number of pseudo-experiments to run
+    * ----------------{Usage}-----------------
+        * >>> bumphunter(hdata, hmc, 1000)
+        * (measurement, (lo, hi), pseudo_experiments, pvalue, pvalue_uncertainty)
+    * ----------------{Notes}-----------------
+        * This function requires the following functions to be defined elsewhere:
+            * `evaluate_statistic()` to compute the bumphunter statistic and interval for given data and Monte Carlo values
+            * `make_toys()` to generate `n` pseudo-experiments from the Monte Carlo values
+        * `percentileofscore()` from the `scipy.stats` library is used to compute the p-value from the pseudo-experiments and measurement.
+    """
     data = array([hdata[i] for i in range(1, hdata.GetNbinsX())])
     mc = array([hmc[i] for i in range(1, hmc.GetNbinsX())])
 
@@ -954,6 +1124,20 @@ def bumphunter(hdata, hmc, n):
 
 def remove_outliers(data):
     """
+        * type-def ::[List] ::[x'∈X] ::[x'∈X] -> [List]'
+    * ---------------{Function}---------------
+        * Removes outliers from a list of data points by replacing them with 0.
+    * ----------------{Returns}---------------
+        * -> result    ::List[float] | The list with outliers replaced by 0
+    * ----------------{Params}----------------
+        * : data       ::List[float] | The list of data points to process
+    * ----------------{Usage}-----------------
+        * >>> remove_outliers([1, 2, 3, 100, 4, 5])
+        * [1, 2, 3, 0, 4, 5]
+    * ----------------{Notes}-----------------
+        * Outliers are determined based on the mean and standard deviation of the data.
+        * Data points more than one standard deviation away from the mean are considered outliers.
+        * This function requires the `stddev()` function to be defined elsewhere, which computes the standard deviation of a list of values.
     """
     mean = sum(data) / len(data)
     std = stddev(data)
@@ -968,6 +1152,23 @@ def remove_outliers(data):
 
 
 def rescale(values, new_min=0, new_max=100):
+    """
+        * type-def ::[List] ::[x'∈X] ::Num ::Num -> [List]'
+    * ---------------{Function}---------------
+        * Rescales a list of values to a new range.
+    * ----------------{Returns}---------------
+        * -> output    ::List[float] | The list of rescaled values
+    * ----------------{Params}----------------
+        * : values     ::List[float] | The list of values to rescale
+        * : new_min    ::float | The new minimum value for the rescaled list (default: 0)
+        * : new_max    ::float | The new maximum value for the rescaled list (default: 100)
+    * ----------------{Usage}-----------------
+        * >>> rescale([10, 20, 30], 0, 1)
+        * [0.0, 0.5, 1.0]
+    * ----------------{Notes}-----------------
+        * This function linearly rescales the input values to the specified range.
+        * The new range is determined by the `new_min` and `new_max` parameters.
+    """
     output = []
     old_min, old_max = min(values), max(values)
 

@@ -112,8 +112,25 @@ def np_rnn_data(data, time_steps, labels=False):
 
 def split_data(data, val_size=0.1, test_size=0.1):
     """
-     splits data to training, validation and testing parts
-     """
+        * type-def ::[DataFrame] ::float ::float -> (DataFrame, DataFrame, DataFrame)
+    * ---------------{Function}---------------
+        * Splits input data into training, validation, and testing parts.
+    * ----------------{Returns}---------------
+        * -> df_train ::DataFrame | The training data portion
+        * -> df_val   ::DataFrame | The validation data portion
+        * -> df_test  ::DataFrame | The testing data portion
+    * ----------------{Params}----------------
+        * : data     ::DataFrame | The input data DataFrame
+        * : val_size ::float | The proportion of data to be used for validation (default: 0.1)
+        * : test_size::float | The proportion of data to be used for testing (default: 0.1)
+    * ----------------{Usage}-----------------
+        * >>> df_train, df_val, df_test = split_data(data, val_size=0.1, test_size=0.1)
+        * >>> len(df_train), len(df_val), len(df_test)
+        * (648, 81, 90)
+    * ----------------{Notes}-----------------
+        * This function assumes that the input data is a pandas DataFrame.
+        * The remaining data (after subtracting validation and testing portions) will be used for training.
+    """
     ntest = int(round(len(data) * (1 - test_size)))
     nval = int(round(len(data.iloc[:ntest]) * (1 - val_size)))
 
@@ -128,9 +145,27 @@ def split_data(data, val_size=0.1, test_size=0.1):
 
 def prepare_data(data, time_steps, labels=False, val_size=0.1, test_size=0.1):
     """
-   Given the number of `time_steps` and some data,
-   prepares training, validation and test data for an lstm cell.
-   """
+        * type-def ::[DataFrame] ::int ::Bool ::float ::float -> (np.ndarray, np.ndarray, np.ndarray)
+    * ---------------{Function}---------------
+        * Prepares input data for training, validation, and testing for an LSTM cell, given the number of time steps.
+    * ----------------{Returns}---------------
+        * -> train_data ::np.ndarray | The prepared training data
+        * -> val_data   ::np.ndarray | The prepared validation data
+        * -> test_data  ::np.ndarray | The prepared testing data
+    * ----------------{Params}----------------
+        * : data       ::DataFrame | The input data DataFrame
+        * : time_steps ::int       | The number of time steps for the LSTM cell
+        * : labels     ::Bool      | Whether to return the labels (default: False)
+        * : val_size   ::float     | The proportion of data to be used for validation (default: 0.1)
+        * : test_size  ::float     | The proportion of data to be used for testing (default: 0.1)
+    * ----------------{Usage}-----------------
+        * >>> train_data, val_data, test_data = prepare_data(data, time_steps=10, labels=False, val_size=0.1, test_size=0.1)
+        * >>> train_data.shape, val_data.shape, test_data.shape
+        * ((648, 10, 1), (81, 10, 1), (90, 10, 1))
+    * ----------------{Notes}-----------------
+        * This function assumes that the input data is a pandas DataFrame.
+        * The function uses `split_data()` to split the data and `rnn_data()` to format the data for LSTM.
+    """
     df_train, df_val, df_test = split_data(data, val_size, test_size)
     return (
         rnn_data(df_train, time_steps, labels=labels),
@@ -140,7 +175,26 @@ def prepare_data(data, time_steps, labels=False, val_size=0.1, test_size=0.1):
 
 
 def generate_data(fct, x, time_steps, seperate=False):
-    """generates data with based on a function fct"""
+    """
+        * type-def ::Callable ::Any ::int ::Bool -> Tuple[Dict, Dict]
+    * ---------------{Function}---------------
+        * Generates data based on a function and prepares it for training, validation, and testing.
+    * ----------------{Returns}---------------
+        * -> x_data ::Dict | The prepared input data for train, val, and test
+        * -> y_data ::Dict | The prepared output data for train, val, and test
+    * ----------------{Params}----------------
+        * : fct       ::Callable | The function to generate data
+        * : x         ::Any      | The input to the function 'fct'
+        * : time_steps::int      | The number of time steps for the LSTM cell
+        * : seperate  ::Bool     | Whether to return separate columns for 'a' and 'b' (default: False)
+    * ----------------{Usage}-----------------
+        * >>> fct = lambda x: pd.DataFrame({"a": np.sin(x), "b": np.cos(x)})
+        * >>> x = np.linspace(0, 10, 100)
+        * >>> time_steps = 10
+        * >>> generate_data(fct, x, time_steps, seperate=True)
+    * ----------------{Notes}-----------------
+        * This function generates data using a given function and prepares it for use with LSTM models.
+    """
     data = fct(x)
     if not isinstance(data, pd.DataFrame):
         data = pd.DataFrame(data)
@@ -156,12 +210,32 @@ def generate_data(fct, x, time_steps, seperate=False):
 
 def rnn_data(data, time_steps, labels=False):
     """
-    creates new data frame based on previous observation
-      * example:
-        l = [1, 2, 3, 4, 5]
-        time_steps = 2
-        -> labels == False [[1, 2], [2, 3], [3, 4]]
-        -> labels == True [2, 3, 4, 5]
+        * type-def ::[DataFrame] ::int ::Bool -> np.ndarray
+    * ---------------{Function}---------------
+        * Creates a new DataFrame based on previous observations for use with an LSTM model.
+    * ----------------{Returns}---------------
+        * -> prepared_data ::np.ndarray | The prepared data in the format suitable for LSTM
+    * ----------------{Params}----------------
+        * : data       ::DataFrame | The input data DataFrame
+        * : time_steps ::int       | The number of time steps for the LSTM cell
+        * : labels     ::Bool      | Whether to return the labels (default: False)
+    * ----------------{Usage}-----------------
+        * >>> data = pd.DataFrame([1, 2, 3, 4, 5], columns=['values'])
+        * >>> rnn_data(data, time_steps=2, labels=False)
+        * array([[[1],
+                  [2]],
+                 [[2],
+                  [3]],
+                 [[3],
+                  [4]]])
+        * >>> rnn_data(data, time_steps=2, labels=True)
+        * array([[2],
+                 [3],
+                 [4],
+                 [5]])
+    * ----------------{Notes}-----------------
+        * This function assumes that the input data is a pandas DataFrame.
+        * The function creates a new DataFrame with sequences of length 'time_steps' for use with LSTM models.
     """
     rnn_df = []
     for i in range(len(data) - time_steps):
@@ -178,10 +252,53 @@ def rnn_data(data, time_steps, labels=False):
 
 
 def vectorized_lstm_data(data):
+    """
+        * type-def ::np.ndarray -> np.ndarray
+    * ---------------{Function}---------------
+        * Reshapes the input data for use with an LSTM model.
+    * ----------------{Returns}---------------
+        * -> reshaped_data ::np.ndarray | The reshaped data in the format suitable for LSTM
+    * ----------------{Params}----------------
+        * : data ::np.ndarray | The input data array
+    * ----------------{Usage}-----------------
+        * >>> data = np.array([[1, 2], [3, 4], [5, 6]])
+        * >>> vectorized_lstm_data(data)
+        * array([[[1, 2],
+                  [3, 4],
+                  [5, 6]]])
+    * ----------------{Notes}-----------------
+        * The function reshapes the input data into a 3D array with shape (1, data.shape[0], data.shape[1]).
+    """
     return data.reshape(1, data.shape[0], data.shape[1])
 
 
 def vectorized_lstm_feature(classes_array, feature_array, axis=1):
+    """
+        * type-def ::np.ndarray ::np.ndarray ::int -> np.ndarray
+    * ---------------{Function}---------------
+        * Vectorizes LSTM feature based on the provided classes_array and feature_array.
+    * ----------------{Returns}---------------
+        * -> vectorized_feature ::np.ndarray | The vectorized feature array
+    * ----------------{Params}----------------
+        * : classes_array  ::np.ndarray | The classes array to compare against the feature_array
+        * : feature_array  ::np.ndarray | The feature array to be vectorized
+        * : axis           ::int        | The axis along which to apply the comparison (default: 1)
+    * ----------------{Usage}-----------------
+        * >>> classes_array = np.array([0, 1, 2])
+        * >>> feature_array = np.array([[0, 1, 2], [2, 1, 0], [1, 0, 2]])
+        * >>> vectorized_lstm_feature(classes_array, feature_array)
+        * array([[[1, 0, 0],
+                  [0, 1, 0],
+                  [0, 0, 1]],
+                 [[0, 0, 1],
+                  [0, 1, 0],
+                  [1, 0, 0]],
+                 [[0, 1, 0],
+                  [1, 0, 0],
+                  [0, 0, 1]]])
+    * ----------------{Notes}-----------------
+        * The function vectorizes the LSTM feature based on the provided classes_array and feature_array.
+    """
     def classes_ret(number):
         try:
             return (classes_array == number).astype(int)
@@ -192,6 +309,24 @@ def vectorized_lstm_feature(classes_array, feature_array, axis=1):
 
 
 def batch_lstm_features(classes_array, feature_array, axis=1):
+    """
+        * type-def ::np.ndarray ::np.ndarray ::int -> np.ndarray
+    * ---------------{Function}---------------
+        * Creates batched LSTM features from the given classes_array and feature_array.
+    * ----------------{Returns}---------------
+        * -> batched_features ::np.ndarray | The batched LSTM features array
+    * ----------------{Params}----------------
+        * : classes_array  ::np.ndarray | The classes array to compare against the feature_array
+        * : feature_array  ::np.ndarray | The feature array to be vectorized
+        * : axis           ::int        | The axis along which to apply the comparison (default: 1)
+    * ----------------{Usage}-----------------
+        * >>> classes_array = np.array([0, 1, 2])
+        * >>> feature_array = np.array([[0, 1, 2], [2, 1, 0], [1, 0, 2]])
+        * >>> batch_lstm_features(classes_array, feature_array)
+    * ----------------{Notes}-----------------
+        * This function creates batched LSTM features by reshaping the input feature_array and
+          vectorizing the LSTM features using the provided classes_array.
+    """
     features = np.empty((1))
     feature_array = feature_array.reshape(1, feature_array.shape[0])
     batches = feature_array.shape[0] // 1000
