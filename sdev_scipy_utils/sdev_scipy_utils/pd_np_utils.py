@@ -55,14 +55,84 @@ def pd_series_from_base64(encoded):
     )
 
 
-def pd_load_tuple(tuple_list):
+def pd_load_tuple_py(tuple_list):
+    """
+    * type-def ::(List[Tuple[str, Any]]) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Converts a list of tuples into a pandas DataFrame, where the first element of each tuple becomes the column name.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with column names from the first element of each tuple in the input list
+    * ----------------{Params}----------------
+        * : tuple_list ::List[Tuple[str, Any]] | A list of tuples to be converted into a DataFrame
+    * ----------------{Usage}-----------------
+        * >>> tuple_list = [("A", 1, 2), ("B", 3, 4), ("C", 5, 6)]
+        * >>> df = pd_load_tuple(tuple_list)
+        * >>> print(df)
+    * ----------------{Output}----------------
+        *    A  B  C
+        * 1  1  3  5
+        * 2  2  4  6
+    * ----------------{Notes}-----------------
+        * This function is useful for converting a list of tuples into a pandas DataFrame with specified column names.
+    """
     df = pd.DataFrame(tuple_list).T
     df.columns = df.iloc[0]
     df = df.reindex(df.index.drop(0))
     return df
 
+def pd_load_tuple_np(tuple_list):
+    """
+    * type-def ::(List[Tuple[str, Any]]) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Converts a list of tuples into a pandas DataFrame, where the first element of each tuple becomes the column name.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with column names from the first element of each tuple in the input list
+    * ----------------{Params}----------------
+        * : tuple_list ::List[Tuple[str, Any]] | A list of tuples to be converted into a DataFrame
+    * ----------------{Usage}-----------------
+        * >>> tuple_list = [("A", 1, 2), ("B", 3, 4), ("C", 5, 6)]
+        * >>> df = pd_load_tuple(tuple_list)
+        * >>> print(df)
+    * ----------------{Output}----------------
+        *    index  1  2
+        * 0      A  1  2
+        * 1      B  3  4
+        * 2      C  5  6
+    * ----------------{Notes}-----------------
+        * This function is useful for converting a list of tuples into a pandas DataFrame with specified column names.
+    """
+    tuple_array = np.array(tuple_list)
+    tuple_array_transposed = tuple_array.T
+    df = pd.DataFrame(tuple_array_transposed[:, 1:], index=tuple_array_transposed[:, 0])
+    df.reset_index(inplace=True)
+    return df
+
+
 
 def pd_concat_list_dict(list_dict):
+    """
+    * type-def ::(List[Dict[str, Any]]) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Concatenates a list of dictionaries into a pandas DataFrame.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A concatenated DataFrame built from the input list of dictionaries
+    * ----------------{Params}----------------
+        * : list_dict ::List[Dict[str, Any]] | A list of dictionaries to be concatenated into a DataFrame
+    * ----------------{Usage}-----------------
+        * >>> list_dict = [{"A": 1, "B": 2}, {"A": 3, "B": 4}, {"A": 5, "B": 6}]
+        * >>> df = pd_concat_list_dict(list_dict)
+        * >>> print(df)
+    * ----------------{Output}----------------
+        *    index  1
+        * 0      A  1
+        * 1      B  2
+        * 0      A  3
+        * 1      B  4
+        * 0      A  5
+        * 1      B  6
+    * ----------------{Notes}-----------------
+        * This function is useful for concatenating a list of dictionaries into a single pandas DataFrame.
+    """
     for i in range(len(list_dict)):
         if i == 0:
             df = pd_load_tuple(list(list_dict[i].items()))
@@ -72,6 +142,29 @@ def pd_concat_list_dict(list_dict):
 
 
 def pd_csv_to_io(df):
+    """
+    * type-def ::(pd.DataFrame) -> io.BytesIO
+    * ---------------{Function}---------------
+        * Converts a pandas DataFrame to a CSV format in an in-memory binary buffer.
+    * ----------------{Returns}---------------
+        * : buffer ::io.BytesIO | A binary buffer containing the CSV representation of the input DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | A DataFrame to be converted to CSV format
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> data = {"A": [1, 2, 3], "B": [4, 5, 6]}
+        * >>> df = pd.DataFrame(data)
+        * >>> buffer = pd_csv_to_io(df)
+        * >>> print(buffer.getvalue().decode())
+    * ----------------{Output}----------------
+        * ,A,B
+        * 0,1,4
+        * 1,2,5
+        * 2,3,6
+        *
+    * ----------------{Notes}-----------------
+        * This function is useful for converting a DataFrame to an in-memory binary buffer, which can then be used to store or send the CSV data without writing to disk.
+    """
     import io
 
     buffer = io.BytesIO()
@@ -81,6 +174,28 @@ def pd_csv_to_io(df):
 
 
 def chunk_select_mysql(con, table_name, order_by, stride_length=1000):
+    """
+    * type-def ::(Connection, str, str, int) -> Generator[pd.DataFrame, None, None]
+    * ---------------{Function}---------------
+        * Yields chunks of data from a MySQL table, one chunk at a time.
+    * ----------------{Returns}---------------
+        * : generator ::Generator[pd.DataFrame, None, None] | A generator yielding DataFrames containing chunks of the table data
+    * ----------------{Params}----------------
+        * : con ::Connection | A connection object to the MySQL database
+        * : table_name ::str | The name of the table to fetch data from
+        * : order_by ::str | The column to order the data by when fetching chunks
+        * : stride_length ::int | The number of rows in each chunk (default: 1000)
+    * ----------------{Usage}-----------------
+        * >>> import mysql.connector as mariadb
+        * >>> mariadb_connection = mariadb.connect(user='username', password='password', database='mydb')
+        * >>> table_name = 'mytable'
+        * >>> order_by = 'id'
+        * >>> stride_length = 1000
+        * >>> for chunk in chunk_select_mysql(mariadb_connection, table_name, order_by, stride_length):
+        * ...     print(chunk)
+    * ----------------{Notes}-----------------
+        * This function is useful for fetching large tables in chunks, reducing memory usage and enabling more efficient processing.
+    """
     query = f"""
 CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
   SELECT *
@@ -101,6 +216,25 @@ CREATE TEMPORARY TABLE MYCHUNKED{table_name} AS (
 
 
 def get_stride_len(size_data, chunks):
+    """
+    * type-def ::(int, int) -> int
+    * ---------------{Function}---------------
+        * Calculate the stride length needed to divide a dataset into a specified number of chunks.
+    * ----------------{Returns}---------------
+        * : stride ::int | The calculated stride length
+    * ----------------{Params}----------------
+        * : size_data ::int | The total size of the dataset
+        * : chunks ::int | The number of chunks to divide the dataset into
+    * ----------------{Usage}-----------------
+        * >>> size_data = 5000
+        * >>> chunks = 10
+        * >>> stride_length = get_stride_len(size_data, chunks)
+        * >>> print(stride_length)
+    * ----------------{Output}----------------
+        * 500
+    * ----------------{Notes}-----------------
+        * This function is useful for determining the stride length needed to divide a dataset into a specified number of chunks.
+    """
     from math import ceil
 
     stride = ceil(size_data / chunks)
@@ -111,6 +245,23 @@ def get_stride_len(size_data, chunks):
 
 
 def get_attributes(mod):
+    """
+    * type-def ::(Module) -> List[Tuple[str, Any]]
+    * ---------------{Function}---------------
+        * Get a list of attributes for a given module, excluding private and special attributes.
+    * ----------------{Returns}---------------
+        * : attributes ::List[Tuple[str, Any]] | A list of tuples containing attribute names and their values
+    * ----------------{Params}----------------
+        * : mod ::Module | The module to get attributes from
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> attributes = get_attributes(np)
+        * >>> print(attributes)
+    * ----------------{Output}----------------
+        * [('ALLOW_THREADS', 1), ('BUFSIZE', 8192), ('CLIP', 0), ...]
+    * ----------------{Notes}-----------------
+        * This function is useful for listing the attributes of a module, which can be helpful for understanding the module's functionality.
+    """
     attributes = inspect.getmembers(mod, lambda a: not (inspect.isroutine(a)))
     return [
         a
@@ -120,6 +271,29 @@ def get_attributes(mod):
 
 
 def get_attributes_pd(obj, filter_list=None):
+    """
+    * type-def ::(Any, Optional[List[str]]) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Get a DataFrame containing attributes for a given object, with optional filtering.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame containing the attribute names and their values
+    * ----------------{Params}----------------
+        * : obj ::Any | The object to get attributes from
+        * : filter_list ::Optional[List[str]] | A list of attribute names to exclude from the output DataFrame (default: None)
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> filter_list = ['__name__', '__package__']
+        * >>> attributes_df = get_attributes_pd(np, filter_list)
+        * >>> print(attributes_df)
+    * ----------------{Output}----------------
+        *      0                 1
+        * 0  ALLOW_THREADS       1
+        * 1  BUFSIZE          8192
+        * 2  CLIP               0
+        * ...
+    * ----------------{Notes}-----------------
+        * This function is useful for generating a DataFrame containing the attributes of an object, which can be helpful for understanding the object's functionality.
+    """
     if filter_list:
         filtered_attr = filter_tuples(get_attributes(obj), filter_list)
         df = pd.DataFrame(filtered_attr).T
@@ -129,6 +303,34 @@ def get_attributes_pd(obj, filter_list=None):
 
 
 def get_nested_attributes_pd(data, filter_list=None, axis=0):
+    """
+    * type-def ::(List[object], List[str], int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Get attributes of a list of objects in a concatenated pandas DataFrame
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame containing attributes and their values
+    * ----------------{Params}----------------
+        * : data ::List[object] | A list of objects to extract attributes from
+        * : filter_list ::List[str] | A list of attribute names to filter out (default: None)
+        * : axis ::int | Axis along which to concatenate the DataFrames (default: 0)
+    * ----------------{Usage}-----------------
+        * >>> class MyClass:
+        * ...     def __init__(self, x, y):
+        * ...         self.x = x
+        * ...         self.y = y
+        * >>> obj_list = [MyClass(1, 2), MyClass(3, 4), MyClass(5, 6)]
+        * >>> df = get_nested_attributes_pd(obj_list)
+    * ----------------{Output}----------------
+        *     0         1
+        * 0  attr1    value1
+        * 1  attr2    value2
+        * 2  attr3    value3
+        * ...
+        * 0  attr1    value1
+        * 1  attr2    value2
+        * 2  attr3    value3
+        * ...
+    """
     for i, section in enumerate(data):
         if i == 0:
             sections = get_attributes_pd(section, filter_list)
@@ -139,6 +341,32 @@ def get_nested_attributes_pd(data, filter_list=None, axis=0):
 
 
 def concat_pd_list(data, axis=0):
+    """
+    * type-def ::(List[pd.DataFrame], int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Concatenate a list of pandas DataFrames along a specified axis
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A concatenated DataFrame
+    * ----------------{Params}----------------
+        * : data ::List[pd.DataFrame] | A list of DataFrames to concatenate
+        * : axis ::int | Axis along which to concatenate the DataFrames (default: 0)
+    * ----------------{Usage}-----------------
+        * >>> df1 = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        * >>> df2 = pd.DataFrame({'A': [5, 6], 'B': [7, 8]})
+        * >>> df3 = pd.DataFrame({'A': [9, 10], 'B': [11, 12]})
+        * >>> df_list = [df1, df2, df3]
+        * >>> concatenated_df = concat_pd_list(df_list)
+    * ----------------{Output}----------------
+        *     0         1
+        * 0  attr1    value1
+        * 1  attr2    value2
+        * 2  attr3    value3
+        * ...
+        * 0  attr1    value1
+        * 1  attr2    value2
+        * 2  attr3    value3
+        * ...
+    """
     for i, section in enumerate(data):
         if i == 0:
             sections = section
@@ -151,11 +379,46 @@ def concat_pd_list(data, axis=0):
 
 
 def pd_row_header(df, idx=0):
+    """
+    * type-def ::(pd.DataFrame, int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Set the DataFrame column headers using the values of a specific row
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with updated column headers
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : idx ::int | The index of the row to use for column headers (default: 0)
+    * ----------------{Usage}-----------------
+        * >>> data = {"A": ["header1", 1, 2], "B": ["header2", 3, 4]}
+        * >>> df = pd.DataFrame(data)
+        * >>> new_df = pd_row_header(df)
+    * ----------------{Output}----------------
+        *   header1  header2
+        * 1       1        3
+        * 2       2        4
+    """
     df.columns = df.iloc[idx]
     return df.reindex(df.index.drop(idx))
 
 
 def pd_split_lazy(df, column):
+    """
+    * type-def ::(pd.DataFrame, str) -> Iterator[Tuple[str, ...]]
+    * ---------------{Function}---------------
+        * Lazily split the values of a DataFrame column containing strings
+    * ----------------{Returns}---------------
+        * : iterator ::Iterator[Tuple[str, ...]] | An iterator yielding tuples of split values
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : column ::str | The name of the column to split
+    * ----------------{Usage}-----------------
+        * >>> data = {"A": ["one two", "three four"], "B": [1, 2]}
+        * >>> df = pd.DataFrame(data)
+        * >>> split_iterator = pd_split_lazy(df, "A")
+    * ----------------{Output}----------------
+        * ("one", "two")
+        * ("three", "four")
+    """
     return zip(*df[column].str.split().tolist())
 
 
@@ -978,16 +1241,22 @@ def sql_select_chunker(
 
 
 def reshape_multi_dimensional(data):
+    """
+    * type-def ::(np.ndarray) -> np.ndarray
+    * ---------------{Function}---------------
+        * Reshape a multi-dimensional numpy array to a 1-row 2D array
+    * ----------------{Returns}---------------
+        * : reshaped_data ::np.ndarray | A reshaped numpy array
+    * ----------------{Params}----------------
+        * : data ::np.ndarray | The input numpy array to reshape
+    * ----------------{Usage}-----------------
+        * >>> data = np.array([[1, 2], [3, 4]])
+        * >>> reshaped_data = reshape_multi_dimensional(data)
+    * ----------------{Output}----------------
+        * array([[1, 2, 3, 4]])
+    """
     return data.reshape(1, data.shape[0])
 
-
-def force_numeric_sort(df):
-    if df.empty:
-        return df
-    df.LAG = pd.to_numeric(df.LAG, errors="coerce")
-
-    df = df.sort_values(by=["LAG"], ascending=False)
-    return df
 
 
 def ndistinct(x):

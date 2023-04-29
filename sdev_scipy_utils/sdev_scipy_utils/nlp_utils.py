@@ -5,6 +5,26 @@ import numpy as np
 
 
 def get_ngrams(text, n, flag="nltk"):
+    """
+    * type-def ::(str, int, Optional[str]) -> np.ndarray
+    * ---------------{Function}---------------
+        * Generate n-grams from a text using either NLTK or Gensim.
+    * ----------------{Returns}---------------
+        * : n_grams ::np.ndarray | An array of n-grams
+    * ----------------{Params}----------------
+        * : text ::str | The input text to generate n-grams from
+        * : n ::int | The length of the n-grams
+        * : flag ::str | The library to use for generating n-grams, either "nltk" or "gensim" (default: "nltk")
+    * ----------------{Usage}-----------------
+        * >>> text = "This is a sample text for n-grams."
+        * >>> n = 3
+        * >>> n_grams = get_ngrams(text, n)
+        * >>> print(n_grams)
+    * ----------------{Output}----------------
+        * ['This is a' 'is a sample' 'a sample text' 'sample text for' 'text for n-grams.']
+    * ----------------{Notes}-----------------
+        * This function is useful for generating n-grams from text for text analysis and comparison.
+    """
     n_grams = ngrams(word_tokenize(text), n)
     if flag == "gensim":
         try:
@@ -21,10 +41,57 @@ def get_ngrams(text, n, flag="nltk"):
 
 
 def find_ngrams(input_list, n):
+    """
+    * type-def ::(List[str], int) -> Iterator[Tuple[str, ...]]
+    * ---------------{Function}---------------
+        * Generate n-grams from a list of words.
+    * ----------------{Returns}---------------
+        * : n_grams ::Iterator[Tuple[str, ...]] | An iterator that yields tuples of n-grams
+    * ----------------{Params}----------------
+        * : input_list ::List[str] | The input list of words to generate n-grams from
+        * : n ::int | The length of the n-grams
+    * ----------------{Usage}-----------------
+        * >>> input_list = ["This", "is", "a", "sample", "text", "for", "n-grams."]
+        * >>> n = 3
+        * >>> n_grams = find_ngrams(input_list, n)
+        * >>> for n_gram in n_grams:
+        * >>>     print(n_gram)
+    * ----------------{Output}----------------
+        * ('This', 'is', 'a')
+        * ('is', 'a', 'sample')
+        * ('a', 'sample', 'text')
+        * ('sample', 'text', 'for')
+        * ('text', 'for', 'n-grams.')
+    * ----------------{Notes}-----------------
+        * This function is useful for generating n-grams from a list of words for text analysis and comparison.
+    """
     return zip(*[input_list[i:] for i in range(n)])
 
 
 def rank_ngrams(df_series, n):
+    """
+    * type-def ::(pd.Series, int) -> pd.Series
+    * ---------------{Function}---------------
+        * Rank n-grams based on their frequency in a pandas Series.
+    * ----------------{Returns}---------------
+        * : ranked_ngrams ::pd.Series | A pandas Series of ranked n-grams
+    * ----------------{Params}----------------
+        * : df_series ::pd.Series | A pandas Series containing n-grams
+        * : n ::int | The number of top n-grams to return
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> n_grams = ['This is a', 'is a sample', 'a sample text', 'sample text for', 'text for n-grams']
+        * >>> df_series = pd.Series(n_grams)
+        * >>> ranked_ngrams = rank_ngrams(df_series, 3)
+        * >>> print(ranked_ngrams)
+    * ----------------{Output}----------------
+        * This is a        1
+        * is a sample      1
+        * a sample text    1
+        * dtype: int64
+    * ----------------{Notes}-----------------
+        * This function is useful for ranking n-grams based on their frequency for text analysis and comparison.
+    """
     return (
         df_series.apply(pd.Series)
         .stack()
@@ -35,6 +102,26 @@ def rank_ngrams(df_series, n):
 
 
 def get_max_len(series):
+    """
+    * type-def ::(pd.Series) -> Tuple[int, int]
+    * ---------------{Function}---------------
+        * Get the maximum length and index of the longest element in a pandas Series.
+    * ----------------{Returns}---------------
+        * : length ::int | The length of the longest element in the Series
+        * : indexed ::int | The index of the longest element in the Series
+    * ----------------{Params}----------------
+        * : series ::pd.Series | A pandas Series containing elements to find the maximum length
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> elements = ['This is a', 'is a sample', 'a sample text', 'sample text for', 'text for n-grams']
+        * >>> series = pd.Series(elements)
+        * >>> max_len, index = get_max_len(series)
+        * >>> print(max_len, index)
+    * ----------------{Output}----------------
+        * 17 4
+    * ----------------{Notes}-----------------
+        * This function is useful for finding the maximum length and index of the longest element in a pandas Series.
+    """
     length = 0
     for index, i in enumerate(series):
         if len(i) > length:
@@ -67,6 +154,28 @@ def extract_ngrams_np(ngrams):
         for j in i:
             tmp.append(j)
     return tmp
+
+
+def extract_ngrams_np(ngrams):
+    """
+    * type-def ::(List[List[str]]) -> np.ndarray
+    * ---------------{Function}---------------
+        * Flatten a list of n-grams into a numpy array.
+    * ----------------{Returns}---------------
+        * : flattened_ngrams ::np.ndarray | A flattened numpy array of n-grams
+    * ----------------{Params}----------------
+        * : ngrams ::List[List[str]] | A list of lists containing n-grams
+    * ----------------{Usage}-----------------
+        * >>> ngrams = [['This is a', 'is a sample'], ['a sample text', 'sample text for'], ['text for n-grams']]
+        * >>> flattened_ngrams = extract_ngrams_np(ngrams)
+        * >>> print(flattened_ngrams)
+    * ----------------{Output}----------------
+        * ['This is a' 'is a sample' 'a sample text' 'sample text for' 'text for n-grams']
+    * ----------------{Notes}-----------------
+        * This function is useful for flattening a nested list of n-grams into a single numpy array.
+    """
+    ngrams_array = np.array(ngrams)
+    return ngrams_array.flatten()
 
 
 # from string import punctuation
@@ -245,6 +354,33 @@ def Build_STDM(docs, **kwargs):
 
 # Define a topic mining function (non-negative matrix factorization)
 def nmf(M, components=5, iterations=5000):
+    """
+    * type-def ::(np.ndarray, int, int) -> Tuple[np.ndarray, np.ndarray]
+    * ---------------{Function}---------------
+        * Perform Non-negative Matrix Factorization (NMF) on a given matrix.
+    * ----------------{Returns}---------------
+        * : W ::np.ndarray | The W matrix of the NMF
+        * : H ::np.ndarray | The H matrix of the NMF
+    * ----------------{Params}----------------
+        * : M ::np.ndarray | The input matrix to be factorized
+        * : components ::int | The number of components to use for the NMF (default: 5)
+        * : iterations ::int | The number of iterations to run the NMF algorithm (default: 5000)
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> M = np.array([[1, 2], [3, 4]])
+        * >>> W, H = nmf(M, components=2, iterations=5000)
+        * >>> print(W)
+        * >>> print(H)
+    * ----------------{Output}----------------
+        * W:
+        * [[0.         1.28760289]
+        *  [0.         2.72138525]]
+        * H:
+        * [[0.         0.        ]
+        *  [0.77685234 1.55370467]]
+    * ----------------{Notes}-----------------
+        * This function is useful for topic mining and dimensionality reduction using Non-negative Matrix Factorization.
+    """
     # Initialize to matrices
     W = np.asmatrix(np.random.random(([M.shape[0], components])))
     H = np.asmatrix(np.random.random(([components, M.shape[1]])))
@@ -484,7 +620,11 @@ def kgrams(text, k=5):
         * >>> for kgram in kgrams_gen:
         * >>>     print(kgram)
     * ----------------{Output}----------------
-        * [('T', 'h', 'i', 's', ' '), ('h', 'i', 's', ' ', 'i'), ('i', 's', ' ', 'i', 's'), ('s', ' ', 'i', 's', ' '), (' ', 'i', 's', ' ', 'a'), ('i', 's', ' ', 'a', ' '), ('s', ' ', 'a', ' ', 's'), (' ', 'a', ' ', 's', 'a'), ('a', ' ', 's', 'a', 'm'), (' ', 's', 'a', 'm', 'p'), ('s', 'a', 'm', 'p', 'l'), ('a', 'm', 'p', 'l', 'e'), ('m', 'p', 'l', 'e', ' '), ('p', 'l', 'e', ' ', 't'), ('l', 'e', ' ', 't', 'e'), ('e', ' ', 't', 'e', 'x'), (' ', 't', 'e', 'x', 't')]
+        * [('T', 'h', 'i', 's', ' '), ('h', 'i', 's', ' ', 'i'), ('i', 's', ' ', 'i', 's'), ('s', ' ', 'i', 's', ' '),
+        * (' ', 'i', 's', ' ', 'a'), ('i', 's', ' ', 'a', ' '), ('s', ' ', 'a', ' ', 's'), (' ', 'a', ' ', 's', 'a'),
+        * ('a', ' ', 's', 'a', 'm'), (' ', 's', 'a', 'm', 'p'), ('s', 'a', 'm', 'p', 'l'), ('a', 'm', 'p', 'l', 'e'),
+        * ('m', 'p', 'l', 'e', ' '), ('p', 'l', 'e', ' ', 't'), ('l', 'e', ' ', 't', 'e'), ('e', ' ', 't', 'e', 'x'),
+        * (' ', 't', 'e', 'x', 't')]
     * ----------------{Notes}-----------------
         * This function is useful for generating k-grams from text, which can be used for text fingerprinting and comparison.
     """
