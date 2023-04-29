@@ -14,9 +14,25 @@ def plot_confusion_matrix(
     cm, classes, normalize=False, title="Confusion matrix", cmap=plt.cm.Blues
 ):
     """
-  This function prints and plots the confusion matrix.
-  Normalization can be applied by setting `normalize=True`.
-  """
+    * type-def ::(np.ndarray, List[str], bool, str, matplotlib.colors.Colormap) -> None
+    * ---------------{Function}---------------
+        * Prints and plots the confusion matrix.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : cm ::np.ndarray | The confusion matrix
+        * : classes ::List[str] | The list of class labels
+        * : normalize ::bool | Apply normalization if set to True; default is False
+        * : title ::str | The title for the confusion matrix plot; default is 'Confusion matrix'
+        * : cmap ::matplotlib.colors.Colormap | The colormap for the confusion matrix plot; default is plt.cm.Blues
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> cm = np.array([[10, 2], [1, 7]])
+        * >>> classes = ['Normal', 'Anomaly']
+        * >>> plot_confusion_matrix(cm, classes)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the confusion matrix, which is useful for understanding the classification performance of a model on a given dataset.
+    """
     if normalize:
         cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
@@ -50,6 +66,25 @@ def plot_confusion_matrix(
 
 
 def gini(actual, pred, weight=None):
+    """
+    * type-def ::(np.ndarray, np.ndarray, Optional[np.ndarray]) -> float
+    * ---------------{Function}---------------
+        * Calculates the Gini coefficient for the given actual and predicted values.
+    * ----------------{Returns}---------------
+        * -> float | The Gini coefficient
+    * ----------------{Params}----------------
+        * : actual ::np.ndarray | The actual values (ground truth)
+        * : pred ::np.ndarray | The predicted values
+        * : weight ::Optional[np.ndarray] | The weights for each observation; default is None
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> actual = np.array([1, 0, 1, 0, 1])
+        * >>> pred = np.array([0.9, 0.1, 0.8, 0.3, 0.7])
+        * >>> gini_coefficient = gini(actual, pred)
+        * >>> print(gini_coefficient)
+    * ----------------{Notes}-----------------
+        * The Gini coefficient measures the inequality among values of a frequency distribution, and it is commonly used to measure the performance of classification models. A Gini coefficient of 0 indicates perfect equality, while a Gini coefficient of 1 indicates maximal inequality.
+    """
     pdf = pd.DataFrame(scipy.vstack([actual, pred]).T, columns=["Actual", "Predicted"])
     pdf = pdf.sort_values("Predicted")
     if weight is None:
@@ -284,6 +319,29 @@ def barplot(df, var, MyTitle="", aval=0.9, prnt=False, prcnt=False, topn=10):
 
 
 def learned_frontier(data, classifier, X_train, X_test, savefig=None):
+    """
+    * type-def ::(pd.DataFrame, Any, np.ndarray, np.ndarray, Optional[str]) -> None
+    * ---------------{Function}---------------
+        * Plots the learned frontier of a given classifier for novelty detection.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : data ::pd.DataFrame | The original dataset
+        * : classifier ::Any | The classifier model used for novelty detection
+        * : X_train ::np.ndarray | The training data
+        * : X_test ::np.ndarray | The testing data
+        * : savefig ::Optional[str] | The file name to save the plot as an image; default is None
+    * ----------------{Usage}-----------------
+        * >>> import numpy as np
+        * >>> from sklearn.svm import OneClassSVM
+        * >>> data = pd.DataFrame(np.random.randn(100, 2))
+        * >>> X_train = data.iloc[:80].values
+        * >>> X_test = data.iloc[80:].values
+        * >>> clf = OneClassSVM()
+        * >>> learned_frontier(data, clf, X_train, X_test)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the learned frontier of a classifier model for novelty detection. The plot shows the learned frontier, the training observations, and the new regular observations. The function can also save the generated plot as an image if the 'savefig' parameter is provided with a file name.
+    """
     import matplotlib.pyplot as plt
 
     data_min = multi_dim_min(data)

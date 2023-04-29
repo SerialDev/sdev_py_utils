@@ -343,6 +343,23 @@ import pickle
 
 
 def to_sarvam(data, save_path="", save_file=False):
+    """
+    * type-def ::Any ::str ::bool -> np.ndarray | None
+    * ---------------{Function}---------------
+        * Converts the given data to a SARVAM (Scalable And Reusable Visual Analytical Models) representation.
+    * ----------------{Returns}---------------
+        * -> g ::np.ndarray | The SARVAM representation of the data (if save_file is False)
+        * -> None           | None (if save_file is True)
+    * ----------------{Params}----------------
+        * : data      ::Any    | The data to be converted
+        * : save_path ::str    | The path to save the SARVAM representation (default: "")
+        * : save_file ::bool   | Whether to save the SARVAM representation as a file (default: False)
+    * ----------------{Usage}-----------------
+        * >>> data = np.array([1, 2, 3, 4, 5])
+        * >>> sarvam_data = to_sarvam(data)
+    * ----------------{Notes}-----------------
+        * This function converts the given data to a SARVAM representation and saves it as a file if specified.
+    """
     with open("tmp.plk", "wb") as tmp:
         pickle.dump(data, tmp)
 
@@ -374,11 +391,18 @@ def to_sarvam(data, save_path="", save_file=False):
 
 def get_compressed_file(data):
     """
-    * Function: compress data and get the compressed and uncompressed size
-    * Usage: get_compressed_file(data) . . .
-    * -------------------------------
-    * This function returns
-    * size_compressed, size_uncompressed
+    * type-def ::Any -> Tuple[int, int]
+    * ---------------{Function}---------------
+        * Compresses the given data and returns the compressed and uncompressed file sizes.
+    * ----------------{Returns}---------------
+        * -> size_compressed, size_uncompressed ::Tuple[int, int] | The compressed and uncompressed file sizes
+    * ----------------{Params}----------------
+        * : data ::Any | The data to be compressed
+    * ----------------{Usage}-----------------
+        * >>> data = np.array([1, 2, 3, 4, 5])
+        * >>> size_compressed, size_uncompressed = get_compressed_file(data)
+    * ----------------{Notes}-----------------
+        * This function compresses the given data using the bz2 module and returns the compressed and uncompressed file sizes.
     """
     with bz2.BZ2File("tmp.bzip", "wb") as tmp:
         pickle.dump(data, tmp)
@@ -391,6 +415,23 @@ def get_compressed_file(data):
 
 
 def get_binary_features(df, col, batches=False, batches_size=100000):
+    """
+    * type-def ::pd.DataFrame ::str ::Union[bool, str] ::int -> np.ndarray
+    * ---------------{Function}---------------
+        * Generates binary features from a DataFrame column.
+    * ----------------{Returns}---------------
+        * -> binary_descriptions ::np.ndarray | The binary features array
+    * ----------------{Params}----------------
+        * : df           ::pd.DataFrame       | The input DataFrame
+        * : col          ::str                | The column name from which to generate binary features
+        * : batches      ::Union[bool, str]   | Whether to process in batches (default: False)
+        * : batches_size ::int                | The batch size if processing in batches (default: 100000)
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        * >>> binary_features = get_binary_features(df, "A")
+    * ----------------{Notes}-----------------
+        * This function generates binary features from the given DataFrame column using vectorized LSTM feature extraction.
+    """
     classes_array = df[col].unique()
     series_np = df[col].as_matrix()
     series_np = series_np.reshape(series_np.shape[0], 1)

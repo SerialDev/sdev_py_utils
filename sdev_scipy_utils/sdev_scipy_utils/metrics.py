@@ -23,6 +23,23 @@ def pred_metrics(y_pred, y_true):
 
 
 def reduce_mem_usage(df, verbose=True):
+    """
+    * type-def ::pd.DataFrame -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Reduces memory usage of a DataFrame by downcasting numeric types.
+    * ----------------{Returns}---------------
+        * -> df ::pd.DataFrame | The DataFrame with reduced memory usage
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : verbose ::bool | (Optional) If True, prints the memory usage reduction (default: True)
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> df = pd.read_csv('large_dataset.csv')
+        * >>> df_reduced = reduce_mem_usage(df)
+    * ----------------{Notes}-----------------
+        * This function iterates through all numeric columns in a DataFrame and downcasts them to the smallest suitable numeric type.
+        * It helps reduce the memory footprint of large DataFrames.
+    """
     numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
     start_mem = df.memory_usage().sum() / 1024 ** 2
     for col in df.columns:
@@ -63,6 +80,24 @@ def reduce_mem_usage(df, verbose=True):
 
 
 def rf_feature_selection(X_train):
+    """
+    * type-def ::(pd.DataFrame, pd.Series) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Determines the feature importances using a Random Forest Classifier.
+    * ----------------{Returns}---------------
+        * -> importances ::pd.DataFrame | A DataFrame containing the feature importances
+    * ----------------{Params}----------------
+        * : X_train ::pd.DataFrame | The input training feature set
+        * : y_train ::pd.Series | The input training labels
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> X_train = pd.read_csv('X_train.csv')
+        * >>> y_train = pd.read_csv('y_train.csv')
+        * >>> importances = rf_feature_selection(X_train, y_train)
+    * ----------------{Notes}-----------------
+        * This function fits a Random Forest Classifier on the training data and extracts the feature importances.
+        * It returns a sorted DataFrame of feature importances and also plots a bar chart of the importances.
+    """
     from sklearn.ensemble import RandomForestClassifier
 
     rfc = RandomForestClassifier()
@@ -82,6 +117,24 @@ def rf_feature_selection(X_train):
 
 
 def rfe_feature_selection(X_train, y_train):
+    """
+    * type-def ::(pd.DataFrame, pd.Series) -> List[str]
+    * ---------------{Function}---------------
+        * Selects important features using Recursive Feature Elimination (RFE) with a Random Forest Classifier.
+    * ----------------{Returns}---------------
+        * -> selected_features ::List[str] | A list containing the names of the selected features
+    * ----------------{Params}----------------
+        * : X_train ::pd.DataFrame | The input training feature set
+        * : y_train ::pd.Series | The input training labels
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> X_train = pd.read_csv('X_train.csv')
+        * >>> y_train = pd.read_csv('y_train.csv')
+        * >>> selected_features = rfe_feature_selection(X_train, y_train)
+    * ----------------{Notes}-----------------
+        * This function uses RFE with a Random Forest Classifier to select important features.
+        * The number of features to select is set to 15 by default.
+    """
     from sklearn.feature_selection import RFE
     import itertools
 
@@ -101,7 +154,24 @@ def rfe_feature_selection(X_train, y_train):
 
 
 def getDistanceByPoint(data, model):
-    # return Series of distance between each point and his distance with the closest centroid
+    """
+    * type-def ::(pd.DataFrame, sklearn.cluster) -> pd.Series
+    * ---------------{Function}---------------
+        * Computes the distance between each point in the data and its closest centroid from the clustering model.
+    * ----------------{Returns}---------------
+        * -> distance ::pd.Series | A Series containing the distances between each point and its closest centroid
+    * ----------------{Params}----------------
+        * : data ::pd.DataFrame | The input data
+        * : model ::sklearn.cluster | The clustering model with calculated centroids
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> from sklearn.cluster import KMeans
+        * >>> data = pd.read_csv('data.csv')
+        * >>> kmeans_model = KMeans(n_clusters=3).fit(data)
+        * >>> distances = getDistanceByPoint(data, kmeans_model)
+    * ----------------{Notes}-----------------
+        * This function calculates the Euclidean distance between each point in the data and its closest centroid from the given clustering model.
+    """
     distance = pd.Series()
     for i in range(0, len(data)):
         Xa = np.array(data.loc[i])
@@ -111,13 +181,47 @@ def getDistanceByPoint(data, model):
 
 
 def getTransitionMatrix(df):
-    # train markov model to get transition matrix
+    """
+    * type-def ::(pd.DataFrame) -> np.ndarray
+    * ---------------{Function}---------------
+        * Computes the transition matrix for the given DataFrame using Markov state model estimation.
+    * ----------------{Returns}---------------
+        * -> transition_matrix ::np.ndarray | The transition matrix of the Markov state model
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input data
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> df = pd.read_csv('data.csv')
+        * >>> transition_matrix = getTransitionMatrix(df)
+    * ----------------{Notes}-----------------
+        * This function uses PyEMMA's `msm.estimate_markov_model` to compute the transition matrix.
+        * train markov model to get transition matrix
+    """    
     df = np.array(df)
     model = msm.estimate_markov_model(df, 1)
     return model.transition_matrix
 
 
 def markovAnomaly(df, windows_size, threshold):
+    """
+    * type-def ::(pd.DataFrame, int, float) -> List[int]
+    * ---------------{Function}---------------
+        * Detects anomalies in the input DataFrame using the Markov Anomaly Detection method.
+    * ----------------{Returns}---------------
+        * -> df_anomaly ::List[int] | A list of binary values, where 1 indicates an anomaly and 0 indicates normal data
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input data
+        * : windows_size ::int | The size of the sliding window to be used
+        * : threshold ::float | The threshold for determining anomalies
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> df = pd.read_csv('data.csv')
+        * >>> windows_size = 5
+        * >>> threshold = 0.01
+        * >>> df_anomaly = markovAnomaly(df, windows_size, threshold)
+    * ----------------{Notes}-----------------
+        * This function detects anomalies using a Markov Anomaly Detection method with a sliding window.
+    """
     transition_matrix = getTransitionMatrix(df)
     real_threshold = threshold ** windows_size
     df_anomaly = []
@@ -134,6 +238,22 @@ def markovAnomaly(df, windows_size, threshold):
 
 
 def cluster_elbow_plot(X_train):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Generates an elbow plot for clustering with different numbers of centroids.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : X_train ::pd.DataFrame | The input training feature set
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> X_train = pd.read_csv('X_train.csv')
+        * >>> cluster_elbow_plot(X_train)
+    * ----------------{Notes}-----------------
+        * This function computes KMeans clustering with different numbers of clusters (from 1 to 20).
+        * The elbow plot helps in determining the optimal number of clusters by visually identifying the elbow point.
+    """
     from sklearn.cluster import KMeans
 
     # calculate with different number of centroids to see the loss plot (elbow method)
@@ -146,6 +266,21 @@ def cluster_elbow_plot(X_train):
 
 
 def observe_binary_feature_distribution(df):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Plots the distribution of the first 30 binary features for normal and anomalous classes.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input data containing the features and the 'class' column
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> df = pd.read_csv('data.csv')
+        * >>> observe_binary_feature_distribution(df)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the distribution of binary features to identify patterns or significant differences between normal and anomalous data.
+    """
     import matplotlib.gridspec as gridspec
 
     v_features = df.iloc[:, 0:30].columns
@@ -175,8 +310,24 @@ def observe_binary_feature_distribution(df):
 
 
 def plot_val_loss(h):
-    # h:tf.python.keras.callbacks.History
-    # val_loss is the value of cost function for your cross-validation data and loss is the value of cost function for your training data.
+    """
+    * type-def ::(tf.python.keras.callbacks.History) -> None
+    * ---------------{Function}---------------
+        * Plots the training and validation loss per epoch from the given history object.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : h ::tf.python.keras.callbacks.History | The history object obtained after fitting a keras model
+    * ----------------{Usage}-----------------
+        * >>> from keras.models import Sequential
+        * >>> # ... build and compile your model ...
+        * >>> history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100)
+        * >>> plot_val_loss(history)
+    * ----------------{Notes}-----------------
+        * This function helps to visualize the training and validation losses over epochs, which can be used to detect overfitting or underfitting.
+        * h:tf.python.keras.callbacks.History
+        * val_loss is the value of cost function for your cross-validation data and loss is the value of cost function for your training data.
+    """
 
     plt.figure()
     plt.plot(h.history["loss"], label="loss")
@@ -188,6 +339,21 @@ def plot_val_loss(h):
 
 
 def plot_reconstruction_error(train_error):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Plots the reconstruction error (MSE) for each data point, differentiating between normal and anomaly.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> plot_reconstruction_error(train_error)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the reconstruction error to identify patterns or significant differences between normal and anomalous data.
+    """
     plt.figure(figsize=(12, 5))
     plt.scatter(
         train_error.index[train_error["True_class"] == 0],
@@ -208,6 +374,21 @@ def plot_reconstruction_error(train_error):
 
 
 def find_threshold_prc(train_error):
+    """
+    * type-def ::(pd.DataFrame) -> Tuple[float, np.ndarray, float]
+    * ---------------{Function}---------------
+        * Calculates the best threshold to maximize the F1 score based on the reconstruction error.
+    * ----------------{Returns}---------------
+        * -> Tuple[float, np.ndarray, float] | The best threshold, F1 scores for different threshold values, and average precision score
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> best_threshold, f1_scores, average_precision = find_threshold_prc(train_error)
+    * ----------------{Notes}-----------------
+        * This function helps to determine the optimal threshold for classification based on the reconstruction error in a given dataset.
+    """
     from sklearn.metrics import (
         precision_recall_curve,
         roc_curve,
@@ -232,6 +413,21 @@ def find_threshold_prc(train_error):
 
 
 def plot_pr_recall_curve(train_error):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Plots the precision, recall, and F1 score curves for different threshold values based on the reconstruction error.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> plot_pr_recall_curve(train_error)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the precision, recall, and F1 score for different threshold values, which can be useful in determining the best threshold for classification based on the reconstruction error.
+    """
     from sklearn.metrics import (
         precision_recall_curve,
         roc_curve,
@@ -295,6 +491,21 @@ def plot_pr_recall_curve(train_error):
 
 
 def plot_recall_pr_curve(train_error):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Plots the precision-recall curve with F1 score isoclines.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> plot_recall_pr_curve(train_error)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the precision-recall curve, which is useful for understanding the trade-off between precision and recall for different threshold values in a given dataset.
+    """
     from sklearn.metrics import (
         precision_recall_curve,
         roc_curve,
@@ -358,6 +569,23 @@ def plot_recall_pr_curve(train_error):
 
 
 def plot_reconstruction_error(train_error: pd.DataFrame, best_threshold):
+    """
+    * type-def ::(pd.DataFrame, float) -> None
+    * ---------------{Function}---------------
+        * Plots the reconstruction error for normal and anomalous data points with a given threshold.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+        * : best_threshold ::float | The optimal threshold for classifying the data points
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> best_threshold = 0.123
+        * >>> plot_reconstruction_error(train_error, best_threshold)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the reconstruction error for normal and anomalous data points, which can be useful in understanding the performance of a model at a given threshold.
+    """
     plt.figure(figsize=(12, 5))
     plt.scatter(
         train_error.index[train_error["True_class"] == 0],
@@ -383,6 +611,21 @@ def plot_reconstruction_error(train_error: pd.DataFrame, best_threshold):
 
 
 def plot_roc_curve(train_error):
+    """
+    * type-def ::(pd.DataFrame) -> None
+    * ---------------{Function}---------------
+        * Plots the ROC curve for the given data.
+    * ----------------{Returns}---------------
+        * -> None
+    * ----------------{Params}----------------
+        * : train_error ::pd.DataFrame | The input DataFrame containing the 'True_class' and 'Reconstruction_error' columns
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> train_error = pd.read_csv('train_error.csv')
+        * >>> plot_roc_curve(train_error)
+    * ----------------{Notes}-----------------
+        * This function helps visualize the ROC curve, which is useful for understanding the trade-off between true positive rate and false positive rate for different threshold values in a given dataset.
+    """
     from sklearn.metrics import roc_curve, auc
 
     fpr, tpr, thresholds = roc_curve(
@@ -405,9 +648,25 @@ def plot_roc_curve(train_error):
 
 # Function to calculate VIF
 def calculate_vif(data):
-    # VIF=1, Very Less Multicollinearity
-    # VIF<5, Moderate Multicollinearity
-    # VIF>5, Extreme Multicollinearity (This is what we have to avoid)
+    """
+    * type-def ::(pd.DataFrame) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Calculates the variance inflation factor (VIF) for the features in the given dataset.
+    * ----------------{Returns}---------------
+        * -> pd.DataFrame | A DataFrame with columns 'Var' (feature names) and 'Vif' (variance inflation factors) sorted by VIF in descending order.
+    * ----------------{Params}----------------
+        * : data ::pd.DataFrame | The input DataFrame containing the features to be analyzed for multicollinearity
+    * ----------------{Usage}-----------------
+        * >>> import pandas as pd
+        * >>> data = pd.read_csv('example_data.csv')
+        * >>> vif_df = calculate_vif(data)
+        * >>> print(vif_df)
+    * ----------------{Notes}-----------------
+        * VIF is a measure of multicollinearity in the dataset, which can help identify features that may cause issues in linear regression models due to high multicollinearity. The higher the VIF, the higher the multicollinearity.
+        * VIF=1, Very Less Multicollinearity
+        * VIF<5, Moderate Multicollinearity
+        * VIF>5, Extreme Multicollinearity (This is what we have to avoid)
+    """
     vif_df = pd.DataFrame(columns=["Var", "Vif"])
     x_var_names = data.columns
     for i in range(0, x_var_names.shape[0]):
