@@ -1258,13 +1258,43 @@ def reshape_multi_dimensional(data):
     return data.reshape(1, data.shape[0])
 
 
-
 def ndistinct(x):
+    """
+    * type-def ::(np.ndarray) -> int
+    * ---------------{Function}---------------
+        * Count the number of distinct values in a numpy array
+    * ----------------{Returns}---------------
+        * : out ::int | The number of distinct values in the input array
+    * ----------------{Params}----------------
+        * : x ::np.ndarray | The input numpy array
+    * ----------------{Usage}-----------------
+        * >>> x = np.array([1, 2, 3, 1, 2, 3, 4])
+        * >>> distinct_count = ndistinct(x)
+    * ----------------{Output}----------------
+        * 4
+    """
     out = len(np.unique(x))
-    print("There are", out, "distinct values.")
+    return out
 
-
-def incremental_bounds_df(size, increments):
+def calculate_bounds_and_iterations(size, increments):
+    """
+    * type-def ::(int, int) -> Tuple[int, int, int]
+    * ---------------{Function}---------------
+        * Calculate lower and upper bounds and the number of iterations for dividing a size into increments
+    * ----------------{Returns}---------------
+        * : lb ::int | The lower bound
+        * : ub ::int | The upper bound
+        * : its ::int | The number of iterations
+    * ----------------{Params}----------------
+        * : size ::int | The total size to be divided
+        * : increments ::int | The size of increments
+    * ----------------{Usage}-----------------
+        * >>> size = 100
+        * >>> increments = 10
+        * >>> lb, ub, its = calculate_bounds_and_iterations(size, increments)
+    * ----------------{Output}----------------
+        * (0, 10, 10)
+    """
     from math import ceil
 
     lb = 0
@@ -1474,6 +1504,25 @@ def np_parallel_apply_along(data, function, axis=1, parts=4, threads=4):
 
 
 def split_dataframe(df, sections=10):
+    """
+    * type-def ::(pd.DataFrame, int) -> List[pd.DataFrame]
+    * ---------------{Function}---------------
+        * Split a DataFrame into a specified number of sections
+    * ----------------{Returns}---------------
+        * : result ::List[pd.DataFrame] | A list of DataFrames, each representing a section of the original DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame to be split
+        * : sections ::int | The number of sections to split the DataFrame into (default: 10)
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({'A': range(100), 'B': range(100)})
+        * >>> split_dfs = split_dataframe(df, sections=5)
+    * ----------------{Output}----------------
+        * [    A   B
+              ..
+            ,    A   B
+              ..
+            , ... ]
+    """
     from math import ceil
 
     part_size = ceil(df_u.shape[0] // sections)
@@ -1489,7 +1538,26 @@ def split_dataframe(df, sections=10):
 
 
 def chunk_dataframe(df, sections=10):
-
+    """
+    * type-def ::(pd.DataFrame, int) -> Generator[pd.DataFrame]
+    * ---------------{Function}---------------
+        * Yield chunks of a DataFrame given a specified number of sections
+    * ----------------{Returns}---------------
+        * : temp_df ::pd.DataFrame | A chunk of the original DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame to be chunked
+        * : sections ::int | The number of sections to divide the DataFrame into (default: 10)
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({'A': range(100), 'B': range(100)})
+        * >>> for chunk in chunk_dataframe(df, sections=5):
+        * ...     print(chunk)
+    * ----------------{Output}----------------
+        *     A   B
+          ...
+        *     A   B
+          ...
+        * ...
+    """
     part_size = get_stride_len(df.shape[0], sections)
     lb = 0
     ub = part_size
@@ -1515,6 +1583,24 @@ def fill_na(df):
 
 
 def inner_join(con, table1, table2, col):
+    """
+    * type-def ::(Connection, str, str, str) -> str
+    * ---------------{Function}---------------
+        * Construct a SQL query to perform an inner join between two tables based on a common column
+    * ----------------{Returns}---------------
+        * : result ::str | A SQL query string for inner join
+    * ----------------{Params}----------------
+        * : con ::Connection | A connection object to the database
+        * : table1 ::str | The name of the first table to join
+        * : table2 ::str | The name of the second table to join
+        * : col ::str | The name of the common column to join on
+    * ----------------{Usage}-----------------
+        * >>> query = inner_join(con, "table1", "table2", "id")
+        * >>> print(query)
+    * ----------------{Output}----------------
+        * SELECT table1.column1, table1.column2, table2.column1 as table2_column1, table2.column2 as table2_column2
+          FROM table1 INNER JOIN table2 ON table1.id=table2.id
+    """
     a = pd.read_sql("select * from {} limit 1;".format(table1), con).keys()
     b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
     intersection = [table1 + "." + i for i in a.intersection(b)]
@@ -1531,6 +1617,37 @@ def inner_join(con, table1, table2, col):
 
 
 def nest_inner(con, query, view1, table2, col, col2=None):
+    """
+    * type-def ::(Connection, str, str, str, str, Optional[str]) -> str
+    * ---------------{Function}---------------
+        * Construct a SQL query to perform an inner join between a subquery (or a view) and a table based on a common column
+    * ----------------{Returns}---------------
+        * : result ::str | A SQL query string for inner join with subquery
+    * ----------------{Params}----------------
+        * : con ::Connection | A connection object to the database
+        * : query ::str | The SQL query string for the subquery (or the view)
+        * : view1 ::str | The alias for the subquery (or the view) to be used in the join
+        * : table2 ::str | The name of the second table to join
+        * : col ::str | The name of the common column to join on in the subquery (or the view)
+        * : col2 ::Optional[str] | The name of the common column to join on in the second table (default: None, uses 'col' for both)
+    * ----------------{Usage}-----------------
+        * >>> subquery = "SELECT * FROM table1 WHERE value > 100"
+        * >>> query = nest_inner(con, subquery, "view1", "table2", "id")
+        * >>> print(query)
+    * ----------------{Output}----------------
+        * SELECT view1.column1, view1.column2, table2.column1 as table2_column1, table2.column2 as table2_column2
+          FROM (SELECT * FROM table1 WHERE value > 100) as view1 INNER JOIN table2 ON view1.id=table2.id
+    """
+
+    try:
+        pd.read_sql(query + " limit 1", con)
+        pd.read_sql("select * from {} limit 1;".format(table2), con)
+    except Exception as e:
+        raise ValueError(f"Invalid SQL query or table name: {e}")
+
+    if not (isinstance(col, str) and (col2 is None or isinstance(col2, str))):
+        raise ValueError("Invalid column name(s)")
+
     a = pd.read_sql(query + " limit 1", con).keys()
     b = pd.read_sql("select * from {} limit 1;".format(table2), con).keys()
     intersection = [view1 + "." + i for i in a.intersection(b)]
@@ -1579,11 +1696,45 @@ def fillna_sampled(x, reproducibility_seed=0):
 
 
 def iter_range_pd(df):
+    """
+    * type-def ::(pd.DataFrame) -> Iterator[pd.Series]
+    * ---------------{Function}---------------
+        * Yields each row of the input DataFrame as a pandas Series
+    * ----------------{Returns}---------------
+        * : yield ::pd.Series | A single row of the DataFrame as a pandas Series
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The DataFrame to iterate over
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        * >>> for row in iter_range_pd(df):
+        * ...     print(row)
+    * ----------------{Output}----------------
+        * A    1
+          B    3
+          Name: 0, dtype: int64
+        * A    2
+          B    4
+          Name: 1, dtype: int64
+    """
     for i in range(df.shape[0]):
         yield (df.iloc[i])
 
 
 def pd_csv_to_buffer(data):
+    """
+    * type-def ::(pd.DataFrame) -> io.BytesIO
+    * ---------------{Function}---------------
+        * Converts a DataFrame to a CSV and writes it to a BytesIO buffer
+    * ----------------{Returns}---------------
+        * : out_buffer ::io.BytesIO | A BytesIO buffer containing the CSV data
+    * ----------------{Params}----------------
+        * : data ::pd.DataFrame | The DataFrame to be converted to CSV
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        * >>> buffer = pd_csv_to_buffer(df)
+    * ----------------{Output}----------------
+        * <_io.BytesIO object at 0x7f03a2e23dc0>
+    """
     import io
 
     u = data.to_csv().encode("latin-1")
@@ -1595,6 +1746,22 @@ def pd_csv_to_buffer(data):
 
 
 def max_len_aos(data):
+    """
+    * type-def ::(List[Dict[str, Any]]) -> Tuple[int, int]
+    * ---------------{Function}---------------
+        * Find the dictionary with the maximum number of keys in a list of dictionaries
+    * ----------------{Returns}---------------
+        * : max_len ::Tuple[int, int] | A tuple containing the index and the maximum number of keys
+    * ----------------{Params}----------------
+        * : data ::List[Dict[str, Any]] | A list of dictionaries to be checked
+    * ----------------{Usage}-----------------
+        * >>> data = [{'a': 1, 'b': 2}, {'a': 3, 'b': 4, 'c': 5}]
+        * >>> max_len = max_len_aos(data)
+    * ----------------{Output}----------------
+        * (1, 3)
+    * ----------------{Notes}-----------------
+        * This function can be useful when working with a list of dictionaries with varying numbers of keys, especially when you want to identify the most complete record or perform other operations based on the maximum number of keys.
+    """
     max_len = (0, 0)
     for idx, i in enumerate(data):
         current_len = len(i.keys())
@@ -1604,16 +1771,41 @@ def max_len_aos(data):
 
 
 def transform_aos_soa(dict_list):
-    max_len = max_len_aos(dict_list)
-    cols = list(dict_list[max_len[0]].keys())
+    """
+    * type-def ::(List[Dict[str, Any]]) -> Dict[str, List[Any]]
+    * ---------------{Function}---------------
+        * Transform a list of dictionaries (array of structs) into a dictionary of lists (struct of arrays)
+    * ----------------{Returns}---------------
+        * : soa ::Dict[str, List[Any]] | A dictionary with keys as column names and values as lists of data
+    * ----------------{Params}----------------
+        * : dict_list ::List[Dict[str, Any]] | A list of dictionaries to be transformed
+    * ----------------{Usage}-----------------
+        * >>> data = [{'a': 1, 'b': 2}, {'a': 3, 'b': 4, 'c': 5}]
+        * >>> soa = transform_aos_soa(data)
+    * ----------------{Output}----------------
+        * {'a': [1, 3], 'b': [2, 4], 'c': [None, 5]}
+    * ----------------{Notes}-----------------
+        * This function is useful when working with data that needs to be transformed from an array of structs to a struct of arrays format. This is often done to improve the performance of data processing tasks and to ensure compatibility with certain libraries and APIs that expect data in a specific format.
+    """
+    # max_len = max_len_aos(dict_list)
+    # cols = list(dict_list[max_len[0]].keys())
+    # soa = {}
+    # for i in cols:
+    #     soa[i] = []
+    #     for j in range(len(dict_list)):
+
+    #         try:
+    #             soa[i].append(dict_list[j][i])
+    #         except Exception:
+    #             soa[i].append(None)
+    # return soa
     soa = {}
-    for i in cols:
-        soa[i] = []
-        for j in range(len(dict_list)):
-            try:
-                soa[i].append(dict_list[j][i])
-            except Exception:
-                soa[i].append(None)
+    for d in dict_list:
+        for k, v in d.items():
+            if k not in soa:
+                soa[k] = [None] * len(dict_list)
+            soa[k].append(v)
+    
     return soa
 
 
@@ -1693,6 +1885,24 @@ def fill_sequential(df):
 
 
 def pd_get_nan(df):
+    """
+    * type-def ::(Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]
+    * ---------------{Function}---------------
+        * Get rows or elements with NaN values in a pandas DataFrame or Series
+    * ----------------{Returns}---------------
+        * : nan_rows ::Union[pd.Series, pd.DataFrame] | A DataFrame or Series with rows or elements containing NaN values
+    * ----------------{Params}----------------
+        * : df ::Union[pd.Series, pd.DataFrame] | The input DataFrame or Series to filter
+    * ----------------{Usage}-----------------
+        * >>> data = pd.DataFrame({'A': [1, 2, np.nan], 'B': [4, np.nan, 6]})
+        * >>> nan_rows = pd_get_nan(data)
+    * ----------------{Output}----------------
+        *      A    B
+        * 2  NaN  6.0
+        * 1  2.0  NaN
+    * ----------------{Notes}-----------------
+        * This function is useful for filtering out missing data points in a DataFrame or Series. It can help identify rows or elements that need further attention or preprocessing.
+    """
     if type(df) == pd.core.series.Series:
         return df[df.isna()]
     else:
@@ -1700,6 +1910,23 @@ def pd_get_nan(df):
 
 
 def pd_get_not_nan(df):
+    """
+    * type-def ::(Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]
+    * ---------------{Function}---------------
+        * Get rows or elements without NaN values in a pandas DataFrame or Series
+    * ----------------{Returns}---------------
+        * : not_nan_rows ::Union[pd.Series, pd.DataFrame] | A DataFrame or Series with rows or elements without NaN values
+    * ----------------{Params}----------------
+        * : df ::Union[pd.Series, pd.DataFrame] | The input DataFrame or Series to filter
+    * ----------------{Usage}-----------------
+        * >>> data = pd.DataFrame({'A': [1, 2, np.nan], 'B': [4, np.nan, 6]})
+        * >>> not_nan_rows = pd_get_not_nan(data)
+    * ----------------{Output}----------------
+        *      A    B
+        * 0  1.0  4.0
+    * ----------------{Notes}-----------------
+        * This function is useful for filtering out rows or elements without missing data points in a DataFrame or Series. It can help clean up the data for further processing or analysis.
+    """
     if type(df) == pd.core.series.Series:
         return df[~df.isna()]
     else:
@@ -1979,8 +2206,27 @@ def pct_col_nul(df, col):
 
 def np_deconstructed_mask(data: np.array, key, matching_key):
     """
-    np.vectorize(lambda x: x["eventType"] == uniq[0])(data_np)
+    * type-def ::(np.array, Any, Any) -> np.array
+    * ---------------{Function}---------------
+        * Create a boolean mask for an array of dictionaries based on key-value matching
+    * ----------------{Returns}---------------
+        * : mask ::np.array | A boolean mask where each element is True if the dictionary has the given key and its value matches the matching_key
+    * ----------------{Params}----------------
+        * : data ::np.array | The input numpy array containing dictionaries
+        * : key ::Any | The key to search for in the dictionaries
+        * : matching_key ::Any | The value that the key should match
+    * ----------------{Usage}-----------------
+        * >>> data_np = np.array([{'eventType': 'A', 'value': 1}, {'eventType': 'B', 'value': 2}, {'eventType': 'A', 'value': 3}])
+        * >>> mask = np_deconstructed_mask(data_np, 'eventType', 'A')
+    * ----------------{Output}----------------
+        * array([ True, False,  True])
+    * ----------------{Notes}-----------------
+        * This function is useful when working with numpy arrays containing dictionaries, and you need to create a boolean mask based on a key-value match.
+        * np.vectorize(lambda x: x["eventType"] == uniq[0])(data_np)
     """
+    if isinstance(data, list):
+        data = np.array(data)
+
     return np.vectorize(lambda x: x[key] == matching_key)(data)
 
 
@@ -2121,20 +2367,29 @@ def LOOEncoding(
     project_name="",
 ):
     """
-        Performs leave-one-out (LOO) encoding on the given dataframe.
-
-    Args:
-        df: The pandas dataframe to encode.
-        cols: A list of columns to encode.
-        target: The target column to use for encoding.
-        sigma: The standard deviation to use for LOO encoding.
-        inference: A boolean indicating whether the function is being called for inference or training.
-        bucket_name: The name of the cloud storage bucket to use for caching the fitted encoder.
-        blob_name: The name of the cloud storage blob to use for caching the fitted encoder.
-        project_name: The name of the Google Cloud project to use for caching the fitted encoder.
-
-    Returns:
-        A pandas dataframe with the encoded columns.
+    * type-def ::(pd.DataFrame, List[str], str, float, bool, str, str, str) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Performs leave-one-out (LOO) encoding on the given dataframe
+    * ----------------{Returns}---------------
+        * : df_encoded ::pd.DataFrame | A pandas dataframe with the encoded columns
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The pandas dataframe to encode
+        * : cols ::List[str] | A list of columns to encode
+        * : target ::str | The target column to use for encoding
+        * : sigma ::float | The standard deviation to use for LOO encoding (default: 0.05)
+        * : inference ::bool | A boolean indicating whether the function is being called for inference or training (default: False)
+        * : bucket_name ::str | The name of the cloud storage bucket to use for caching the fitted encoder (default: "")
+        * : blob_name ::str | The name of the cloud storage blob to use for caching the fitted encoder (default: "")
+        * : project_name ::str | The name of the Google Cloud project to use for caching the fitted encoder (default: "")
+    * ----------------{Usage}-----------------
+        * >>> df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 1, 2], 'target': [10, 20, 30]})
+        * >>> encoded_df = LOOEncoding(df, cols=['A', 'B'], target='target')
+    * ----------------{Output}----------------
+        * A DataFrame with encoded 'A' and 'B' columns
+    * ----------------{Notes}-----------------
+        * This function is particularly useful for encoding categorical features with high cardinality.
+        * The function uses the LeaveOneOutEncoder from the Category Encoders library.
+        * The fitted encoder is cached in a cloud storage bucket for future use during inference.
     """
     import dill as pickle
     from io import BytesIO
