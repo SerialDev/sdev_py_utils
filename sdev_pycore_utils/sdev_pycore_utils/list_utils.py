@@ -474,3 +474,15 @@ def depth_flatten(array, depth=2):
     for i in range(depth):
         result = functools.reduce(operator.iconcat, result, [])
     return result
+
+
+
+def eliminate_common_elements(list1, list2):
+    return list(set(list1) - set(list2))
+
+
+def retain_common_elements(list1, list2):
+    return [element for element in list1 if element in list2]
+
+
+

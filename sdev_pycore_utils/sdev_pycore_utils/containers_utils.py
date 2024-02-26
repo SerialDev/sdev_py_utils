@@ -231,3 +231,6 @@ def generator_range(generator, count):
     * 2
     """
     return [generator.__next__() for i in range(count)]
+
+
+

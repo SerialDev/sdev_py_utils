@@ -94,12 +94,36 @@ def accelerated_dtw(x, y, dist, warp=1):
         path = _traceback(D0)
     return D1[-1, -1], C, D1, path
 
-
 def _traceback(D):
-    i, j = array(D.shape) - 2
+    """
+    * type-def ::(np.ndarray) -> Tuple[np.ndarray, np.ndarray]
+    * ---------------{Function}---------------
+        * Computes the traceback path for dynamic time warping (DTW) based on the accumulated cost matrix D.
+    * ----------------{Returns}---------------
+        * : p ::np.ndarray | The path indices for the first sequence.
+        * : q ::np.ndarray | The path indices for the second sequence.
+    * ----------------{Params}----------------
+        * : D ::np.ndarray | The accumulated cost matrix for dynamic time warping.
+    * ----------------{Usage}-----------------
+        * >>> D = np.array([[0, 1, 2], [1, 1, 2], [2, 1, 1]])
+        * >>> p, q = _traceback(D)
+    * ----------------{Output}----------------
+        * The traceback path indices for both sequences.
+    * ----------------{Dependencies}---------
+        * This function requires the following libraries:
+          * numpy
+    * ----------------{Performance Considerations}----
+        * The performance of this function is primarily dependent on the size of the input matrix D. For large
+          * matrices, consider using more efficient traceback algorithms or reducing the size of the input matrix.
+    * ----------------{Side Effects}---------
+        * None
+    * ----------------{Mutability}------------
+        * This function does not modify the input matrix D.
+    """
+    i, j = np.array(D.shape) - 2
     p, q = [i], [j]
     while (i > 0) or (j > 0):
-        tb = argmin((D[i, j], D[i, j + 1], D[i + 1, j]))
+        tb = np.argmin((D[i, j], D[i, j + 1], D[i + 1, j]))
         if tb == 0:
             i -= 1
             j -= 1
@@ -109,7 +133,7 @@ def _traceback(D):
             j -= 1
         p.insert(0, i)
         q.insert(0, j)
-    return array(p), array(q)
+    return np.array(p), np.array(q)
 
 
 if __name__ == "__main__":

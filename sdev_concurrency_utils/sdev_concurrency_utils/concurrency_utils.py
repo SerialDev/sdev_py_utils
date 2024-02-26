@@ -69,8 +69,32 @@ def await_children_done(verbose=True):
 
 # --{Ast utilities}--#
 
-
 def unindent(source_lines):
+    """
+    * type-def ::(List[str]) -> None
+    * ---------------{Function}---------------
+        * Unindents a list of source code lines until the first 'def' statement is found.
+    * ----------------{Returns}---------------
+        * None
+    * ----------------{Params}----------------
+        * : source_lines ::List[str] | The list of source code lines to unindent.
+    * ----------------{Usage}-----------------
+        * >>> source_lines = ["    if x > 0:", "        print('Positive')", "    def some_function(x):"]
+        * >>> unindent(source_lines)
+    * ----------------{Output}----------------
+        * The input source_lines will be unindented as follows:
+          * ["if x > 0:", "print('Positive')", "def some_function(x):"]
+    * ----------------{Dependencies}---------
+        * None
+    * ----------------{Performance Considerations}----
+        * The performance of this function is primarily dependent on the length of the source_lines list.
+          * For large lists, consider using more efficient string manipulation techniques or
+          * reducing the size of the input list.
+    * ----------------{Side Effects}---------
+        * This function modifies the input source_lines list.
+    * ----------------{Mutability}------------
+        * This function modifies the input source_lines list.
+    """
     for i, line in enumerate(source_lines):
         source_lines[i] = line.lstrip()
         if source_lines[i][:3] == "def":

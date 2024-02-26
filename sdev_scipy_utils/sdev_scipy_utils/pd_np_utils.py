@@ -14,6 +14,183 @@ import numpy as np
 import pandas as pd
 
 
+
+def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
+    """
+    Enhanced pretty print for pandas DataFrame, DataFrame columns (Pandas Index), or lists,
+    using the rich library for improved formatting and flexibility.
+
+    :param data: The data to print. Can be a pandas DataFrame, DataFrame columns, or a list.
+    :param float_format: The format string for float values. Defaults to "{:.4f}".
+    :param header_style: The style of the table header. Defaults to "bold magenta".
+    """
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+    table = Table(show_header=True, header_style=header_style)
+
+    if isinstance(data, pd.DataFrame):
+        # Add columns to the table for DataFrame
+        for column in data.columns:
+            table.add_column(column)
+        # Format float columns and convert all values to strings for DataFrame
+        for _, row in data.iterrows():
+            formatted_row = [
+                float_format.format(val) if isinstance(val, float) else str(val)
+                for val in row
+            ]
+            table.add_row(*formatted_row)
+    elif isinstance(data, pd.Index) or isinstance(data, list):
+        # Handle a single row of data for Pandas Index or list
+        table.add_column("Values")
+        for item in data:
+            # Here we assume the items are not float so direct conversion to string
+            table.add_row(str(item))
+    else:
+        # Handle unsupported types
+        console.print(
+            "[bold red]Unsupported data type. Please provide a DataFrame, a DataFrame columns (Index), or a list.[/bold red]"
+        )
+        return
+    # Print the table
+    console.print(table)
+
+
+def dump_string_to_file(s: str, file_path: str = None):
+    """
+    Dumps a given string into a file. If no file path is provided, it defaults to the current working directory.
+
+    :param s: String to be written to the file.
+    :param file_path: Optional; Path of the file where the string will be dumped. Defaults to 'temp.txt' in the current working directory.
+    """
+    if file_path is None:
+        file_path = os.path.join(os.getcwd(), "temp.txt")
+
+    with open(file_path, "w") as file:
+        file.write(s)
+    print(f"String successfully written to {file_path}")
+
+
+    
+def pd_batch_iterator(df):
+    batch_size = 20
+    num_rows = len(df)
+    num_batches = (num_rows // batch_size) + (num_rows % batch_size > 0)
+    current_batch = 0
+
+    while current_batch < num_batches:
+        start_idx = current_batch * batch_size
+        end_idx = min(start_idx + batch_size, num_rows)
+        yield df.iloc[start_idx:end_idx]
+        current_batch += 1
+
+
+def pretty_print_dataframe_samples(df, string_to_find=None):
+    """
+    Prints each column name with its corresponding sample value in a dataframe.
+    Column names are printed in yellow, and the sample values are printed in grey.
+    Prints column names containing a specified string in red.
+    
+    Parameters:
+    - df: pandas DataFrame
+    - string_to_find: String to be searched in column names (default: None)
+    
+    Returns:
+    - None
+    """
+    import pandas as pd
+    from termcolor import colored
+    print("Column Name : Sample")
+    for column in df.columns:
+        sample_value = df[column].iloc[0]
+        if string_to_find and string_to_find in column:
+            formatted_output = f"{colored(column, 'red')} : {colored(sample_value, 'grey')}"
+        else:
+            formatted_output = f"{colored(column, 'yellow')} : {colored(sample_value, 'grey')}"
+        print(formatted_output)
+
+def included_cols_excluded_cols(df, excluded_columns):
+    return list(set(df.columns) - set(excluded_columns))
+
+def get_sample_rows_with_na(df, n=3):
+    # Get a list of columns that have missing values
+    cols_with_na = df.columns[df.isna().any()].tolist()
+    
+    # Create a dictionary to store sample rows
+    sample_rows = {}
+    
+    for col in cols_with_na:
+        # Get a random sample of a row with a missing value in the column
+        sample_rows[col] = df[df[col].isna()].sample(n).to_dict('records')
+
+    return sample_rows
+
+
+def sample_nan_rows(df):
+    """Return a single sample row that has a NaN value for each column"""
+    nan_samples = {}
+    for column in df.columns:
+        nan_rows = df[df[column].isna()]
+        if not nan_rows.empty:
+            nan_samples[column] = nan_rows.sample(1)
+    return nan_samples
+
+
+        
+def pd_dump_to_string_file(df):
+    from tabulate import tabulate
+
+    dump_string_to_file(tabulate(df[:2], headers="keys", tablefmt="psql"))
+    return 1 
+
+
+def show_matching_columns(dataframes):
+    common_columns = set(dataframes[0].columns.str.lower())
+    all_columns = set(dataframes[0].columns.str.lower())
+    column_types = {}
+
+    for i, df in enumerate(dataframes[1:], 1):
+        common_columns &= set(df.columns.str.lower())
+        all_columns |= set(df.columns.str.lower())
+
+    diff_columns = all_columns - common_columns
+
+    # Prepare column_types dictionary
+    for col in common_columns:
+        column_types[col] = [df[df.columns[df.columns.str.lower() == col].tolist()[0]].dtype for df in dataframes if col in df.columns.str.lower().tolist()]
+
+    # ANSI escape codes for colors
+    green = '\033[92m'
+    red = '\033[91m'
+    yellow = '\033[93m'
+    end = '\033[0m'
+    color_idx = ['\033[9'+str(i%10)+'m' for i in range(len(dataframes))]
+
+    # Print common columns
+    print(green + "Common Columns: " + ", ".join(common_columns) + end)
+
+    # Print different columns with DataFrame index color matching
+    print("Different Columns:")
+    for col in diff_columns:
+        color_strs = []
+        for i, df in enumerate(dataframes):
+            if col in df.columns.str.lower():
+                color_strs.append(color_idx[i] + str(i) + end)
+        print(red + col + " (" + ", ".join(color_strs) + ")" + end)
+
+    # Print columns with differing types
+    print("Different Types:")
+    for col, types in column_types.items():
+        if len(set(types)) > 1:  # If there's more than one unique type across DataFrames
+            type_strs = []
+            for i, df in enumerate(dataframes):
+                if col in df.columns.str.lower():
+                    type_strs.append(color_idx[i] + str(df[col].dtype) + end)
+            print(yellow + col + " (" + ", ".join(type_strs) + ")" + end)
+
+            
+
 def pd_to_base64(df):
     """
     base64 encode a pandas dataframe

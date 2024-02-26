@@ -113,3 +113,56 @@ def reachability_matrix(G):
         dtype=np.int32,
     )
     return R
+
+
+
+def get_mtf_map(timeseries, mtf, step_size=0, colormap='jet', reversed_cmap=False):
+    import tsia
+
+    # discretized = tsia.markov.discretize(cb.tp_revenue)
+    # transition_matrix = tsia.markov.markov_transition_matrix(discretized[0])
+    # transition_probs = tsia.markov.markov_transition_probabilities(transition_matrix)
+    # transition_mapped = get_mtf_map(cb.tp_revenue, transition_matrix)
+    # tsia.plot.plot_mtf_metrics(transition_matrix)
+    # tsia.markov.get_multivariate_mtf([cb.tp_revenue])
+    # tsia.plot.plot_timeseries_quantiles(cb.tp_revenue, discretized[1])
+
+    image_size = mtf.shape[0]
+    mtf_min = np.min(mtf)
+    mtf_max = np.max(mtf)
+    mtf_range = mtf_max - mtf_min
+    mtf_colors = (np.diag(mtf, k=step_size) - mtf_min) / mtf_range
+    
+    if reversed_cmap:
+        colormap = plt.cm.get_cmap(colormap).reversed()
+    else:
+        colormap = plt.cm.get_cmap(colormap)
+    
+    mtf_map = []
+    sequences_width = timeseries.shape[0] / image_size
+    for i in range(image_size - step_size):
+        c = colormap(mtf_colors[i])
+        start = int(i * sequences_width)
+        end = int((i+1) * sequences_width)
+        data = timeseries.iloc[start:end]
+        
+        current_map = {
+            'color': c,
+            'slice': data
+        }
+        mtf_map.append(current_map)
+        
+    for i in range(image_size - step_size, image_size):
+        c = '#DDDDDD'
+        start = int(i * sequences_width)
+        end = int((i+1) * sequences_width)
+        data = timeseries.iloc[start:end]
+
+        current_map = {
+            'color': c,
+            'slice': data
+        }
+        mtf_map.append(current_map)
+        
+    return mtf_map
+
