@@ -4,14 +4,49 @@ _attrs = dict(id="id", children="children")
 
 
 def timeline_label_datapoint(ordinal_string, start_time, end_time):
+    '''
+* ---------------Function---------------
+* Creates a timeline label datapoint
+* ----------------Returns---------------
+* -> dict
+* ----------------Params---------------
+* ordinal_string :: str
+* start_time :: <any>
+* end_time :: <any>
+* ----------------Usage---------------
+* timeline_label_datapoint("Label", 1, 2)
+
+    '''
     return {"timeRange": [start_time, end_time], "val": ordinal_string}
 
 
 def timeline_group_datapoint(label_name, label_datapoints):
+    '''
+* ---------------Function---------------
+* Creates a timeline group datapoint
+* ----------------Returns---------------
+* -> dict
+* ----------------Params---------------
+* label_name :: str
+* label_datapoints :: list
+* ----------------Usage---------------
+* timeline_group_datapoint("Label", [...])
+    '''
     return {"label": label_name, "data": label_datapoints}
 
 
 def timeline_chart_datapoint(group_name, group_datapoints):
+    '''
+* ---------------Function---------------
+* Creates a timeline chart datapoint
+* ----------------Returns---------------
+* -> dict
+* ----------------Params---------------
+* group_name :: str
+* group_datapoints :: list
+* ----------------Usage---------------
+* timeline_chart_datapoint("Group", [...])
+    '''
     return {"group": group_name, "data": group_datapoints}
 
 
@@ -79,6 +114,22 @@ def tree_data(G, root, attrs=_attrs):
         raise nx.NetworkXError("Attribute names are not unique.")
 
     def add_children(n, G):
+            """
+    * ---------------Function---------------
+    * Recursively generates a tree-like data structure from a graph, 
+      where each node's value is a dictionary containing the node's attributes 
+      and a list of its children.
+    * ----------------Returns---------------
+    * -> list[dict] : A list of dictionaries, where each dictionary represents a node 
+                      in the graph, containing the node's attributes and its children.
+    * ----------------Params----------------
+    * n : <any> : The current node in the graph.
+    * G : <any> : The graph data structure.
+    * ----------------Usage-----------------
+    * To generate a tree-like data structure from a graph, where each node's value 
+      is a dictionary containing the node's attributes and a list of its children.
+    """
+
         nbrs = G[n]
         if len(nbrs) == 0:
             return []
@@ -134,6 +185,24 @@ def tree_graph(data, attrs=_attrs):
     children = attrs["children"]
 
     def add_children(parent, children_):
+        '''
+Here is the converted docstring:
+
+* ---------------add_children Function---------------
+* Recursively adds children nodes to a graph, creating edges and nodes as necessary.
+* ----------------Returns---------------
+* -> None
+* ----------------Params----------------
+* parent : <any>
+* children_ : list of dictionaries
+    where each dictionary represents a node with the following keys:
+    - id_ : <any> (required)
+    - children : list of dictionaries (optional)
+    - other attributes : passed as attributes to the node
+* ----------------Usage-----------------
+* Call this function with a parent node and a list of child nodes to add to the graph.
+
+        '''
         for data in children_:
             child = data[id_]
             graph.add_edge(parent, child)
@@ -156,6 +225,22 @@ def tree_graph(data, attrs=_attrs):
 
 
 def pandas_df_to_markdown_table(df):
+    """
+* ---------------Function---------------
+* Converts a pandas DataFrame to a markdown table
+* ----------------Returns---------------
+* -> result :: Markdown object
+* ----------------Params----------------
+* df :: pandas.DataFrame | The input DataFrame to be converted to markdown table
+* ----------------Usage-----------------
+Example usage:
+```
+df = pd.DataFrame({'Column1': [1, 2, 3], 'Column2': [4, 5, 6]})
+pandas_df_to_markdown_table(df)
+```
+This will display the markdown table in the output.
+    """
+    
     from IPython.display import Markdown, display
 
     fmt = ["---" for i in range(len(df.columns))]
@@ -165,6 +250,16 @@ def pandas_df_to_markdown_table(df):
 
 
 def to_markdown(df):
+    '''
+    * ---------------Function---------------
+    * Converts a pandas DataFrame to a Markdown table
+    * ----------------Returns---------------
+    * -> display :: None | Displays the Markdown table
+    * ----------------Params----------------
+    * df :: pandas.DataFrame | The input DataFrame to be converted
+    * ----------------Usage-----------------
+    * Call the function with a pandas DataFrame as an argument, and it will display the table in Markdown format.
+    '''
     from subprocess import Popen, PIPE
 
     s = df.to_latex()
@@ -175,8 +270,15 @@ def to_markdown(df):
 
 def df_to_markdown(df, float_format="%.2g"):
     """
-    Export a pandas.DataFrame to markdown-formatted text.
-    DataFrame should not contain any `|` characters.
+    * ---------------Function---------------
+    * Converts a pandas DataFrame to markdown-formatted text. DataFrame should not contain any `|` characters.
+    * ----------------Returns---------------
+    * -> str
+    * ----------------Params----------------
+    * df :: pandas.DataFrame
+    * float_format :: str (default is "%.2g")
+    * ----------------Usage-----------------
+    * Use this function to convert a pandas DataFrame into a markdown-formatted string. The resulting string can be used to generate markdown tables.
     """
     from os import linesep
 

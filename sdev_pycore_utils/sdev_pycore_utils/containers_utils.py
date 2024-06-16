@@ -5,7 +5,19 @@ from collections import OrderedDict
 
 
 def network_compress_encode(data):
-    import zlib
+    """
+    * ---------------Function---------------
+    * network_compress_encode(data)
+    * ----------------Returns---------------
+    * -> result ::str | b64 encoded data
+    * ----------------Params----------------
+    * data: serializable data | <any>
+    * ----------------Usage----------------- Compress and encode data into a
+    * base64 string. This function takes in a data as an input, compresses it using
+    * zlib and then encodes it into a base64 string format. The compressed and
+    * encoded data is returned as a string.
+
+    """import zlib
     import base64
 
     result = base64.b64encode(zlib.compress(data.encode())).decode()
@@ -13,6 +25,51 @@ def network_compress_encode(data):
 
 
 def network_compress_decode(data):
+    """
+    * --------------Function---------------
+    *
+    * Decodes and decompresses a network transmission
+    *
+    * ----------------Returns---------------
+    *
+    * -> result ::str |'Success' if the operation was successful, 'Failure'
+    * otherwise
+    *
+    * ----------------Params----------------
+    *
+    * data ::<any> | The data to decode and decompress
+    *
+    * ----------------Usage-----------------
+    *
+    * This function is used to decode and decompress network data that has been
+    *
+    * encoded in base64 and compressed using zlib. The function takes in the
+    *
+    * encoded and compressed data as an argument and returns the decompressed
+    *
+    * data as a string. If there is an error in the decoding or decompression
+    *
+    * process, the function will return 'Failure'.
+    *
+    * 
+    * Example:
+    *
+    * 
+    * result = network_compress_decode('eJxNjYGsDA8kJUKr1Go5Iz8=')
+    *
+    * 
+    * In this example, the data being passed into the function is the base64
+    * encoded
+    *
+    * and zlib compressed form of the string 'Hello, World!'. The function will
+    *
+    * decode and decompress the data, and return the original string. */ def
+    * network_compress_decode(data): import zlib import base64
+    *
+    * try: result = zlib.decompress(base64.b64decode(data.encode())) return
+    * 'Success' except: return 'Failure'
+
+    """
     import zlib
     import base64
 
@@ -21,6 +78,24 @@ def network_compress_decode(data):
 
 
 def to_buffer(data):
+    """
+    * ------------ Function ----------------
+    * Converts a given data object into a BytesIO buffer using the `dill` module for serialization.
+    * ----------------Returns-----------------
+    * -> result :: io | io object if the operation was successful
+    * ----------------Params----------------
+    * data <any> - The object to be serialized and stored in the buffer.
+    * ----------------Usage-----------------
+    * to_buffer(data)
+    * 
+    * Example:
+    * 
+    * >>> to_buffer("Hello, World!")
+    * <_io.BytesIO object at 0x104a67460>
+    * 
+    * Note:
+    * The function returns a BytesIO object that contains the serialized version of the input data.
+    """
     import io
     import dill as pickle  # Dill allows serializing lambdas
 
@@ -31,6 +106,20 @@ def to_buffer(data):
 
 
 def from_buffer(buf):
+    '''
+    * ----------------Function---------------
+    * from_buffer deserializes a byte buffer containing a pickled object.
+    * ----------------Returns---------------
+    * -> result :: <any> | The deserialized object.
+    * ----------------Params----------------
+    * buf :: <io.BytesIO> | A byte buffer containing a pickled object.
+    * ----------------Usage-----------------
+    * from_buffer(buf)
+    *  
+    * Example:
+    *  
+    * from_buffer(io.BytesIO(pickle.dumps({'foo': 'bar'})))
+    '''
     import dill as pickle  # Dill allows serializing lambdas
 
     buf.seek(0)
@@ -39,6 +128,21 @@ def from_buffer(buf):
 
 
 def b64_pickle(data):
+    '''
+   * ---------------Function---------------
+   * Encodes and pickles data using base64 and pickle modules
+   * ----------------Returns---------------
+   * -> result ::str | The base64 encoded pickled data if the operation was
+   * successful,
+   * 'Failure' otherwise
+   * ----------------Params----------------
+   * data ::<any>  | The data to be pickled and encoded
+   * ----------------Usage-----------------
+   * result = b64_pickle("some data")
+   * if result != 'Failure':
+        # do something with the result
+
+    '''
     import base64
     import pickle
 

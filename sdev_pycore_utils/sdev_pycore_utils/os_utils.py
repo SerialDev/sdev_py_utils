@@ -12,6 +12,16 @@ import shutil
 import subprocess
 from datetime import date, timedelta
 
+import subprocess
+import sys
+
+# Define ANSI color codes for output
+class Color:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RESET = '\033[0m'
+
 import dill as pickle  # Required to pickle lambda functions
 
 # import comtypes.client
@@ -1277,7 +1287,31 @@ def try_makedir(name):
 
 
 def local_caching(data, name, force=False):
+    """
+    * ---------------Function---------------
+    * This function is used to cache data locally, it will try to load the data from a pickle file, 
+    if the file does not exist, it will dump the data to the file.
 
+    * ----------------Returns---------------
+    * -> data :: <any>
+    * The original data passed in, whether it was loaded from a file or not.
+
+    * ----------------Params----------------
+    * data :: <any>
+    * The data to be cached.
+    * name :: str
+    * The name of the cache file.
+    * force :: bool (default=False)
+    * If true, the data will be dumped to a file even if it exists.
+
+    * ----------------Usage-----------------
+    * local_caching(my_data, 'my_cache')
+
+    * ----------------Notes-----------------
+    * This function will create a directory named 'cached' in the current working directory if it does not exist.
+    * If the file exists and force is False, it will load the data from the file.
+    * If the file does not exist, or force is True, it will dump the data to the file.
+    """
     name = name + ".plk"
     filepath = os.path.join(os.getcwd(), "cached", name)
     try_makedir("cache")
@@ -1404,3 +1438,159 @@ def dump_or_load_pickle(directory, name, data=None):
     else:
         result = save_pickle(directory, name, data)
     return result
+
+
+
+
+
+def install_packages_from_file(filename='requirements.txt'):
+    """
+    * ---------------Function---------------
+    *
+    * Installs Python packages listed in a requirements.txt file.
+    *
+    * ----------------Returns---------------
+    *
+    * -> None, prints output to console.
+    *
+    * ----------------Params----------------
+    *
+    * filename :: str, optional
+    *
+    * The name of the requirements file. Default value is 'requirements.txt'.
+    *
+    * ----------------Usage-----------------
+    *
+    * To use the function, simply call it with optional filename parameter.
+    *
+    * Example 1: To install packages listed in requirements.txt in the same directory:
+    *
+    * install_packages_from_file()
+    *
+    * Example 2: To install packages listed in custom_requirements.txt in a different
+    * directory:
+    *
+    * install_packages_from_file(filename='/path/to/custom_requirements.txt')
+    """
+    print(f"{Color.YELLOW}Starting the installation process...{Color.RESET}")
+
+    # Ensure that pip is up-to-date
+    print(f"{Color.YELLOW}Updating pip to the latest version...{Color.RESET}")
+    try:
+        result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'], 
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            print(f"{Color.GREEN}Pip has been updated successfully.{Color.RESET}\n{result.stdout}")
+        else:
+            print(f"{Color.RED}Failed to update pip. Error:{Color.RESET}\n{result.stderr}")
+            return  # Exit if pip cannot be updated
+    except subprocess.CalledProcessError as e:
+        print(f"{Color.RED}Failed to update pip. Exception: {str(e)}{Color.RESET}")
+        return  # Exit if pip update fails due to an exception
+
+    # Reading and installing packages from the requirements.txt file
+    print(f"{Color.YELLOW}Reading packages from {filename} and starting installation...{Color.RESET}")
+    try:
+        with open(filename, 'r') as file:
+            packages = file.readlines()
+        print(f"{Color.YELLOW}Total packages found: {len(packages)}{Color.RESET}")
+
+        for package in packages:
+            package = package.strip()
+            if package:  # Ensure it's not an empty line
+                print(f"{Color.YELLOW}Installing package: {package}...{Color.RESET}")
+                result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', '--user', package], 
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if result.returncode == 0:
+                    print(f"{Color.GREEN}Package '{package}' installed successfully.{Color.RESET}")
+                else:
+                    print(f"{Color.RED}Failed to install '{package}'. Error:{Color.RESET}\n{result.stderr}")
+    except FileNotFoundError:
+        print(f"{Color.RED}Error: The file '{filename}' does not exist.{Color.RESET}")
+    except Exception as e:
+        print(f"{Color.RED}An unexpected error occurred: {str(e)}{Color.RESET}")
+
+    print(f"{Color.GREEN}Installation process completed.{Color.RESET}")
+
+
+
+def execute_pip_commands(command_strings):
+    """
+    * ---------------Function---------------
+    *
+    * execute_pip_commands(command_strings)
+    *
+    * • Takes a list of pip command strings, parses them into command lists, and
+    *   executes them using subprocess.Popen. Enhanced with colorized output to
+    *   improve readability and distinguish between successful and failed executions.
+    *
+    * ----------------Returns---------------
+    *
+    * • -> None, this function does not explicitly return a value, but it prints
+    *   success/failure messages and command output/error details.
+    *
+    * ----------------Params----------------
+    *
+    * • command_strings ::list-of-str
+    *   • A list of pip command strings to be executed. Each string should be a
+    *     valid pip command that can be run in the terminal.
+    *
+    * ----------------Usage-----------------
+    *
+    * To use this function, simply pass a list of pip command strings as the
+    * command_strings argument. The function will print success/failure messages and
+    * command output/error details to the console.
+    *
+    * Example:
+    *
+    * ────────────────────
+    * execute_pip_commands([
+    *     "pip install requests",
+    *     "pip install numpy",
+    *     "pip install pandas",
+    *     "pip install foobar"  # A non-existent package to test failure handling
+    * ])
+    * special_install_commands = [
+    *     "pip install torch==2.0.1+cu117 torchvision==0.15.2+cu117 -f https://download.pytorch.org/whl/torch_stable.html",
+    *     "pip install torch==1.9.0+cpu torchvision==0.10.0+cpu -f https://download.pytorch.org/whl/torch_stable.html"
+    * ]
+    *
+    * execute_pip_commands(special_install_commands)
+    * ────────────────────
+    *
+    * This will execute each pip command in the list and print a message indicating
+    * success or failure. If a command is successful, it will also print the command
+    * output. If a command fails, it will print error details. The function will print
+    * a message for each command specifying its index to improve readability.
+    """
+    total_commands = len(command_strings)
+    print(f"{Color.YELLOW}Total commands to execute: {total_commands}{Color.RESET}")  # Yellow color for total commands info
+
+    for index, command in enumerate(command_strings, start=1):
+        command_list = command.split()
+
+        # Yellow color for the command being executed
+        print(f"{Color.YELLOW}Executing command {index} of {total_commands}: {' '.join(command_list)}{Color.RESET}")
+
+        # Use subprocess.Popen to execute the command
+        process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # Wait for the command to complete and capture output
+        stdout, stderr = process.communicate()
+
+        # Output handling
+        if process.returncode == 0:
+            # Green color for successful execution
+            print(f"{Color.GREEN}Command {index} executed successfully.{Color.RESET}")
+            if stdout.strip():
+                print(f"{Color.GREEN}Output:\n{stdout}{Color.RESET}")
+        else:
+            # Red color for failed execution
+            print(f"{Color.RED}Failed to execute command {index}.{Color.RESET}")
+            if stderr.strip():
+                print(f"{Color.RED}Error Details:\n{stderr}{Color.RESET}")
+            else:
+                print(f"{Color.RED}Error occurred, but no details were provided.{Color.RESET}")
+
+
+

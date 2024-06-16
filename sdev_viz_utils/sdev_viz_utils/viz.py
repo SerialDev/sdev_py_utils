@@ -2,6 +2,16 @@ import seaborn as sns
 
 
 def seaborn_setup():
+    '''
+* ---------------Function---------------
+* Initializes seaborn settings for visualizations
+* ----------------Returns---------------
+* -> None
+* ----------------Params----------------
+* None
+* ----------------Usage-----------------
+* seaborn_setup()
+    '''
     sns.set(style="whitegrid", palette="muted")
 
 def cat_factorplot(data, category_col="category", value_col="value"):
@@ -45,6 +55,19 @@ def cat_factorplot(data, category_col="category", value_col="value"):
 
 
 def cat_swarmplot(data):
+    """
+* ---------------Function---------------
+* Draw a categorical scatterplot to show each observation
+* ----------------Returns---------------
+* -> result ::AxesSubplot  
+* ----------------Params----------------
+* data :: pandas.DataFrame | Dataframe containing the data to plot
+* ----------------Usage-----------------
+* Use this function to create a categorical scatterplot.
+* The function will automatically adjust the x and y axes based on the length of the "category" column in the data.
+* The palette used is ["r", "c", "y"].
+* You can customize the plot further by using Seaborn's swarmplot options.
+    """
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.swarmplot(
@@ -208,6 +231,16 @@ def cat_boxen(data, category_col="category", value_col="value", facet=None):
     return result
 
 def cat_box(data):
+    '''
+    * ---------------Function---------------
+* Draws a categorical scatterplot to show each observation
+* ----------------Returns---------------
+* -> result ::matplotlib AxesSubplot
+* ----------------Params----------------
+* data ::dict | dictionary containing the data to be plotted
+* ----------------Usage-----------------
+* cat_box(data)
+    '''
     # Draw a categorical scatterplot to show each observation
     if len(data["category"]) > 10:
         result = sns.catplot(
@@ -504,10 +537,30 @@ def cat_count(data, category_col="category", value_col="value", reverse=False, f
 
 
 def b64_div(b64_img):
+    '''
+    * ---------------b64_div---------------
+    * Returns a base64 encoded image tag
+    * ----------------Returns---------------
+    * -> str: A base64 encoded image tag
+    * ----------------Params----------------
+    * b64_img: str: The base64 encoded image
+    * ----------------Usage-----------------
+    * Use this function to convert a base64 encoded image to an HTML image tag
+    '''
     return f'<img src="data:image/png;base64,{b64_img}">'
 
 
 def convert_plt_b64(viz):
+    '''
+* ---------------convert_plt_b64---------------
+* Converts a matplotlib visualization to a base64 encoded string
+* ----------------Returns---------------
+* -> str: A base64 encoded string representation of the visualization
+* ----------------Params----------------
+* viz: <any>: A matplotlib visualization
+* ----------------Usage-----------------
+* Use this function to convert a matplotlib visualization to a base64 encoded string
+    '''
     import io
     import base64
 
@@ -519,9 +572,31 @@ def convert_plt_b64(viz):
 
 
 def sep_div(div):
+    '''
+* ---------------sep_div---------------
+* Separates a list of div elements into a single div element
+* ----------------Returns---------------
+* -> str: A single div element containing all the input div elements
+* ----------------Params----------------
+* div: list: A list of div elements
+* ----------------Usage-----------------
+* Use this function to combine multiple div elements into a single div element
+    '''
     def create_div(data):
+        """
+        * ---------------Function---------------
+* Creates an HTML div element with the provided data
+* ----------------Returns---------------
+* -> str: an HTML div element as a string
+* ----------------Params----------------
+* data: <any> - the data to be wrapped in the div element
+* ----------------Usage-----------------
+* >>> create_div("Hello, World!")
+* "<div> Hello, World! </div>"
+        """
         return f"<div> {data} </div>"
 
+    
     result = f""
     for i in div:
         result += create_div(i)
@@ -576,6 +651,17 @@ def seaborn_multi_facet(
 
 
 def preprocess_viz_node(node, user):
+    '''
+* ---------------Function---------------
+* Creates a pandas DataFrame from the input data.
+* ----------------Returns---------------
+* -> pandas.DataFrame : The created DataFrame with index set to a range of integers based on the length of the "category" column.
+* ----------------Params----------------
+* hdf : <any> : The input data to be converted into a DataFrame.
+* ----------------Usage-----------------
+* Call this function with a dictionary or similar data structure to create a pandas DataFrame with a numerical index.
+* Example: h_df = create_dataframe(hdf)
+    '''
     import distogram
     import pandas as pd
 
@@ -593,3 +679,68 @@ def preprocess_viz_node(node, user):
     h_df = pd.DataFrame(hdf, index=list(range(len(hdf["category"]))))
 
     return h_df
+
+
+
+import pandas as pd
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
+def create_faceted_treemap(df, col, bin_size=10, facet_col=None, main_square_half_size=True, sunburst=False, constant_name=None):
+    """
+    Create faceted treemaps for a given DataFrame, column, and optional faceting column.
+    The main treemap square can be made half the size of others.
+    
+    :param df: DataFrame containing the data.
+    :param col: The name of the column to create a treemap for.
+    :param bin_size: The size of bins for numerical data. Default is 10.
+    :param facet_col: Optional column for faceting the treemaps. Default is None.
+    :param main_square_half_size: If True, the main treemap square will be half the size. Default is True.
+    :return: Plotly figure object.
+    """
+    # Check if the column is categorical and expand its categories if needed
+    if pd.api.types.is_categorical_dtype(df[col]):
+        if 'NaN found' not in df[col].cat.categories:
+            df[col] = df[col].cat.add_categories('NaN found')
+    
+    # Fill NaN values with a clear identifier
+    df[col] = df[col].fillna('NaN found')
+    if pd.api.types.is_numeric_dtype(df[col]):
+        # Create bins
+        df['bins'] = pd.cut(df[col], range(0, int(df[col].max() + bin_size), bin_size))
+        col = 'bins'  # Update column to bin column
+
+    if facet_col:
+        # Determine the number of unique values in the facet column
+        unique_values = df[facet_col].unique()
+        n_facets = len(unique_values)
+        # Adjust column widths
+        col_widths = [0.5] + [1 for _ in range(n_facets - 1)] if main_square_half_size else [1] * n_facets
+
+        # Create a subplot for each unique value in the facet column
+        fig = make_subplots(rows=1, cols=n_facets, 
+                            subplot_titles=[str(val) for val in unique_values],
+                            specs=[[{'type': 'domain'} for _ in range(n_facets)]],
+                            column_widths=col_widths)
+
+        for i, value in enumerate(unique_values):
+            temp_df = df[df[facet_col] == value]
+            counts = temp_df[col].value_counts()
+            if sunburst:
+                treemap = go.Sunburst(labels=counts.index, parents=[""] * len(counts), values=counts.values)
+            else:
+                treemap = go.Treemap(labels=counts.index, parents=[""] * len(counts), values=counts.values)
+            fig.add_trace(treemap, row=1, col=i + 1)
+
+        fig.update_layout(title=f"Faceted Treemap of {col}")
+        return fig
+    else:
+        # For non-faceted treemap
+        counts = df[col].value_counts()
+        if sunburst:
+            fig = px.sunburst(counts, path=[px.Constant(f"{constant_name}"), counts.index], values=counts.name, title=f"Treemap of {col}")
+        else:
+            fig = px.treemap(counts, path=[px.Constant(f"{constant_name}"), counts.index], values=counts.name, title=f"Treemap of {col}")
+        return fig
+

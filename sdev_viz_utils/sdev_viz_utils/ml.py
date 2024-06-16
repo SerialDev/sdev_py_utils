@@ -227,6 +227,48 @@ def plot_colinearity_variations(df):
 
 
 def pd_visualize_cat_cols(df, col_name):
+    """
+    • ---------------Function---------------
+    • Visualize a categorical column in a pandas DataFrame using a bar plot
+    • ----------------Returns---------------
+    • -> result ::str
+    • Either 'Success' if the operation was successful, or 'Failure' otherwise
+    • ----------------Params----------------
+    • df ::DataFrame
+    • The input pandas DataFrame
+    • col_name ::str
+    • The name of the column to visualize
+    • ----------------Usage-----------------
+    • pd_visualize_cat_cols(df, col_name)
+    • Visualizes a categorical column in a pandas DataFrame using a bar plot.
+    • The function first checks if the column name exists and is categorical.
+    • If the column does not exist or is not categorical, the function will print
+    • "Column not found or not categorical" and return 'Failure'.
+    • If the column is categorical, the function will create a bar plot using
+      plotly
+    • express and display it. The plot will show the count of each unique value
+    • in the column.
+    • 
+    • Example:
+    • .. code-block:: python
+    • 
+    • import pandas as pd
+    • import plotly.express as px
+    • df = pd.DataFrame({' column1':['a','b','a','b','a','c']})
+    • result = pd_visualize_cat_cols(df, 'column1')
+    • 
+    • In this example, the function will visualize the categorical column
+      'column1'
+    • in the input DataFrame 'df' using a bar plot. The resulting plot will show
+    • the count of each unique value ('a', 'b', and 'c') in the column.
+    • 
+    • Returns 'Success' if the operation was successful, or 'Failure' otherwise.
+    • 
+    • Note: This function uses plotly.express, which must be installed for the
+    • function to work. To install plotly.express, run pip install plotly.
+    • 
+    • This function will not modify the input DataFrame.
+    """
     if col_name in df.select_dtypes(include=['object']).columns:
         fig = px.bar(df[col_name].value_counts().reset_index(), x='index', y=col_name)
         fig.show()
@@ -238,7 +280,30 @@ def pd_visualize_cat_cols(df, col_name):
 
 
 def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None, N=5, max_plots=16):
-    
+    """
+    * ----------------Function----------------
+    * This function visualizes the top N categories of the categorical columns in a given pandas DataFrame.
+    * ----------------Returns----------------
+    * -> result ::str |'Success' if the operation was successful, 'Failure' otherwise
+    * ----------------Params----------------
+    * df :: DataFrame | The input pandas DataFrame.
+    * filter_contains :: str, optional | The string to be contained in the column name for filtering. Defaults to ''.
+    * filter_regex :: str, optional | The regular expression pattern to filter the column names. Defaults to ''.
+    * columns :: list, optional | The list of column names to be visualized. If not provided, all categorical columns will be visualized. Defaults to None.
+    * N :: int, optional | The number of top categories to be displayed for each column. Defaults to 5.
+    * max_plots :: int, optional | The maximum number of plots to be created. Defaults to 16.
+    * ----------------Usage-----------------
+    * 
+    * visualize_categoricals(df, filter_contains='', filter_regex='', columns=None, N=5, max_plots=16)
+    * 
+    * 
+    * The function visualizes the top N categories of the categorical columns in a
+    * given pandas DataFrame. It can filter the columns based on a specified string
+    * (filter_contains) or regular expression pattern (filter_regex). Users can also
+    * specify the list of columns (columns) to be visualized. The function shows the
+    * top N (default: 5) categories for each column in a subplot. A maximum of max
+    * _plots (default: 16) plots can be created.
+    """
     import pandas as pd
     import plotly.express as px
     import math

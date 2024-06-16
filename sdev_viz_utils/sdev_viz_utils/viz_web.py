@@ -9,6 +9,16 @@ import shap
 
 
 def table_header(cols):
+    """
+    * ---------------table_header---------------
+* Generates HTML code for a table header
+* ----------------Returns---------------
+* -> result ::str
+* ----------------Params----------------
+* cols :: list[str] | A list of column headers
+* ----------------Usage-----------------
+* table_header(["Column 1", "Column 2", "Column 3"]) -> "<thead>...</thead>"
+    """
     result = f"""
 <thead>
     {table_row(cols, True)}
@@ -17,6 +27,16 @@ def table_header(cols):
 
 
 def table_footer(cols):
+    """
+    * ---------------table_footer---------------
+* Generates HTML code for a table footer
+* ----------------Returns---------------
+* -> result ::str
+* ----------------Params----------------
+* cols :: list[str] | A list of column headers
+* ----------------Usage-----------------
+* table_footer(["Column 1", "Column 2", "Column 3"]) -> "<tfoot>...</tfoot>"
+    """
     result = f"""
 <tfoot>
     {table_row(cols, True)}
@@ -25,6 +45,18 @@ def table_footer(cols):
 
 
 def table_row(dataset, header=False):
+    """
+    * ---------------table_row---------------
+* Generates HTML code for a table row
+* ----------------Returns---------------
+* -> result ::str
+* ----------------Params----------------
+* dataset :: list[str] | A list of data
+* header :: bool | Whether the row is a header row (default: False)
+* ----------------Usage-----------------
+* table_row(["Cell 1", "Cell 2", "Cell 3"], header=True) -> "<tr>...</tr>"
+* table_row(["Cell 1", "Cell 2", "Cell 3"]) -> "<tr>...</tr>"
+    """
     if header:
         tag = "th"
     else:
@@ -40,6 +72,16 @@ def table_row(dataset, header=False):
 
 
 def table_body(data):
+    """
+    * ---------------table_body---------------
+* Generates HTML code for a table body
+* ----------------Returns---------------
+* -> result ::str
+* ----------------Params----------------
+* data :: list[list[str]] | A 2D list of data
+* ----------------Usage-----------------
+* table_body([["Cell 1", "Cell 2", "Cell 3"], ["Cell 4", "Cell 5", "Cell 6"]]) -> "<tbody>...</tbody>"
+    """
     result = " <tbody> "
     for i in data:
         result += table_row(i)
@@ -48,6 +90,19 @@ def table_body(data):
 
 
 def pd_html_table(df, fillna=True):
+    """
+    * ---------------Function---------------
+* Generates an HTML table from a pandas DataFrame
+* ----------------Returns---------------
+* -> str: The generated HTML table
+* ----------------Params---------------
+* df :: DataFrame: The input DataFrame
+* fillna :: bool: Whether to fill NaN values with '-' (default: True)
+* ----------------Usage---------------
+* >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+* >>> html_table = pd_html_table(df)
+* print(html_table)
+    """
     if fillna:
         df = df.fillna("-")
     cols = list(df.columns)
@@ -65,10 +120,34 @@ def pd_html_table(df, fillna=True):
 
 
 def b64_div(data):
+    """
+    * ---------------Function---------------
+* Encodes a data URI for an image
+* ----------------Returns---------------
+* -> str: The encoded data URI
+* ----------------Params---------------
+* data :: <any>: The image data to encode
+* ----------------Usage---------------
+* >>> data = ...  # some image data
+* >>> encoded_data = b64_div(data)
+* print(encoded_data)
+    """
     return f'<img src="data:image/png;base64,{data}" />'
 
 
 def b64encode_buffer(buffer):
+    """
+    * ---------------Function---------------
+* Encodes a buffer to a base64-encoded string
+* ----------------Returns---------------
+* -> str: The base64-encoded string
+* ----------------Params---------------
+* buffer :: Buffer: The buffer to encode
+* ----------------Usage---------------
+* >>> buffer = ...  # some buffer object
+* >>> encoded_buffer = b64encode_buffer(buffer)
+* print(encoded_buffer)
+    """
     import base64
 
     buffer.seek(0)
@@ -76,6 +155,21 @@ def b64encode_buffer(buffer):
 
 
 def shap_summary(shap_values, explain_array, feature_names, max_display=20):
+    """
+* ---------------shap_summary---------------
+* Generates a SHAP values summary plot
+* ----------------Returns---------------
+* -> fig ::matplotlib figure
+* ----------------Params----------------
+* shap_values ::<any>
+* explain_array ::<any>
+* feature_names ::list
+* max_display ::int (default=20)
+* ----------------Usage----------------
+* Import necessary libraries and load data. 
+* Call shap_summary function with shap values, explain array, feature names, and max display as arguments.
+* A matplotlib figure object will be returned, which can be used for further customization or display.
+    """
     plt.clf()
     plt.tight_layout()
     fig = shap.summary_plot(
@@ -92,6 +186,18 @@ def shap_summary(shap_values, explain_array, feature_names, max_display=20):
 
 
 def bulma_inside_card(title, content, height_px=450, id_name=""):
+    """
+    * ---------------bulma_inside_card---------------
+* Returns a formatted Bulma card HTML snippet
+* ----------------Returns---------------
+* -> str
+* ----------------Params----------------
+* title ::str
+* content ::str
+* height_px ::int (default=450)
+* id_name ::str (default='')
+* ----------------Usage-----------------
+    """
     return f"""
 <div class="card events-card">
   <header class="card-header">
@@ -112,6 +218,19 @@ def bulma_inside_card(title, content, height_px=450, id_name=""):
 
 
 def bulma_header():
+    """
+    **---------------Function---------------**
+* Generate a Bulma CSS header
+* 
+* ----------------Returns---------------
+* -> str | The HTML header code as a string
+* ----------------Params----------------
+* None
+* ----------------Usage-----------------
+* Call the function to generate a Bulma CSS header
+
+def bulma_header():
+    """
     return """
 
 <head>
@@ -132,6 +251,17 @@ def bulma_header():
 
 
 def bulma_inside(content):
+    """
+    **---------------Function---------------**
+* Generate a Bulma CSS HTML page with a given content
+* 
+* ----------------Returns---------------
+* -> str | The full HTML page code as a string
+* ----------------Params----------------
+* content :: str | The content to be included in the HTML page
+* ----------------Usage-----------------
+* Call the function with the desired content to generate a full HTML page
+    """
     return f"""
                <!DOCTYPE html>
            <html>

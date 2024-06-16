@@ -72,17 +72,58 @@ def embed_nod2vec_dot_product(
 
 
 def pd_get_embeddings(df, column, batch_size=32, as_dataframe=False):
+    '''
+    * ---------------Function---------------
+    * Computes sentence embeddings using a pre-trained BERT model.
+    * 
+    * The function takes a pandas DataFrame and a column name as input, 
+    * processes the data in chunks, and computes the sentence embeddings 
+    * using the BERT model. The embeddings can be returned as a numpy array 
+    * or a pandas DataFrame.
+    * 
+    * ----------------Params----------------
+    * df : pandas.DataFrame
+    *     Input DataFrame.
+    * column : str
+    *     Column name to compute embeddings for.
+    * batch_size : int, optional (default=32)
+    *     Batch size for processing data.
+    * as_dataframe : bool, optional (default=False)
+    *     Whether to return the embeddings as a pandas DataFrame or a numpy array.
+    * 
+    * ----------------Returns---------------
+    * -> pd.DataFrame or np.ndarray
+    *     Sentence embeddings in a pandas DataFrame or a numpy array, 
+    *     depending on the `as_dataframe` parameter.
+    * 
+    * ----------------Usage-----------------
+    * 
+    * ```
+    * import pandas as pd
+    * from transformers import AutoTokenizer, AutoModel
+    * 
+    * tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    * model = AutoModel.from_pretrained('bert-base-uncased')
+    * 
+    * df = pd.DataFrame({'lead_contact_title': ['example sentence 1', 'example sentence 2']})
+    * embeddings_df = pd_get_embeddings(df, 'lead_contact_title', 512, as_dataframe=True)
+    * ```
     # Define the model
-# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-# model = AutoModel.from_pretrained('bert-base-uncased')
-# embeddings_df = get_embeddings(temp_df, 'lead_contact_title', 512, as_dataframe=True)
-# embeddings_df.to_parquet('emb.parquet')
-#embeddings_df = pd.read_parquet('emb.parquet')
-# Concatenate the original DataFrame with the embeddings DataFrame
-#temp_df = pd.concat([temp_df, embeddings_df], axis=1)
-#embedding_columns = embeddings_df.columns.tolist()
+    # tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    # model = AutoModel.from_pretrained('bert-base-uncased')
+    # embeddings_df = get_embeddings(temp_df, 'lead_contact_title', 512, as_dataframe=True)
+    # embeddings_df.to_parquet('emb.parquet')
+    #embeddings_df = pd.read_parquet('emb.parquet')
+    # Concatenate the original DataFrame with the embeddings DataFrame
+    #temp_df = pd.concat([temp_df, embeddings_df], axis=1)
+    #embedding_columns = embeddings_df.columns.tolist()
+    * 
+    * ----------------Notes-----------------
+    * This function assumes that the input DataFrame column contains strings.
+    * The BERT model and tokenizer are not included in the function signature; 
+    * they need to be defined before calling this function.
+    '''
 
-    # Cast the column to string
     df[column] = df[column].astype(str)
 
     embeddings_list = []

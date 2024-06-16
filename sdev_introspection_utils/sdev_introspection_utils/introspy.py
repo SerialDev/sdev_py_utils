@@ -449,3 +449,69 @@ def source(data):
     result = inspect.getsource(data)
     print(result)
     return result
+
+
+
+
+def find_attributes_with_attribute(obj, attribute_name, max_depth, current_depth=0, path=""):
+    '''
+    * ---------------Function---------------
+    * Finds all attributes of an object that have a specific attribute.
+    * ----------------Returns---------------
+    * -> list[str] : A list of paths to attributes that have the specified attribute.
+    * ----------------Params----------------
+    * obj : <any> : The object to search for attributes.
+    * attribute_name : str : The name of the attribute to search for.
+    * max_depth : int : The maximum depth to search for attributes.
+    * current_depth : int : The current depth of the search (default: 0).
+    * path : str : The current path being searched (default: "").
+    * ----------------Usage-----------------
+    * This function can be used to find all attributes of an object that have a specific attribute. For example, to find all attributes of an object that have an attribute named "id", you would call `find_attributes_with_attribute(obj, "id", 5)`.
+    * ----------------Notes-----------------
+    * This function uses recursion to search for attributes, so it may cause a stack overflow if the object has a very deep nested structure.
+    '''
+    matched_attrs = []
+    if current_depth > max_depth:
+        return matched_attrs
+    for attr_name in dir(obj):
+        if not attr_name.startswith('__'):  # Ignore built-in attributes/methods
+            attr = getattr(obj, attr_name)
+            current_path = f"{path}.{attr_name}" if path else attr_name
+            if hasattr(attr, attribute_name):
+                matched_attrs.append(current_path)
+            if hasattr(attr, '__dict__'):  # Check if the attribute is an object with its own attributes
+                matched_attrs.extend(find_attributes_with_attribute(attr, attribute_name, max_depth, current_depth + 1, current_path))
+    return matched_attrs
+
+def find_object_by_class_name(obj, target_class_name, max_depth, current_depth=0, path=""):
+    '''
+    * ---------------Function---------------
+    * Searches for objects of a specific class within another object, traversing up to a specified depth.
+    * ----------------Returns---------------
+    * -> list :: A list of paths to objects of the target class
+    * ----------------Params----------------
+    * obj :: <any> - The object to search within
+    * target_class_name :: str - The name of the class to search for
+    * max_depth :: int - The maximum depth to traverse
+    * current_depth :: int - (optional, default=0) The current depth of the traversal
+    * path :: str - (optional, default="") The current path being traversed
+    * ----------------Usage-----------------
+    * This function can be used to find all instances of a specific class within an object, such as finding all widgets within a GUI application.
+    * Example: `find_object_by_class_name(my_gui, "Widget", 5)` would find all Widget objects within `my_gui` up to a depth of 5.
+    * ----------------Notes-----------------
+    * This function uses recursion to traverse the object graph, so be careful not to exceed the maximum recursion depth.
+    * The function ignores built-in attributes and methods (those that start with double underscore).
+    '''
+    matched_paths = []
+    if current_depth > max_depth:
+        return matched_paths
+    for attr_name in dir(obj):
+        if not attr_name.startswith('__'):  # Ignore built-in attributes/methods
+            attr = getattr(obj, attr_name)
+            current_path = f"{path}.{attr_name}" if path else attr_name
+            if attr.__class__.__name__ == target_class_name:
+                matched_paths.append(current_path)
+            if hasattr(attr, '__dict__'):  # Check if the attribute is an object with its own attributes
+                matched_paths.extend(find_object_by_class_name(attr, target_class_name, max_depth, current_depth + 1, current_path))
+    return matched_paths
+

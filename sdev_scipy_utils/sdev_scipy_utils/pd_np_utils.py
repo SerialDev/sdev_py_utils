@@ -57,6 +57,31 @@ def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
     console.print(table)
 
 
+
+def identify_unhashable_columns(df: pd.DataFrame):
+    """
+    * ---------------Function---------------
+    * Identifies DataFrame columns that contain unhashable types such as lists.
+    * ----------------Returns---------------
+    * -> list[str] : A list of column names that contain unhashable types
+    * ----------------Params----------------
+    * df :: pd.DataFrame : The input DataFrame to check for unhashable columns
+    * ----------------Usage-----------------
+    * This function can be used to identify columns in a DataFrame that contain unhashable types,
+    such as lists. This is useful when working with data structures that require hashable types.
+    * ----------------Notes-----------------
+    * This function iterates over each column in the input DataFrame and checks if any value in the column is a list.
+    If a column contains at least one list, it is added to the list of unhashable columns.
+    """
+    unhashable_columns = []
+
+    for column in df.columns:
+        if df[column].apply(lambda x: isinstance(x, list)).any():
+            unhashable_columns.append(column)
+
+    return unhashable_columns
+
+
 def dump_string_to_file(s: str, file_path: str = None):
     """
     Dumps a given string into a file. If no file path is provided, it defaults to the current working directory.
@@ -72,7 +97,31 @@ def dump_string_to_file(s: str, file_path: str = None):
     print(f"String successfully written to {file_path}")
 
 
-    
+def reveal_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    *---------------Function---------------
+    *Return a DataFrame showing only rows with at least one NaN,
+    but only in columns that also contain at least one NaN.
+    *----------------Returns---------------
+    *-> pd.DataFrame
+    *----------------Params----------------
+    *df :: pd.DataFrame
+    *----------------Usage----------------
+    *Use this function to identify and extract rows with missing values in a pandas DataFrame.
+    *Example: reveal_incomplete_rows(my_df) would return a new DataFrame with only the rows that have NaN values in columns that also have NaN values.
+    *----------------Notes-----------------
+    *This function is useful for data cleaning and exploratory data analysis.
+    *Be cautious when using this function with large datasets, as it may return a large number of rows.
+    """
+    # Find columns with at least one NaN
+    cols_with_nan = df.columns[df.isna().any()]
+
+    # Filter rows that have at least one NaN anywhere
+    rows_with_nan = df[df.isna().any(axis=1)]
+
+    return rows_with_nan[cols_with_nan]
+
+
 def pd_batch_iterator(df):
     batch_size = 20
     num_rows = len(df)
@@ -91,11 +140,11 @@ def pretty_print_dataframe_samples(df, string_to_find=None):
     Prints each column name with its corresponding sample value in a dataframe.
     Column names are printed in yellow, and the sample values are printed in grey.
     Prints column names containing a specified string in red.
-    
+
     Parameters:
     - df: pandas DataFrame
     - string_to_find: String to be searched in column names (default: None)
-    
+
     Returns:
     - None
     """
@@ -116,10 +165,10 @@ def included_cols_excluded_cols(df, excluded_columns):
 def get_sample_rows_with_na(df, n=3):
     # Get a list of columns that have missing values
     cols_with_na = df.columns[df.isna().any()].tolist()
-    
+
     # Create a dictionary to store sample rows
     sample_rows = {}
-    
+
     for col in cols_with_na:
         # Get a random sample of a row with a missing value in the column
         sample_rows[col] = df[df[col].isna()].sample(n).to_dict('records')
@@ -137,12 +186,12 @@ def sample_nan_rows(df):
     return nan_samples
 
 
-        
+
 def pd_dump_to_string_file(df):
     from tabulate import tabulate
 
     dump_string_to_file(tabulate(df[:2], headers="keys", tablefmt="psql"))
-    return 1 
+    return 1
 
 
 def show_matching_columns(dataframes):
@@ -189,7 +238,7 @@ def show_matching_columns(dataframes):
                     type_strs.append(color_idx[i] + str(df[col].dtype) + end)
             print(yellow + col + " (" + ", ".join(type_strs) + ")" + end)
 
-            
+
 
 def pd_to_base64(df):
     """
@@ -1982,7 +2031,7 @@ def transform_aos_soa(dict_list):
             if k not in soa:
                 soa[k] = [None] * len(dict_list)
             soa[k].append(v)
-    
+
     return soa
 
 
@@ -2375,8 +2424,8 @@ def pd_h_concat(df_1, df_2, cols=None, keep_col=False):
 
 def pct_col_nul(df, col):
     print(
-        f"""Dataframe col {col} Nulls accounts for 
-          {(df.shape[0] - df[col].dropna().shape[0]) * 100 / df.shape[0]:.2f}% 
+        f"""Dataframe col {col} Nulls accounts for
+          {(df.shape[0] - df[col].dropna().shape[0]) * 100 / df.shape[0]:.2f}%
           of the whole DataFrame of len={df.shape[0]}"""
     )
 
@@ -2750,7 +2799,7 @@ def check_for_nans(df):
             print(row_with_nans.sample(1))
             rows_to_drop[col] = list(row_with_nans.index)
             print()
-        
+
     return rows_to_drop
 
 
@@ -2776,7 +2825,3 @@ def fill_nans(df, rows_to_drop, method='mean', drop_method='drop'):
         else:
             print(f"Invalid drop method: {drop_method}. The rows with NaNs or None values in column {col} have not been dropped.")
     return df
-
-
-
-

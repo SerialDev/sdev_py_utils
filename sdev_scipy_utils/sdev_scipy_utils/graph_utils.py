@@ -1,10 +1,150 @@
 import networkx as nx
 
-import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+
+def bundle_nodes(G, prefixes):
+    '''
+    * ---------------Function---------------
+    * Bundles nodes in a graph based on their prefixes
+    * ----------------Returns---------------
+    * -> NetworkX graph object :: The modified graph with bundled nodes
+    * ----------------Params----------------
+    * G :: NetworkX graph object :: The input graph
+    * prefixes :: list of str :: The prefixes to bundle nodes by
+    * ----------------Usage-----------------
+    * ```
+    * G = nx.Graph()
+    * G.add_node("node1", Labels=["prefix1_label"])
+    * G.add_node("node2", Labels=["prefix2_label"])
+    * prefixes = ["prefix1", "prefix2"]
+    * G = bundle_nodes(G, prefixes)
+    * ```
+    * ----------------Notes-----------------
+    * This function modifies the input graph by removing nodes that match the given prefixes and replacing them with a master node for each prefix. It then reconnects the edges to the master nodes.
+    >>>
+    # Example usage
+    G = nx.DiGraph()
+    G.add_node(1, Labels="Node A")
+    G.add_node(2, Labels="Node B")
+    G.add_node(3, Labels="Other C")
+    G.add_edge(1, 2)
+    G.add_edge(2, 3)
+    prefixes = ["Node ", "Other"]
+    G = bundle_nodes(G, prefixes)
+    # Display the graph
+    print("Nodes:", G.nodes(data=True))
+    print("Edges:", G.edges())
+
+    '''
+    # Create a master node for each prefix
+    prefix_master_nodes = {prefix: f"{prefix.rstrip()}_master" for prefix in prefixes}
+    for master_node in prefix_master_nodes.values():
+        G.add_node(master_node, label=master_node)
+
+    # Maintain edges that should be bundled
+    bundled_edges = {prefix: [] for prefix in prefixes}
+    connections_between_prefixes = set()
+
+    # Iterate through nodes and bundle them based on their prefixes
+    for node, data in list(G.nodes(data=True)):
+        labels = data.get('Labels', [])
+        if not isinstance(labels, list):
+            labels = [labels]
+        for prefix in prefixes:
+            if any(label.startswith(prefix) for label in labels) and node not in prefix_master_nodes.values():
+                for pred in G.predecessors(node):
+                    bundled_edges[prefix].append((pred, prefix_master_nodes[prefix]))
+                for succ in G.successors(node):
+                    bundled_edges[prefix].append((prefix_master_nodes[prefix], succ))
+                for other_prefix in prefixes:
+                    if other_prefix != prefix:
+                        if any(G.has_edge(pred, node) for pred in G.predecessors(node)) or any(G.has_edge(node, succ) for succ in G.successors(node)):
+                            connections_between_prefixes.add((prefix_master_nodes[prefix], prefix_master_nodes[other_prefix]))
+                G.remove_node(node)
+
+    # Add the bundled edges to the graph
+    for edges in bundled_edges.values():
+        for edge in edges:
+            G.add_edge(*edge)
+
+    # Connect master nodes if needed
+    for edge in connections_between_prefixes:
+        G.add_edge(*edge)
+
+    return G
+
+
+def flatten_graph(G):
+    '''
+    * ---------------Function---------------
+    * This function flattens a graph into a new graph where each attribute becomes a node.
+    * ----------------Returns---------------
+    * -> nx.DiGraph: A new directed graph where each attribute is a node.
+    * ----------------Params----------------
+    * G: <any> The input graph to be flattened.
+    * ----------------Usage-----------------
+    * ```
+    * G = nx.Graph()
+    * G.add_node(1, Props={'color': 'red', 'shape': 'circle'})
+    * G.add_edge(1, 2, Props={'label': 'edge label'})
+    * flat_G = flatten_graph(G)
+    * ```
+    * ----------------Notes-----------------
+    * This function assumes that the input graph is a networkx graph.
+    * It creates nodes for each attribute in the original graph and edges to represent the relationships between them.
+    * The resulting graph can be used for visualization or further processing.
+    '''
+    flat_G = nx.DiGraph()
+
+    # Create nodes for each attribute and edges for each attribute key
+    for node, data in G.nodes(data=True):
+        # Use the actual node ID as the label
+        flat_G.add_node(node, label=f"Node {node}")
+
+        # Create nodes and edges for each attribute in the 'Props' dictionary
+        if 'Props' in data and data['Props']:  # Skip if 'Props' is empty
+            for key, value in data['Props'].items():
+                attr_node = f"{node}_{key}"
+                value_node = f"{node}_{key}_value"
+                value_label = str(value)  # Convert value to string
+                flat_G.add_node(attr_node, label=key)
+                flat_G.add_node(value_node, label=value_label)
+                flat_G.add_edge(node, attr_node, label=key)
+                flat_G.add_edge(attr_node, value_node, label='value')
+
+        # Create nodes and edges for each attribute outside 'Props'
+        for key, value in data.items():
+            if key != 'Props':
+                attr_node = f"{node}_{key}"
+                value_node = f"{node}_{key}_value"
+                value_label = str(value)  # Convert value to string
+                flat_G.add_node(attr_node, label=key)
+                flat_G.add_node(value_node, label=value_label)
+                flat_G.add_edge(node, attr_node, label=key)
+                flat_G.add_edge(attr_node, value_node, label='value')
+
+    # Create edges for the original edges with attributes as nodes
+    for u, v, data in G.edges(data=True):
+        edge_node = f"{u}_{v}_edge"
+        flat_G.add_node(edge_node, label=f"Edge {u} -> {v}")
+        flat_G.add_edge(u, edge_node, label='source')
+        flat_G.add_edge(edge_node, v, label='target')
+
+        # Create nodes and edges for each edge attribute if 'Props' is not empty
+        if data and data.get('Props'):  # Skip if 'Props' is empty
+            for key, value in data.items():
+                attr_node = f"{edge_node}_{key}"
+                value_node = f"{edge_node}_{key}_value"
+                value_label = str(value)  # Convert value to string
+                flat_G.add_node(attr_node, label=key)
+                flat_G.add_node(value_node, label=value_label)
+                flat_G.add_edge(edge_node, attr_node, label=key)
+                flat_G.add_edge(attr_node, value_node, label='value')
+
+    return flat_G
 
 def convert_to_topological(multidigraph):
     # Step 2: Initialize the new graph as a MultiDiGraph
@@ -29,6 +169,43 @@ def convert_to_topological(multidigraph):
 
     return H
 
+
+def add_edge_label(graph, label):
+    for u, v, data in graph.edges(data=True):
+        data['ulabels'] = label
+
+def print_edge_labels(graph):
+    for u, v, data in graph.edges(data=True):
+        if 'ulabels' in data:
+            print(f"Edge ({u}, {v}) has attribute 'ulabels': {data['ulabels']}")
+        else:
+            print(f"Edge ({u}, {v}) has no attribute 'ulabels'")
+
+
+
+def eliminate_in_graph(G, keys):
+    """
+    Eliminate attributes or props based on the list of keys from edges and nodes in the graph.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    keys (list): The list of keys to eliminate from nodes and edges.
+    """
+    # Remove the keys from node attributes
+    for node, data in G.nodes(data=True):
+        for key in keys:
+            if key in data:
+                del data[key]
+            if 'Props' in data and key in data['Props']:
+                del data['Props'][key]
+
+    # Remove the keys from edge attributes
+    for u, v, data in G.edges(data=True):
+        for key in keys:
+            if key in data:
+                del data[key]
+            if 'Props' in data and key in data['Props']:
+                del data['Props'][key]
 
 
 
@@ -459,3 +636,111 @@ def visualize_network_with_sequential_subgraph(
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=2, col=1)
 
     fig.show()
+
+
+def compare_graphs(G1, G2):
+    try:
+        # Number of Nodes
+        num_nodes_G1 = G1.number_of_nodes()
+        num_nodes_G2 = G2.number_of_nodes()
+        print("Number of Nodes G1:", num_nodes_G1)
+        print("Number of Nodes G2:", num_nodes_G2)
+    except Exception as e:
+        print(f"Error comparing number of nodes: {e}")
+
+    try:
+        # Number of Edges
+        num_edges_G1 = G1.number_of_edges()
+        num_edges_G2 = G2.number_of_edges()
+        print("Number of Edges G1:", num_edges_G1)
+        print("Number of Edges G2:", num_edges_G2)
+    except Exception as e:
+        print(f"Error comparing number of edges: {e}")
+
+    try:
+        # Nodes Present in One Graph but Not the Other
+        nodes_diff_G1 = sorted(set(map(str, G1.nodes)) - set(map(str, G2.nodes)))
+        nodes_diff_G2 = sorted(set(map(str, G2.nodes)) - set(map(str, G1.nodes)))
+        print("Nodes in G1 but not in G2:", nodes_diff_G1)
+        print("Nodes in G2 but not in G1:", nodes_diff_G2)
+    except Exception as e:
+        print(f"Error comparing nodes: {e}")
+    try:
+        # Convert edges to a canonical form where each edge is represented as a sorted tuple of strings
+        edges_G1 = set((str(edge[0]), str(edge[1])) if edge[0] < edge[1] else (str(edge[1]), str(edge[0])) for edge in G1.edges)
+        edges_G2 = set((str(edge[0]), str(edge[1])) if edge[0] < edge[1] else (str(edge[1]), str(edge[0])) for edge in G2.edges)
+
+        # Compute the differences
+        edges_diff_G1 = sorted(edges_G1 - edges_G2)
+        edges_diff_G2 = sorted(edges_G2 - edges_G1)
+
+        # Determine the length of the longest list for proper alignment
+        max_len = max(len(edges_diff_G1), len(edges_diff_G2))
+
+        # Pad the shorter list with empty strings for alignment
+        edges_diff_G1 += [('', '')] * (max_len - len(edges_diff_G1))
+        edges_diff_G2 += [('', '')] * (max_len - len(edges_diff_G2))
+
+        # Print the header
+        print(f"{'Edges in G1 but not in G2':<25} {'Edges in G2 but not in G1':<25}")
+
+        # Print the edges side by side
+        for edge1, edge2 in zip(edges_diff_G1, edges_diff_G2):
+            print(f"{str(edge1):<25} {str(edge2):<25}")
+
+    except Exception as e:
+        print(f"Error comparing edges: {e}")
+
+    try:
+        # Degree Sequence
+        degree_sequence_G1 = sorted([d for n, d in G1.degree()], reverse=True)
+        degree_sequence_G2 = sorted([d for n, d in G2.degree()], reverse=True)
+        print("Degree sequence G1:", degree_sequence_G1)
+        print("Degree sequence G2:", degree_sequence_G2)
+    except Exception as e:
+        print(f"Error comparing degree sequences: {e}")
+
+    try:
+        # Clustering Coefficient
+        clustering_G1 = nx.average_clustering(G1)
+        clustering_G2 = nx.average_clustering(G2)
+        print("Clustering Coefficient G1:", clustering_G1)
+        print("Clustering Coefficient G2:", clustering_G2)
+    except Exception as e:
+        print(f"Error comparing clustering coefficients: {e}")
+
+    try:
+        # Connected Components
+        components_G1 = sorted([len(c) for c in nx.connected_components(G1)])
+        components_G2 = sorted([len(c) for c in nx.connected_components(G2)])
+        print("Connected Components G1:", components_G1)
+        print("Connected Components G2:", components_G2)
+    except Exception as e:
+        print(f"Error comparing connected components: {e}")
+
+    try:
+        # Graph Density
+        density_G1 = nx.density(G1)
+        density_G2 = nx.density(G2)
+        print("Graph Density G1:", density_G1)
+        print("Graph Density G2:", density_G2)
+    except Exception as e:
+        print(f"Error comparing graph densities: {e}")
+
+    try:
+        # Average Shortest Path Length
+        avg_shortest_path_length_G1 = nx.average_shortest_path_length(G1) if nx.is_connected(G1) else float('inf')
+        avg_shortest_path_length_G2 = nx.average_shortest_path_length(G2) if nx.is_connected(G2) else float('inf')
+        print("Average Shortest Path Length G1:", avg_shortest_path_length_G1)
+        print("Average Shortest Path Length G2:", avg_shortest_path_length_G2)
+    except Exception as e:
+        print(f"Error comparing average shortest path lengths: {e}")
+
+    try:
+        # Diameter
+        diameter_G1 = nx.diameter(G1) if nx.is_connected(G1) else float('inf')
+        diameter_G2 = nx.diameter(G2) if nx.is_connected(G2) else float('inf')
+        print("Diameter G1:", diameter_G1)
+        print("Diameter G2:", diameter_G2)
+    except Exception as e:
+        print(f"Error comparing diameters: {e}")

@@ -97,6 +97,7 @@ class ProbabilityScale(mscale.ScaleBase):
         is_separable = True
 
         def __init__(self, lower_bound, upper_bound, L, k, x0):
+            ''''''
             mtransforms.Transform.__init__(self)
             self.lower_bound = lower_bound
             self.L = L
@@ -129,11 +130,13 @@ class ProbabilityScale(mscale.ScaleBase):
             )
 
     class InvertedProbabilityTransform(mtransforms.Transform):
+        ''''''
         input_dims = 1
         output_dims = 1
         is_separable = True
 
         def __init__(self, lower_bound, upper_bound, L, k, x0):
+            ''''''
             mtransforms.Transform.__init__(self)
             self.lower_bound = lower_bound
             self.L = L
@@ -142,9 +145,43 @@ class ProbabilityScale(mscale.ScaleBase):
             self.upper_bound = upper_bound
 
         def transform_non_affine(self, a):
+            """
+            * ---------------Function---------------
+* Applies a non-affine transformation to the input value 'a'.
+* 
+* ----------------Returns---------------
+* -> float: The transformed value
+* 
+* ----------------Params----------------
+* a : float
+    The input value to be transformed
+* self.L : float
+    A parameter of the transformation
+* self.k : float
+    A parameter of the transformation
+* self.x0 : float
+    A parameter of the transformation
+* 
+* ----------------Usage-----------------
+* >>> transformed_value = transform_non_affine(1.5)
+            """
             return self.L / (1 + np.exp(-self.k * (a - self.x0)))
 
         def inverted(self):
+            '''
+* ---------------Function---------------
+* Creates an inverted probability transform object.
+* 
+* ----------------Returns---------------
+* -> ProbabilityTransform: The inverted probability transform object
+* 
+* ----------------Params----------------
+* None
+* 
+* ----------------Usage-----------------
+* >>> inverted_transform = inverted()
+* print(inverted_transform.lower_bound)
+            '''
             return ProbabilityScale.ProbabilityTransform(
                 self.lower_bound, self.upper_bound, self.L, self.k, self.x0
             )
@@ -302,6 +339,7 @@ class ProbScale(mscale.ScaleBase):
         is_separable = True
 
         def __init__(self, upper, lower, mu, sigma):
+            ''''''
             mtransforms.Transform.__init__(self)
             self.upper = upper
             self.lower = lower
@@ -337,11 +375,49 @@ class ProbScale(mscale.ScaleBase):
             )
 
     class InvertedProbTransform(mtransforms.Transform):
+        '''
+* ------------InvertedProbTransform---------------
+* A probability transform that inverts the probability scale.
+* ----------------Params----------------
+* lower :: float
+*   The lower bound of the transformed range.
+* upper :: float
+*   The upper bound of the transformed range.
+* mu :: float
+*   The mean of the normal distribution.
+* sigma :: float
+*   The standard deviation of the normal distribution.
+* ----------------Methods----------------
+* 
+* ---transform_non_affine---------------
+* 
+* Transform a value `a` from the probability range [0,1] to the transformed range [lower, upper].
+* 
+* Parameters:
+* 
+* a :: float
+*   The value to transform, in the probability range [0,1].
+* 
+* Returns:
+* 
+* inverse :: float
+*   The transformed value in the range [lower, upper].
+* 
+* ---inverted---------------
+* 
+* Return an instance of `ProbScale.ProbTransform` that inverts the transformation.
+* 
+* Returns:
+* 
+* prob_transform :: ProbScale.ProbTransform
+*   An instance of `ProbScale.ProbTransform` that inverts the transformation.
+        '''
         input_dims = 1
         output_dims = 1
         is_separable = True
 
         def __init__(self, lower, upper, mu, sigma):
+            """"""
             mtransforms.Transform.__init__(self)
             self.lower = lower
             self.upper = upper
@@ -349,11 +425,31 @@ class ProbScale(mscale.ScaleBase):
             self.sigma = sigma
 
         def transform_non_affine(self, a):
+            """
+            * ---------------Function---------------
+* Applies the probability transform to a given value
+* ----------------Returns---------------
+* -> float | The transformed value
+* ----------------Params----------------
+* a :: float | The value to transform, in percent scale [0,100]
+* ----------------Usage-----------------
+* Apply the probability transform to a value in percent scale [0,100].
+            """
             # Need to get the PPF value for a, which is in a percent scale [0,100], so move back to probability range [0,1]
             inverse = norm.ppf(a / 100, self.mu, self.sigma)
             return inverse
 
         def inverted(self):
+            '''
+            * ---------------Function---------------
+* Returns a new probability transform object with the same bounds but inverted
+* ----------------Returns---------------
+* -> ProbScale.ProbTransform | A new probability transform object
+* ----------------Params----------------
+* None
+* ----------------Usage-----------------
+* Get a new probability transform object with the same bounds but inverted.
+            '''
             return ProbScale.ProbTransform(self.lower, self.upper)
 
 
