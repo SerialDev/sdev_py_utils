@@ -1,8 +1,0 @@
-(undo-tree-save-format-version . 1)
-"f7aae606de8c9485c44b876605a9d328d2530e1e"
-[nil nil nil nil (26076 58249 360353 0) 0 nil]
-([nil nil ((278 . 310) 246 (t 25074 33864 0 0)) nil (26076 58249 360352 0) 0 nil])
-([nil nil ((#("proc" 0 4 (fontified t)) . -290) (undo-tree-id1 . -4) 294) nil (26076 58249 360351 0) 0 nil])
-([nil nil ((#("image_" 0 6 (fontified t)) . -284) (undo-tree-id0 . -6) 290) nil (26076 58249 360348 0) 0 nil])
-([nil current ((284 . 289)) nil (26076 58249 360331 0) 0 nil])
-nil
