@@ -15,12 +15,14 @@ from datetime import date, timedelta
 import subprocess
 import sys
 
+
 # Define ANSI color codes for output
 class Color:
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RESET = '\033[0m'
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+
 
 import dill as pickle  # Required to pickle lambda functions
 
@@ -803,195 +805,196 @@ def spacedman_parts(path):
 
 
 # {Check admin rights}#
-try:
-    import os
-    import sys
-    import subprocess
+if sys.platform != "win32":
+    try:
+        import os
+        import sys
+        import subprocess
 
-    import ctypes
-    from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
-    from ctypes import c_ulong, c_char_p, c_int, c_void_p
+        import ctypes
+        from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
+        from ctypes import c_ulong, c_char_p, c_int, c_void_p
 
-    PHANDLE = ctypes.POINTER(HANDLE)
-    PDWORD = ctypes.POINTER(DWORD)
+        PHANDLE = ctypes.POINTER(HANDLE)
+        PDWORD = ctypes.POINTER(DWORD)
 
-    GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
-    GetCurrentProcess.argtypes = ()
-    GetCurrentProcess.restype = HANDLE
+        GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
+        GetCurrentProcess.argtypes = ()
+        GetCurrentProcess.restype = HANDLE
 
-    OpenProcessToken = ctypes.windll.kernel32.OpenProcessToken
-    OpenProcessToken.argtypes = (HANDLE, DWORD, PHANDLE)
-    OpenProcessToken.restype = BOOL
+        OpenProcessToken = ctypes.windll.kernel32.OpenProcessToken
+        OpenProcessToken.argtypes = (HANDLE, DWORD, PHANDLE)
+        OpenProcessToken.restype = BOOL
 
-    CloseHandle = ctypes.windll.kernel32.CloseHandle
-    CloseHandle.argtypes = (HANDLE,)
-    CloseHandle.restype = BOOL
+        CloseHandle = ctypes.windll.kernel32.CloseHandle
+        CloseHandle.argtypes = (HANDLE,)
+        CloseHandle.restype = BOOL
 
-    GetTokenInformation = ctypes.windll.Advapi32.GetTokenInformation
-    GetTokenInformation.argtypes = (
-        HANDLE,
-        ctypes.c_int,
-        ctypes.c_void_p,
-        DWORD,
-        PDWORD,
-    )
-    GetTokenInformation.restype = BOOL
+        GetTokenInformation = ctypes.windll.Advapi32.GetTokenInformation
+        GetTokenInformation.argtypes = (
+            HANDLE,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            DWORD,
+            PDWORD,
+        )
+        GetTokenInformation.restype = BOOL
 
-    TOKEN_READ = 0x20008
-    TokenElevation = 0x14
+        TOKEN_READ = 0x20008
+        TokenElevation = 0x14
 
-    class ShellExecuteInfo(ctypes.Structure):
-        _fields_ = [
-            ("cbSize", DWORD),
-            ("fMask", c_ulong),
-            ("hwnd", HWND),
-            ("lpVerb", c_char_p),
-            ("lpFile", c_char_p),
-            ("lpParameters", c_char_p),
-            ("lpDirectory", c_char_p),
-            ("nShow", c_int),
-            ("hInstApp", HINSTANCE),
-            ("lpIDList", c_void_p),
-            ("lpClass", c_char_p),
-            ("hKeyClass", HKEY),
-            ("dwHotKey", DWORD),
-            ("hIcon", HANDLE),
-            ("hProcess", HANDLE),
-        ]
+        class ShellExecuteInfo(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", DWORD),
+                ("fMask", c_ulong),
+                ("hwnd", HWND),
+                ("lpVerb", c_char_p),
+                ("lpFile", c_char_p),
+                ("lpParameters", c_char_p),
+                ("lpDirectory", c_char_p),
+                ("nShow", c_int),
+                ("hInstApp", HINSTANCE),
+                ("lpIDList", c_void_p),
+                ("lpClass", c_char_p),
+                ("hKeyClass", HKEY),
+                ("dwHotKey", DWORD),
+                ("hIcon", HANDLE),
+                ("hProcess", HANDLE),
+            ]
 
-        def __init__(self, **kw):
-            ctypes.Structure.__init__(self)
-            self.cbSize = ctypes.sizeof(self)
-            for fieldName, fieldValue in kw.items():
-                setattr(self, fieldName, fieldValue)
+            def __init__(self, **kw):
+                ctypes.Structure.__init__(self)
+                self.cbSize = ctypes.sizeof(self)
+                for fieldName, fieldValue in kw.items():
+                    setattr(self, fieldName, fieldValue)
 
-    PShellExecuteInfo = ctypes.POINTER(ShellExecuteInfo)
+        PShellExecuteInfo = ctypes.POINTER(ShellExecuteInfo)
 
-    ShellExecuteEx = ctypes.windll.Shell32.ShellExecuteExA
-    ShellExecuteEx.argtypes = (PShellExecuteInfo,)
-    ShellExecuteEx.restype = BOOL
+        ShellExecuteEx = ctypes.windll.Shell32.ShellExecuteExA
+        ShellExecuteEx.argtypes = (PShellExecuteInfo,)
+        ShellExecuteEx.restype = BOOL
 
-    WaitForSingleObject = ctypes.windll.kernel32.WaitForSingleObject
-    WaitForSingleObject.argtypes = (HANDLE, DWORD)
-    WaitForSingleObject.restype = DWORD
+        WaitForSingleObject = ctypes.windll.kernel32.WaitForSingleObject
+        WaitForSingleObject.argtypes = (HANDLE, DWORD)
+        WaitForSingleObject.restype = DWORD
 
-    SW_HIDE = 0
-    SW_SHOW = 5
-    SEE_MASK_NOCLOSEPROCESS = 0x00000040
-    INFINITE = -1
+        SW_HIDE = 0
+        SW_SHOW = 5
+        SEE_MASK_NOCLOSEPROCESS = 0x00000040
+        INFINITE = -1
 
-    ELEVATE_MARKER = "win32elevate_marker_parameter"
+        ELEVATE_MARKER = "win32elevate_marker_parameter"
 
-    FreeConsole = ctypes.windll.kernel32.FreeConsole
-    FreeConsole.argtypes = ()
-    FreeConsole.restype = BOOL
+        FreeConsole = ctypes.windll.kernel32.FreeConsole
+        FreeConsole.argtypes = ()
+        FreeConsole.restype = BOOL
 
-    AttachConsole = ctypes.windll.kernel32.AttachConsole
-    AttachConsole.argtypes = (DWORD,)
-    AttachConsole.restype = BOOL
+        AttachConsole = ctypes.windll.kernel32.AttachConsole
+        AttachConsole.argtypes = (DWORD,)
+        AttachConsole.restype = BOOL
 
-    ATTACH_PARENT_PROCESS = -1
+        ATTACH_PARENT_PROCESS = -1
 
-    def check_admin_rights_elevated():
-        """
-        Tells you whether current script already has Administrative rights.
-        """
-        pid = GetCurrentProcess()
-        processToken = HANDLE()
-        if not OpenProcessToken(pid, TOKEN_READ, ctypes.byref(processToken)):
-            raise ctypes.WinError()
-        try:
-            elevated, elevatedSize = DWORD(), DWORD()
-            if not GetTokenInformation(
-                processToken,
-                TokenElevation,
-                ctypes.byref(elevated),
-                ctypes.sizeof(elevated),
-                ctypes.byref(elevatedSize),
-            ):
+        def check_admin_rights_elevated():
+            """
+            Tells you whether current script already has Administrative rights.
+            """
+            pid = GetCurrentProcess()
+            processToken = HANDLE()
+            if not OpenProcessToken(pid, TOKEN_READ, ctypes.byref(processToken)):
                 raise ctypes.WinError()
-            return bool(elevated)
-        finally:
-            CloseHandle(processToken)
+            try:
+                elevated, elevatedSize = DWORD(), DWORD()
+                if not GetTokenInformation(
+                    processToken,
+                    TokenElevation,
+                    ctypes.byref(elevated),
+                    ctypes.sizeof(elevated),
+                    ctypes.byref(elevatedSize),
+                ):
+                    raise ctypes.WinError()
+                return bool(elevated)
+            finally:
+                CloseHandle(processToken)
 
-    def waitAndCloseHandle(processHandle):
-        """
-        Waits till spawned process finishes and closes the handle for it
-        """
-        WaitForSingleObject(processHandle, INFINITE)
-        CloseHandle(processHandle)
+        def waitAndCloseHandle(processHandle):
+            """
+            Waits till spawned process finishes and closes the handle for it
+            """
+            WaitForSingleObject(processHandle, INFINITE)
+            CloseHandle(processHandle)
 
-    def elevateAdminRights(waitAndClose=True, reattachConsole=True):
-        """
-        This will re-run current Python script requesting to elevate administrative rights.
-        If waitAndClose is True the process that called elevateAdminRights() will wait till elevated
-        process exits and then will quit.
-        If waitAndClose is False this function returns None for elevated process and process handle
-        for parent process (like POSIX os.fork).
-        If reattachConsole is False console of elevated process won't be attached to parent process
-        so you won't see any output of it.
-        """
-        if not check_admin_rights_elevated():
-            # this is host process that doesn't have administrative rights
-            params = subprocess.list2cmdline(
-                [os.path.abspath(sys.argv[0])] + sys.argv[1:] + [ELEVATE_MARKER]
-            )
-            executeInfo = ShellExecuteInfo(
-                fMask=SEE_MASK_NOCLOSEPROCESS,
-                hwnd=None,
-                lpVerb="runas",
-                lpFile=sys.executable,
-                lpParameters=params,
-                lpDirectory=None,
-                nShow=SW_HIDE if reattachConsole else SW_SHOW,
-            )
-            if reattachConsole and not all(
-                stream.isatty() for stream in (sys.stdin, sys.stdout, sys.stderr)
-            ):
-                # TODO: some streams were redirected, we need to manually work them
-                # currently just raise an exception
-                raise NotImplementedError(
-                    "win32elevate doesn't support elevating scripts with "
-                    "redirected input or output"
+        def elevateAdminRights(waitAndClose=True, reattachConsole=True):
+            """
+            This will re-run current Python script requesting to elevate administrative rights.
+            If waitAndClose is True the process that called elevateAdminRights() will wait till elevated
+            process exits and then will quit.
+            If waitAndClose is False this function returns None for elevated process and process handle
+            for parent process (like POSIX os.fork).
+            If reattachConsole is False console of elevated process won't be attached to parent process
+            so you won't see any output of it.
+            """
+            if not check_admin_rights_elevated():
+                # this is host process that doesn't have administrative rights
+                params = subprocess.list2cmdline(
+                    [os.path.abspath(sys.argv[0])] + sys.argv[1:] + [ELEVATE_MARKER]
                 )
+                executeInfo = ShellExecuteInfo(
+                    fMask=SEE_MASK_NOCLOSEPROCESS,
+                    hwnd=None,
+                    lpVerb="runas",
+                    lpFile=sys.executable,
+                    lpParameters=params,
+                    lpDirectory=None,
+                    nShow=SW_HIDE if reattachConsole else SW_SHOW,
+                )
+                if reattachConsole and not all(
+                    stream.isatty() for stream in (sys.stdin, sys.stdout, sys.stderr)
+                ):
+                    # TODO: some streams were redirected, we need to manually work them
+                    # currently just raise an exception
+                    raise NotImplementedError(
+                        "win32elevate doesn't support elevating scripts with "
+                        "redirected input or output"
+                    )
 
-            if not ShellExecuteEx(ctypes.byref(executeInfo)):
-                raise ctypes.WinError()
-            if waitAndClose:
-                waitAndCloseHandle(executeInfo.hProcess)
-                sys.exit(0)
+                if not ShellExecuteEx(ctypes.byref(executeInfo)):
+                    raise ctypes.WinError()
+                if waitAndClose:
+                    waitAndCloseHandle(executeInfo.hProcess)
+                    sys.exit(0)
+                else:
+                    return executeInfo.hProcess
             else:
-                return executeInfo.hProcess
-        else:
-            # This is elevated process, either it is launched by host process or user manually
-            # elevated the rights for this script. We check it by examining last parameter
-            if sys.argv[-1] == ELEVATE_MARKER:
-                # this is script-elevated process, remove the marker
-                del sys.argv[-1]
-                if reattachConsole:
-                    # Now attach our elevated console to parent's console.
-                    # first we free our own console
-                    if not FreeConsole():
-                        raise ctypes.WinError()
-                    # then we attach to parent process console
-                    if not AttachConsole(ATTACH_PARENT_PROCESS):
-                        raise ctypes.WinError()
+                # This is elevated process, either it is launched by host process or user manually
+                # elevated the rights for this script. We check it by examining last parameter
+                if sys.argv[-1] == ELEVATE_MARKER:
+                    # this is script-elevated process, remove the marker
+                    del sys.argv[-1]
+                    if reattachConsole:
+                        # Now attach our elevated console to parent's console.
+                        # first we free our own console
+                        if not FreeConsole():
+                            raise ctypes.WinError()
+                        # then we attach to parent process console
+                        if not AttachConsole(ATTACH_PARENT_PROCESS):
+                            raise ctypes.WinError()
 
-            # indicate we're already running with administrative rights, see docstring
-            return None
+                # indicate we're already running with administrative rights, see docstring
+                return None
 
-    # def elevateAdminRun(script_path=__file__):
-    #     if not check_admin_rights_elevated():
-    #         # this is host process that doesn't have administrative rights
-    #         executeInfo = ShellExecuteInfo(fMask=SEE_MASK_NOCLOSEPROCESS, hwnd=None, lpVerb='runas',
-    #                                        lpFile=sys.executable, lpParameters=script_path,
-    #                                        lpDirectory=None,
-    #                                        nShow=SW_HIDE)
+        # def elevateAdminRun(script_path=__file__):
+        #     if not check_admin_rights_elevated():
+        #         # this is host process that doesn't have administrative rights
+        #         executeInfo = ShellExecuteInfo(fMask=SEE_MASK_NOCLOSEPROCESS, hwnd=None, lpVerb='runas',
+        #                                        lpFile=sys.executable, lpParameters=script_path,
+        #                                        lpDirectory=None,
+        #                                        nShow=SW_HIDE)
 
-    #         if not ShellExecuteEx(ctypes.byref(executeInfo)):
-    #             raise ctypes.WinError()
-except Exception:
-    print("Wintypes not supported in current OS")
+        #         if not ShellExecuteEx(ctypes.byref(executeInfo)):
+        #             raise ctypes.WinError()
+    except Exception:
+        print("Wintypes not supported in current OS")
 
 # --{Date utilities}-#
 
@@ -1114,7 +1117,7 @@ class open_atomic(object):
         suffix=".temp",
         dir=None,
         opener=open,
-        **open_args
+        **open_args,
     ):
         self.target_name = name
         self.temp_name = self._get_temp_name(name, prefix, suffix, dir)
@@ -1249,7 +1252,7 @@ def file_exists(path):
     * >>> exists = file_exists("example.txt")
     * >>> print(exists)
     * True
-    """    
+    """
     return os.path.isfile(path)
 
 
@@ -1289,7 +1292,7 @@ def try_makedir(name):
 def local_caching(data, name, force=False):
     """
     * ---------------Function---------------
-    * This function is used to cache data locally, it will try to load the data from a pickle file, 
+    * This function is used to cache data locally, it will try to load the data from a pickle file,
     if the file does not exist, it will dump the data to the file.
 
     * ----------------Returns---------------
@@ -1440,10 +1443,7 @@ def dump_or_load_pickle(directory, name, data=None):
     return result
 
 
-
-
-
-def install_packages_from_file(filename='requirements.txt'):
+def install_packages_from_file(filename="requirements.txt"):
     """
     * ---------------Function---------------
     *
@@ -1477,21 +1477,31 @@ def install_packages_from_file(filename='requirements.txt'):
     # Ensure that pip is up-to-date
     print(f"{Color.YELLOW}Updating pip to the latest version...{Color.RESET}")
     try:
-        result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'], 
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
         if result.returncode == 0:
-            print(f"{Color.GREEN}Pip has been updated successfully.{Color.RESET}\n{result.stdout}")
+            print(
+                f"{Color.GREEN}Pip has been updated successfully.{Color.RESET}\n{result.stdout}"
+            )
         else:
-            print(f"{Color.RED}Failed to update pip. Error:{Color.RESET}\n{result.stderr}")
+            print(
+                f"{Color.RED}Failed to update pip. Error:{Color.RESET}\n{result.stderr}"
+            )
             return  # Exit if pip cannot be updated
     except subprocess.CalledProcessError as e:
         print(f"{Color.RED}Failed to update pip. Exception: {str(e)}{Color.RESET}")
         return  # Exit if pip update fails due to an exception
 
     # Reading and installing packages from the requirements.txt file
-    print(f"{Color.YELLOW}Reading packages from {filename} and starting installation...{Color.RESET}")
+    print(
+        f"{Color.YELLOW}Reading packages from {filename} and starting installation...{Color.RESET}"
+    )
     try:
-        with open(filename, 'r') as file:
+        with open(filename, "r") as file:
             packages = file.readlines()
         print(f"{Color.YELLOW}Total packages found: {len(packages)}{Color.RESET}")
 
@@ -1499,19 +1509,34 @@ def install_packages_from_file(filename='requirements.txt'):
             package = package.strip()
             if package:  # Ensure it's not an empty line
                 print(f"{Color.YELLOW}Installing package: {package}...{Color.RESET}")
-                result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', '--user', package], 
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--quiet",
+                        "--user",
+                        package,
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
                 if result.returncode == 0:
-                    print(f"{Color.GREEN}Package '{package}' installed successfully.{Color.RESET}")
+                    print(
+                        f"{Color.GREEN}Package '{package}' installed successfully.{Color.RESET}"
+                    )
                 else:
-                    print(f"{Color.RED}Failed to install '{package}'. Error:{Color.RESET}\n{result.stderr}")
+                    print(
+                        f"{Color.RED}Failed to install '{package}'. Error:{Color.RESET}\n{result.stderr}"
+                    )
     except FileNotFoundError:
         print(f"{Color.RED}Error: The file '{filename}' does not exist.{Color.RESET}")
     except Exception as e:
         print(f"{Color.RED}An unexpected error occurred: {str(e)}{Color.RESET}")
 
     print(f"{Color.GREEN}Installation process completed.{Color.RESET}")
-
 
 
 def execute_pip_commands(command_strings):
@@ -1564,16 +1589,22 @@ def execute_pip_commands(command_strings):
     * a message for each command specifying its index to improve readability.
     """
     total_commands = len(command_strings)
-    print(f"{Color.YELLOW}Total commands to execute: {total_commands}{Color.RESET}")  # Yellow color for total commands info
+    print(
+        f"{Color.YELLOW}Total commands to execute: {total_commands}{Color.RESET}"
+    )  # Yellow color for total commands info
 
     for index, command in enumerate(command_strings, start=1):
         command_list = command.split()
 
         # Yellow color for the command being executed
-        print(f"{Color.YELLOW}Executing command {index} of {total_commands}: {' '.join(command_list)}{Color.RESET}")
+        print(
+            f"{Color.YELLOW}Executing command {index} of {total_commands}: {' '.join(command_list)}{Color.RESET}"
+        )
 
         # Use subprocess.Popen to execute the command
-        process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process = subprocess.Popen(
+            command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
 
         # Wait for the command to complete and capture output
         stdout, stderr = process.communicate()
@@ -1590,7 +1621,43 @@ def execute_pip_commands(command_strings):
             if stderr.strip():
                 print(f"{Color.RED}Error Details:\n{stderr}{Color.RESET}")
             else:
-                print(f"{Color.RED}Error occurred, but no details were provided.{Color.RESET}")
+                print(
+                    f"{Color.RED}Error occurred, but no details were provided.{Color.RESET}"
+                )
 
 
+def conditional_import(import_statements):
+    """
+    * ---------------Function---------------
+    * Conditionally imports modules based on the provided import statements
+    *
+    * ----------------Returns---------------
+    * -> None
+    *
+    * ----------------Params----------------
+    * import_statements :: list<str> : A list of import statements, each in the format "module" or "module as alias"
+    *
+    * ----------------Usage----------------
+    *
+    * Example usage:
+    *
+    * import_statements = ["math", "numpy as np"]
+    * conditional_import(import_statements)
+    *
+    * ----------------Notes-----------------
+    * This function dynamically imports modules based on the provided import statements.
+    * If the module is not already loaded, it will be imported using the __import__ function.
+    * The alias is used to assign the imported module to the global namespace.
+    """
 
+    import sys
+
+    for statement in import_statements:
+        parts = statement.split(" as ")
+        module = parts[0]
+        alias = parts[1] if len(parts) > 1 else module.split(".")[-1]
+
+        if module not in sys.modules:
+            globals()[alias] = __import__(module, fromlist=[""])
+        else:
+            globals()[alias] = sys.modules[module]

@@ -1,4 +1,5 @@
-# 
+#
+
 
 def pd_scale_norm_df(df):
     """
@@ -73,13 +74,11 @@ def plot_collinearity(df, return_corr=False):
     fig, ax = plt.subplots(figsize=(12, 12))
     sns.heatmap(corr_df)
 
-    
     if return_corr:
         return corr_df
     else:
         plt.show()
         return None
-
 
 
 def learned_frontier(data, classifier, X_train, X_test, savefig=None):
@@ -185,7 +184,6 @@ def plot_colinearity_variations(df):
     """
     from pypair.association import binary_binary
 
-    
     # Similarity measure definitions
     jaccard = lambda a, b: binary_binary(a, b, measure="jaccard")
     tanimoto = lambda a, b: binary_binary(a, b, measure="tanimoto_i")
@@ -201,11 +199,14 @@ def plot_colinearity_variations(df):
 
     train_df = pd_scale_norm_df(df)
     fig = plt.figure(figsize=(20, 15))
-    
+
     measures = [
         ("pearson", "collinearity, Pearson similarity measure: "),
         ("spearman", "Spearman similarity measure: "),
-        (histogram_intersection, "collinearity, Histogram Intersection similarity measure: "),
+        (
+            histogram_intersection,
+            "collinearity, Histogram Intersection similarity measure: ",
+        ),
         (jaccard, "Jaccard similarity measure: "),
         (tanimoto, "Tanimoto similarity measure (Jaccard Index): "),
         (ochiai, "Ochiai similarity measure (cosine similarity): "),
@@ -215,7 +216,7 @@ def plot_colinearity_variations(df):
     ]
 
     # Plotting the heatmaps for various similarity measures
-    
+
     for i, (method, title) in enumerate(measures, 1):
         corr_df = train_df.corr(method=method)
         ax = fig.add_subplot(3, 3, i)
@@ -248,38 +249,37 @@ def pd_visualize_cat_cols(df, col_name):
       plotly
     • express and display it. The plot will show the count of each unique value
     • in the column.
-    • 
+    •
     • Example:
     • .. code-block:: python
-    • 
+    •
     • import pandas as pd
     • import plotly.express as px
     • df = pd.DataFrame({' column1':['a','b','a','b','a','c']})
     • result = pd_visualize_cat_cols(df, 'column1')
-    • 
+    •
     • In this example, the function will visualize the categorical column
       'column1'
     • in the input DataFrame 'df' using a bar plot. The resulting plot will show
     • the count of each unique value ('a', 'b', and 'c') in the column.
-    • 
+    •
     • Returns 'Success' if the operation was successful, or 'Failure' otherwise.
-    • 
+    •
     • Note: This function uses plotly.express, which must be installed for the
     • function to work. To install plotly.express, run pip install plotly.
-    • 
+    •
     • This function will not modify the input DataFrame.
     """
-    if col_name in df.select_dtypes(include=['object']).columns:
-        fig = px.bar(df[col_name].value_counts().reset_index(), x='index', y=col_name)
+    if col_name in df.select_dtypes(include=["object"]).columns:
+        fig = px.bar(df[col_name].value_counts().reset_index(), x="index", y=col_name)
         fig.show()
     else:
         print("Column not found or not categorical")
-    
 
 
-
-
-def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None, N=5, max_plots=16):
+def visualize_categoricals(
+    df, filter_contains="", filter_regex="", columns=None, N=5, max_plots=16
+):
     """
     * ----------------Function----------------
     * This function visualizes the top N categories of the categorical columns in a given pandas DataFrame.
@@ -293,10 +293,10 @@ def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None
     * N :: int, optional | The number of top categories to be displayed for each column. Defaults to 5.
     * max_plots :: int, optional | The maximum number of plots to be created. Defaults to 16.
     * ----------------Usage-----------------
-    * 
+    *
     * visualize_categoricals(df, filter_contains='', filter_regex='', columns=None, N=5, max_plots=16)
-    * 
-    * 
+    *
+    *
     * The function visualizes the top N categories of the categorical columns in a
     * given pandas DataFrame. It can filter the columns based on a specified string
     * (filter_contains) or regular expression pattern (filter_regex). Users can also
@@ -310,9 +310,10 @@ def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None
     import re
     from plotly.subplots import make_subplots
     import plotly.graph_objects as go
+
     # Example usage
     # visualize_categoricals(cb, filter_contains='cb', N=5, max_plots=3)
-    object_columns = df.select_dtypes(include=['object']).columns
+    object_columns = df.select_dtypes(include=["object"]).columns
 
     if filter_contains:
         object_columns = [col for col in object_columns if filter_contains in col]
@@ -327,7 +328,9 @@ def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None
         valid_columns = object_columns
 
     # Take only the columns with non-zero top categories
-    valid_columns = [col for col in valid_columns if df[col].value_counts().nlargest(N).sum() > 0]
+    valid_columns = [
+        col for col in valid_columns if df[col].value_counts().nlargest(N).sum() > 0
+    ]
 
     # Limiting to max_plots
     valid_columns = valid_columns[:max_plots]
@@ -342,8 +345,258 @@ def visualize_categoricals(df, filter_contains='', filter_regex='', columns=None
         top_categories = df[col].value_counts().nlargest(N)
         fig.add_trace(
             go.Bar(x=top_categories.index, y=top_categories.values, name=col),
-            row=row, col=col_idx
+            row=row,
+            col=col_idx,
         )
 
-    fig.update_layout(height=300 * num_rows, width=400 * num_cols, title_text="Top N Categories")
+    fig.update_layout(
+        height=300 * num_rows, width=400 * num_cols, title_text="Top N Categories"
+    )
+    fig.show()
+
+
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
+
+
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
+
+
+def plot_feature_importances(
+    model,
+    columns,
+    prefixes_to_merge=[
+        "embeddings_",
+        "UMAP",
+        "count",
+    ],
+    contains_to_merge=[],
+    top_n=40,
+    height=1000,
+    output_filename="plot",
+):
+    feature_scores = pd.Series(model.feature_importances_, index=columns).sort_values(
+        ascending=False
+    )
+
+    def merge_feature_prefixes(feature_scores, prefixes_to_merge, contains_to_merge):
+        merged_scores = {}
+        hover_info = {}
+        feature_count = {}
+        feature_medians = {}
+        top_contributors = {}
+
+        for substring in contains_to_merge:
+            matching_features = feature_scores[
+                feature_scores.index.str.contains(substring, case=False)
+            ]
+            if not matching_features.empty:
+                aggregate_prefix = f"aggregate_contains_{substring}"
+                merged_scores[aggregate_prefix] = matching_features.sum()
+                hover_info[aggregate_prefix] = ", ".join(
+                    matching_features.index[:5]
+                ) + ("..." if len(matching_features) > 5 else "")
+                feature_count[aggregate_prefix] = len(matching_features)
+                feature_medians[aggregate_prefix] = matching_features.median()
+                top_contributors[aggregate_prefix] = matching_features.idxmax()
+                feature_scores = feature_scores[
+                    ~feature_scores.index.str.contains(substring, case=False)
+                ]
+            else:
+                print(f"No matching features found for substring '{substring}'")
+
+        for prefix in prefixes_to_merge:
+            matching_features = feature_scores[
+                feature_scores.index.str.startswith(prefix)
+            ]
+            if not matching_features.empty:
+                aggregate_prefix = f"aggregate_{prefix}"
+                merged_scores[aggregate_prefix] = matching_features.sum()
+                hover_info[aggregate_prefix] = ", ".join(
+                    matching_features.index[:5]
+                ) + ("..." if len(matching_features) > 5 else "")
+                feature_count[aggregate_prefix] = len(matching_features)
+                feature_medians[aggregate_prefix] = matching_features.median()
+                top_contributors[aggregate_prefix] = matching_features.idxmax()
+                feature_scores = feature_scores[
+                    ~feature_scores.index.str.startswith(prefix)
+                ]
+            else:
+                print(f"No matching features found for prefix '{prefix}'")
+
+        merged_scores_series = pd.Series(merged_scores)
+        feature_scores = pd.concat([feature_scores, merged_scores_series])
+        return (
+            feature_scores,
+            hover_info,
+            feature_count,
+            feature_medians,
+            top_contributors,
+        )
+
+    (
+        merged_feature_scores,
+        hover_info,
+        feature_count,
+        feature_medians,
+        top_contributors,
+    ) = merge_feature_prefixes(feature_scores, prefixes_to_merge, contains_to_merge)
+    merged_feature_scores = merged_feature_scores.sort_values(ascending=False)
+
+    merged_feature_scores = merged_feature_scores.head(top_n)
+
+    feature_scores_df = merged_feature_scores.reset_index()
+    feature_scores_df.columns = ["Feature", "Importance"]
+
+    def truncate_label(label):
+        return (label[:47] + "...") if len(label) > 50 else label
+
+    feature_scores_df["Feature"] = feature_scores_df["Feature"].apply(
+        lambda x: (
+            truncate_label(f"{x}[{top_contributors[x]}]")
+            + f" <span style='color:green;'>+{feature_count[x]}</span>"
+            if x in hover_info
+            else truncate_label(x)
+        )
+    )
+
+    zebra_shapes = []
+    for i in range(len(feature_scores_df)):
+        zebra_shapes.append(
+            dict(
+                type="rect",
+                x0=0,
+                y0=i - 0.5,
+                x1=feature_scores_df["Importance"].max() * 1.1,
+                y1=i + 0.5,
+                fillcolor="lightgray" if i % 2 == 0 else "white",
+                opacity=0.1,
+                layer="below",
+                line_width=0,
+            )
+        )
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=feature_scores_df["Importance"],
+            y=feature_scores_df.index,
+            mode="markers+lines",
+            name="Importance",
+            line=dict(color="rgba(100, 100, 100, 0.5)", width=0.5),
+            marker=dict(
+                color="rgba(255, 165, 0, 0.8)",
+                size=24,
+                line=dict(color="black", width=1.5),
+            ),
+            text=feature_scores_df["Feature"].apply(
+                lambda x: hover_info[x.split("[")[0]] if "aggregate_" in x else x
+            ),
+            hoverinfo="text",
+        )
+    )
+
+    for i in range(len(feature_scores_df)):
+        fig.add_annotation(
+            x=feature_scores_df["Importance"][i],
+            y=i,
+            text=f"{feature_scores_df['Importance'][i]:.2f}",
+            showarrow=False,
+            font=dict(size=10, color="black"),
+        )
+
+    for feature in hover_info:
+        top_features = hover_info[feature].split(", ")
+        expected_feature_name = (
+            truncate_label(f"{feature}[{top_contributors[feature]}]")
+            + f" <span style='color:green;'>+{feature_count[feature]}</span>"
+        )
+        if expected_feature_name in feature_scores_df["Feature"].values:
+            y_index = feature_scores_df[
+                feature_scores_df["Feature"] == expected_feature_name
+            ].index[0]
+            for top_feature in top_features[:5]:
+                if top_feature in feature_scores.index:
+                    importance = feature_scores[top_feature]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[importance],
+                            y=[y_index],
+                            mode="markers",
+                            marker=dict(color="rgba(0, 128, 0, 0.6)", size=16),
+                            showlegend=False,
+                            hovertext=top_feature,
+                            hoverinfo="text",
+                        )
+                    )
+
+    for i, feature in enumerate(feature_scores_df["Feature"]):
+        if "aggregate_" in feature:
+            original_feature = feature.split("[")[0]
+            if original_feature in feature_medians:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[
+                            feature_medians[original_feature],
+                            feature_medians[original_feature],
+                        ],
+                        y=[i - 0.5, i + 0.5],
+                        mode="lines",
+                        line=dict(color="red", width=1.5, dash="dot"),
+                        name=f"{original_feature} Median",
+                        hoverinfo="text",
+                        hovertext=f"{original_feature} Median: {feature_medians[original_feature]:.2f}",
+                    )
+                )
+
+    non_aggregate_median = feature_scores.loc[
+        ~feature_scores.index.str.startswith("aggregate_")
+    ].median()
+
+    fig.add_trace(
+        go.Scatter(
+            x=[non_aggregate_median, non_aggregate_median],
+            y=[-0.5, len(feature_scores_df) - 0.5],
+            mode="lines",
+            line=dict(color="red", width=2, dash="dash"),
+            name="Non-Aggregate Median",
+            hoverinfo="text",
+            hovertext=f"Non-Aggregate Median: {non_aggregate_median:.2f}",
+            opacity=0.25,
+        )
+    )
+
+    fig.update_layout(
+        title="Top Feature Importances",
+        xaxis_title="Importance",
+        yaxis=dict(
+            tickvals=list(range(len(feature_scores_df))),
+            ticktext=feature_scores_df["Feature"],
+            showgrid=False,
+            tickfont=dict(size=14, color="black"),
+            titlefont=dict(size=16, color="black"),
+        ),
+        height=height,
+        width=1600,
+        template="plotly_white",
+        xaxis=dict(
+            showgrid=True,
+            gridcolor="lightgray",
+            tickfont=dict(size=14, color="black"),
+            titlefont=dict(size=16, color="black"),
+        ),
+        font=dict(size=16),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=300, r=50, t=70, b=40),
+        shapes=zebra_shapes,
+    )
+
+    pio.write_html(fig, file=f"{output_filename}.html", auto_open=False)
+    fig.write_image(f"{output_filename}.png")
+
     fig.show()

@@ -1,6 +1,7 @@
 import networkx as nx
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -744,3 +745,229 @@ def compare_graphs(G1, G2):
         print("Diameter G2:", diameter_G2)
     except Exception as e:
         print(f"Error comparing diameters: {e}")
+
+
+
+# ------------------------------------------------------------------------- #
+#                       GRAPH generic feature creation                      #
+# ------------------------------------------------------------------------- #
+
+
+def make_hashable(value):
+    if isinstance(value, (list, set)):
+        return tuple(value)
+    if isinstance(value, dict):
+        return tuple(sorted(value.items()))
+    return value
+
+def most_common_attributes(graph):
+    from collections import Counter
+
+    node_attributes = Counter()
+    edge_attributes = Counter()
+
+    for node, data in graph.nodes(data=True):
+        for attr, value in data.items():
+            hashable_value = make_hashable(value)
+            node_attributes[(attr, hashable_value)] += 1
+
+    for u, v, data in graph.edges(data=True):
+        for attr, value in data.items():
+            hashable_value = make_hashable(value)
+            edge_attributes[(attr, hashable_value)] += 1
+
+    most_common_node_attrs = {}
+    most_common_edge_attrs = {}
+
+    for (attr, value), count in node_attributes.items():
+        if attr not in most_common_node_attrs or count > most_common_node_attrs[attr][1]:
+            most_common_node_attrs[attr] = (value, count)
+
+    for (attr, value), count in edge_attributes.items():
+        if attr not in most_common_edge_attrs or count > most_common_edge_attrs[attr][1]:
+            most_common_edge_attrs[attr] = (value, count)
+
+    most_common_node_attrs = {k: v[0] for k, v in most_common_node_attrs.items()}
+    most_common_edge_attrs = {k: v[0] for k, v in most_common_edge_attrs.items()}
+
+    return most_common_node_attrs, most_common_edge_attrs
+
+
+
+def add_reachability_info(graph):
+    root_nodes = [node for node in graph.nodes() if str(node).endswith('_0')]
+
+    reachability = {node: 0 for node in graph.nodes()}
+
+    for root in root_nodes:
+        descendants = nx.descendants(graph, root)
+        reachability[root] = len(descendants)
+        for descendant in descendants:
+            reachability[descendant] = len(nx.descendants(graph, descendant))
+
+    nx.set_node_attributes(graph, reachability, 'reachability')
+    return graph
+
+
+def extract_node_features(graph, default_attributes):
+    nodes = list(graph.nodes)
+    node_features = []
+    for node in nodes:
+        data = graph.nodes[node]
+        feature = {f'node_{attr}': data.get(attr, default_attributes.get(attr, None)) for attr in default_attributes}
+        feature.update({
+            'node_id': node,
+            'node_degree': graph.degree(node),
+            'node_in_degree': graph.in_degree(node),
+            'node_out_degree': graph.out_degree(node)
+        })
+        node_features.append(feature)
+
+    feature_keys = list(node_features[0].keys())
+    for feature in node_features:
+        for key in feature_keys:
+            if key not in feature:
+                feature[key] = default_attributes.get(key[5:], None)
+
+    return pd.DataFrame(node_features)
+
+
+def extract_edge_features(graph, nodes, default_edge_attributes):
+    edges = []
+    for u in nodes:
+        for v in nodes:
+            if graph.has_edge(u, v):
+                data = graph[u][v]
+                feature = {f'edge_{attr}': data.get(attr, default_edge_attributes.get(attr, None)) for attr in default_edge_attributes}
+            else:
+                feature = {f'edge_{attr}': default_edge_attributes.get(attr, None) for attr in default_edge_attributes}
+            feature.update({
+                'edge_source': u,
+                'edge_target': v,
+                'edge_has_edge': graph.has_edge(u, v)
+            })
+            edges.append(feature)
+
+    return pd.DataFrame(edges)
+
+
+
+def extract_graph_features(graph):
+    features = {
+        'graph_number_of_nodes': graph.number_of_nodes(),
+        'graph_number_of_edges': graph.number_of_edges(),
+        'graph_density': nx.density(graph),
+        'graph_number_of_connected_components': nx.number_connected_components(graph.to_undirected()) if not graph.is_multigraph() else np.nan,
+        'graph_average_degree_centrality': np.mean(list(nx.degree_centrality(graph).values()))
+    }
+
+    if not graph.is_multigraph():
+        features['graph_average_clustering'] = nx.average_clustering(graph.to_undirected())
+        features['graph_eccentricity'] = np.mean(list(nx.eccentricity(graph).values())) if nx.is_connected(graph.to_undirected()) else np.nan
+
+    if nx.is_directed(graph):
+        try:
+            largest_scc = max(nx.strongly_connected_components(graph), key=len)
+            subgraph = graph.subgraph(largest_scc)
+            features['graph_average_shortest_path_length'] = nx.average_shortest_path_length(subgraph)
+            features['graph_diameter'] = nx.diameter(subgraph.to_undirected())
+        except Exception as e:
+            features['graph_average_shortest_path_length'] = np.nan
+            features['graph_diameter'] = np.nan
+    else:
+        if nx.is_connected(graph):
+            features['graph_average_shortest_path_length'] = nx.average_shortest_path_length(graph)
+            features['graph_diameter'] = nx.diameter(graph)
+        else:
+            features['graph_average_shortest_path_length'] = np.nan
+            features['graph_diameter'] = np.nan
+
+    return pd.DataFrame([features])
+
+
+def aggregate_features(df, prefix):
+    from scipy.stats import skew, kurtosis
+    aggregation_functions = {
+        'mean': np.mean,
+        'median': np.median,
+        'std': np.std,
+        'max': np.max,
+        'min': np.min,
+        'range': lambda x: np.max(x) - np.min(x),
+        'variance': np.var,
+        'skewness': skew,
+        'kurtosis': kurtosis
+    }
+    aggregated_features = {}
+    for column in df.columns:
+        if df[column].dtype in [np.float64, np.int64]:  # Only aggregate numeric columns
+            for agg_name, agg_func in aggregation_functions.items():
+                agg_value = agg_func(df[column].dropna())
+                aggregated_features[f'{prefix}_{column}_{agg_name}'] = agg_value
+        else:
+            if df[column].dtype == object:
+                # Convert lists and dictionaries to tuples for handling non-hashable types
+                converted_column = df[column].apply(lambda x: tuple(sorted(x.items())) if isinstance(x, dict) else tuple(x) if isinstance(x, list) else x)
+                mode_value = converted_column.mode()[0] if not converted_column.mode().empty else None
+                unique_count = converted_column.nunique()
+                aggregated_features[f'{prefix}_{column}_mode'] = mode_value
+                aggregated_features[f'{prefix}_{column}_unique_count'] = unique_count
+    return aggregated_features
+
+
+
+def vectorize_process_graph_features(df, column_name):
+    feature_dfs = df[column_name].apply(process_graph_features)
+    result_df = pd.concat(feature_dfs.tolist(), axis=0).reset_index(drop=True)
+    return result_df
+
+
+def print_unique_types(G):
+    """
+    Print unique types of node and edge attributes in the graph.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    """
+    node_attr_types = set()
+    edge_attr_types = set()
+
+    # Collect unique node attribute types
+    for _, data in G.nodes(data=True):
+        for key, value in data.items():
+            node_attr_types.add((key, type(value)))
+
+    # Collect unique edge attribute types
+    for _, _, data in G.edges(data=True):
+        for key, value in data.items():
+            edge_attr_types.add((key, type(value)))
+
+    print("Unique Node Attribute Types:", node_attr_types)
+    print("Unique Edge Attribute Types:", edge_attr_types)
+
+    
+def process_graph_features(G):
+    most_common_node_attrs, most_common_edge_attrs = most_common_attributes(G)
+
+    node_features = extract_node_features(G, most_common_node_attrs)
+    edge_features = extract_edge_features(G, list(G.nodes), most_common_edge_attrs)
+    graph_features = extract_graph_features(G)
+
+    features = pd.concat([node_features, edge_features, graph_features], axis=1)
+    feature_columns = set(node_features.columns).union(set(edge_features.columns)).union(set(graph_features.columns))
+    features = features.reindex(columns=feature_columns, fill_value=np.nan)
+
+    node_aggregated_features = aggregate_features(node_features, 'node')
+    edge_aggregated_features = aggregate_features(edge_features, 'edge')
+
+    graph_features_flat = graph_features.iloc[0].to_dict()
+    graph_features_flat['node_count'] = G.number_of_nodes()
+    graph_features_flat['edge_count'] = G.number_of_edges()
+
+    all_features = {**node_aggregated_features, **edge_aggregated_features, **graph_features_flat}
+
+    flat_features_df = pd.DataFrame([all_features])
+    return flat_features_df
+
+#                                                                           #
+# ------------------------------------------------------------------------- #

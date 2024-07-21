@@ -14,6 +14,25 @@ import numpy as np
 import pandas as pd
 
 
+def get_non_matching_columns(data, substrings):
+    if isinstance(data, pd.DataFrame):
+        columns = data.columns
+    elif isinstance(data, list):
+        columns = data
+    else:
+        raise ValueError("Input must be a pandas DataFrame or a list of column names.")
+
+    if isinstance(substrings, str):
+        substrings = [substrings]
+    elif not isinstance(substrings, list):
+        raise ValueError("Substrings must be a string or a list of strings.")
+
+    non_matching_columns = [
+        col for col in columns if not any(sub in col for sub in substrings)
+    ]
+
+    return non_matching_columns
+
 
 def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
     """
@@ -55,7 +74,6 @@ def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
         return
     # Print the table
     console.print(table)
-
 
 
 def identify_unhashable_columns(df: pd.DataFrame):
@@ -150,17 +168,24 @@ def pretty_print_dataframe_samples(df, string_to_find=None):
     """
     import pandas as pd
     from termcolor import colored
+
     print("Column Name : Sample")
     for column in df.columns:
         sample_value = df[column].iloc[0]
         if string_to_find and string_to_find in column:
-            formatted_output = f"{colored(column, 'red')} : {colored(sample_value, 'grey')}"
+            formatted_output = (
+                f"{colored(column, 'red')} : {colored(sample_value, 'grey')}"
+            )
         else:
-            formatted_output = f"{colored(column, 'yellow')} : {colored(sample_value, 'grey')}"
+            formatted_output = (
+                f"{colored(column, 'yellow')} : {colored(sample_value, 'grey')}"
+            )
         print(formatted_output)
+
 
 def included_cols_excluded_cols(df, excluded_columns):
     return list(set(df.columns) - set(excluded_columns))
+
 
 def get_sample_rows_with_na(df, n=3):
     # Get a list of columns that have missing values
@@ -171,7 +196,7 @@ def get_sample_rows_with_na(df, n=3):
 
     for col in cols_with_na:
         # Get a random sample of a row with a missing value in the column
-        sample_rows[col] = df[df[col].isna()].sample(n).to_dict('records')
+        sample_rows[col] = df[df[col].isna()].sample(n).to_dict("records")
 
     return sample_rows
 
@@ -184,7 +209,6 @@ def sample_nan_rows(df):
         if not nan_rows.empty:
             nan_samples[column] = nan_rows.sample(1)
     return nan_samples
-
 
 
 def pd_dump_to_string_file(df):
@@ -207,14 +231,18 @@ def show_matching_columns(dataframes):
 
     # Prepare column_types dictionary
     for col in common_columns:
-        column_types[col] = [df[df.columns[df.columns.str.lower() == col].tolist()[0]].dtype for df in dataframes if col in df.columns.str.lower().tolist()]
+        column_types[col] = [
+            df[df.columns[df.columns.str.lower() == col].tolist()[0]].dtype
+            for df in dataframes
+            if col in df.columns.str.lower().tolist()
+        ]
 
     # ANSI escape codes for colors
-    green = '\033[92m'
-    red = '\033[91m'
-    yellow = '\033[93m'
-    end = '\033[0m'
-    color_idx = ['\033[9'+str(i%10)+'m' for i in range(len(dataframes))]
+    green = "\033[92m"
+    red = "\033[91m"
+    yellow = "\033[93m"
+    end = "\033[0m"
+    color_idx = ["\033[9" + str(i % 10) + "m" for i in range(len(dataframes))]
 
     # Print common columns
     print(green + "Common Columns: " + ", ".join(common_columns) + end)
@@ -231,13 +259,14 @@ def show_matching_columns(dataframes):
     # Print columns with differing types
     print("Different Types:")
     for col, types in column_types.items():
-        if len(set(types)) > 1:  # If there's more than one unique type across DataFrames
+        if (
+            len(set(types)) > 1
+        ):  # If there's more than one unique type across DataFrames
             type_strs = []
             for i, df in enumerate(dataframes):
                 if col in df.columns.str.lower():
                     type_strs.append(color_idx[i] + str(df[col].dtype) + end)
             print(yellow + col + " (" + ", ".join(type_strs) + ")" + end)
-
 
 
 def pd_to_base64(df):
@@ -306,6 +335,7 @@ def pd_load_tuple_py(tuple_list):
     df = df.reindex(df.index.drop(0))
     return df
 
+
 def pd_load_tuple_np(tuple_list):
     """
     * type-def ::(List[Tuple[str, Any]]) -> pd.DataFrame
@@ -332,7 +362,6 @@ def pd_load_tuple_np(tuple_list):
     df = pd.DataFrame(tuple_array_transposed[:, 1:], index=tuple_array_transposed[:, 0])
     df.reset_index(inplace=True)
     return df
-
 
 
 def pd_concat_list_dict(list_dict):
@@ -692,6 +721,7 @@ def encode_flags(data, flags, col_to_check):
 
 
 # -----{Naive numpy parallelization}----#
+
 
 # TODO: cap threads and processes depending on platform/length of initial data
 def np_parallel(func, data, parts=4, verbose=False):
@@ -1501,6 +1531,7 @@ def ndistinct(x):
     """
     out = len(np.unique(x))
     return out
+
 
 def calculate_bounds_and_iterations(size, increments):
     """
@@ -2550,7 +2581,6 @@ def datetime_features_inplace(df):
     return df
 
 
-
 def compare_dataframes(df1, df2, column_name1, column_name2):
     """
     Compare two DataFrames and return the rows that are missing in one DataFrame.
@@ -2578,8 +2608,6 @@ def compare_dataframes(df1, df2, column_name1, column_name2):
 
     # Return the missing rows
     return missing_rows
-
-
 
 
 def LOOEncoding(
@@ -2621,7 +2649,6 @@ def LOOEncoding(
     from io import BytesIO
     import joblib
     import cloudpickle
-
 
     y = df[target]
     X = pd.DataFrame(df, columns=cols)
@@ -2667,8 +2694,8 @@ def LOOEncoding(
             print(exc_type, fname, exc_tb.tb_lineno)
 
             encoder_bytes_jl = download_bytesio_blob(
-            bucket_name, blob_name + "_joblib", project_name
-        )
+                bucket_name, blob_name + "_joblib", project_name
+            )
 
             loo_encoder = joblib.load(encoder_bytes_jl)
 
@@ -2679,9 +2706,6 @@ def LOOEncoding(
     # Transform the data using the fitted encoder
     X_encoded = loo_encoder.transform(X)
     return X_encoded
-
-
-
 
 
 def uneven_binning(df, col, first_half=100, second_half=10):
@@ -2720,7 +2744,6 @@ def uneven_binning(df, col, first_half=100, second_half=10):
     u = pd.cut(df[col], bins=bins, labels=None, duplicates="drop")
 
     return u.cat.rename_categories([col + str(x) for x in u.cat.categories])
-
 
 
 def create_cyclical_features(df, datetime_col, inplace=True):
@@ -2789,7 +2812,6 @@ def create_cyclical_features(df, datetime_col, inplace=True):
     return df
 
 
-
 def check_for_nans(df):
     rows_to_drop = {}
     for col in df.columns:
@@ -2803,25 +2825,56 @@ def check_for_nans(df):
     return rows_to_drop
 
 
-def fill_nans(df, rows_to_drop, method='mean', drop_method='drop'):
+def fill_nans(df, rows_to_drop, method="mean", drop_method="drop"):
     for col, rows in rows_to_drop.items():
         print(f"Column {col} has NaNs or None values in the following rows:")
         print(df.loc[rows])
-        if drop_method == 'drop':
+        if drop_method == "drop":
             df.drop(rows, inplace=True)
-            print(f"The rows with NaNs or None values in column {col} have been dropped.")
-        elif drop_method == 'fill':
-            print(f"NaNs or None values in column {col} have been filled using the '{method}' method.")
-            if method == 'mean' and pd.api.types.is_numeric_dtype(df[col]):
+            print(
+                f"The rows with NaNs or None values in column {col} have been dropped."
+            )
+        elif drop_method == "fill":
+            print(
+                f"NaNs or None values in column {col} have been filled using the '{method}' method."
+            )
+            if method == "mean" and pd.api.types.is_numeric_dtype(df[col]):
                 df[col].fillna(df[col].mean(), inplace=True)
-            elif method == 'median' and pd.api.types.is_numeric_dtype(df[col]):
+            elif method == "median" and pd.api.types.is_numeric_dtype(df[col]):
                 df[col].fillna(df[col].median(), inplace=True)
-            elif method == 'mode' and pd.api.types.is_string_dtype(df[col]):
+            elif method == "mode" and pd.api.types.is_string_dtype(df[col]):
                 df[col].fillna(df[col].mode().iloc[0], inplace=True)
-            elif method == 'zero':
+            elif method == "zero":
                 df[col].fillna(0, inplace=True)
             else:
                 df[col].fillna(np.nan, inplace=True)
         else:
-            print(f"Invalid drop method: {drop_method}. The rows with NaNs or None values in column {col} have not been dropped.")
+            print(
+                f"Invalid drop method: {drop_method}. The rows with NaNs or None values in column {col} have not been dropped."
+            )
     return df
+
+
+def load_csv_from_url(url: str) -> pd.DataFrame:
+    """
+    * ---------------Function---------------
+    * Load a CSV file from a given URL and return a pandas DataFrame object
+    * ----------------Returns---------------
+    * -> pd.DataFrame: A pandas DataFrame object containing the data from the CSV file
+    * ----------------Params----------------
+    * url: str: The URL of the CSV file to be loaded
+    * ----------------Usage-----------------
+    * load_csv_from_url('https://example.com/data.csv')
+    * ----------------Notes-----------------
+    * This function sends a GET request to the given URL with a specific User-Agent header to mimic an iPhone browser. If the request is successful (200 status code), it returns a pandas DataFrame object containing the data from the CSV file. Otherwise, it raises an Exception.
+    """
+    import requests
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return pd.read_csv(url)
+    else:
+        raise Exception("Failed to load the CSV file from the given URL.")

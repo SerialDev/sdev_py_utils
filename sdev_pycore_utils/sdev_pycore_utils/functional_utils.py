@@ -19,7 +19,6 @@ class Result:
             return f"Err({self.error})"
 
 
-
 def try_catch(func, *args, **kwargs):
     """
     * ---------------{Function}---------------
@@ -72,7 +71,6 @@ def maybe(func, *args, **kwargs):
         return Result(error=e)
 
 
-
 def match(value, patterns):
     """
     * ---------------{Function}---------------
@@ -99,19 +97,34 @@ def match(value, patterns):
     """
     for pattern, action in patterns:
         try:
-            if pattern(value):  # Check if the pattern function returns True when called with the value
-                return action(value)  # If the pattern matches, call the action function with the value and return the result
-        except Exception as e:  # If an exception occurs while evaluating the pattern-action pair
-            print(f'Error occurred in pattern-action pair: {pattern}-{action}')  # Print the pattern and action functions
-            print(f'Exception: {e}')  # Print the exception
+            if pattern(
+                value
+            ):  # Check if the pattern function returns True when called with the value
+                return action(
+                    value
+                )  # If the pattern matches, call the action function with the value and return the result
+        except (
+            Exception
+        ) as e:  # If an exception occurs while evaluating the pattern-action pair
+            print(
+                f"Error occurred in pattern-action pair: {pattern}-{action}"
+            )  # Print the pattern and action functions
+            print(f"Exception: {e}")  # Print the exception
             exc_type, exc_obj, exc_tb = sys.exc_info()  # Get the exception info
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]  # Get the file name
-            print(exc_type, fname, exc_tb.tb_lineno)  # Print the exception type, file name, and line number
-    print(f'No matching pattern found for value: {value}')  # If no matching pattern is found, print a message
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[
+                1
+            ]  # Get the file name
+            print(
+                exc_type, fname, exc_tb.tb_lineno
+            )  # Print the exception type, file name, and line number
+    print(
+        f"No matching pattern found for value: {value}"
+    )  # If no matching pattern is found, print a message
     return 0  # Return 0
 
 
 # ---{Compose Higher order functions}---#
+
 
 def compose(*funcs):
     """
@@ -137,3 +150,28 @@ def compose(*funcs):
         return result
 
     return inner
+
+
+def chunker(func, data, chunk_size=1000, *args, **kwargs):
+    import time
+
+    results = []
+    for i in range(0, len(data), chunk_size):
+        chunk = data[i : i + chunk_size]
+        try:
+            print(
+                "\033[33m*"
+                + f"Processing chunk {i // chunk_size + 1}/{(len(data) + chunk_size - 1) // chunk_size}"
+                + "\033[0m"
+            )
+            start_time = time.time()
+            results.extend(func(chunk, *args, **kwargs))
+            elapsed_time = time.time() - start_time
+            print(
+                "\033[33m*"
+                + f"Chunk {i // chunk_size + 1} processed in {elapsed_time:.2f} seconds"
+                + "\033[0m"
+            )
+        except Exception as e:
+            print(f"Error: {e}. Issue encountered in chunk {i // chunk_size + 1}.")
+    return results

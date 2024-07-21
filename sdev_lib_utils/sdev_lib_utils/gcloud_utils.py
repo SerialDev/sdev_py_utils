@@ -1,4 +1,3 @@
-
 from google.cloud import storage
 from google.cloud import bigquery
 import pprint
@@ -7,6 +6,24 @@ import os
 
 from google.oauth2 import service_account
 import googleapiclient.discovery
+
+
+def extract_gsutil_url_components(url):
+    import re
+
+    # Define the regex pattern for the gsutil URL
+    pattern = r"gs://([^/]+)/(.+)$"
+    match = re.match(pattern, url)
+
+    if not match:
+        raise ValueError("Invalid gsutil URL")
+
+    bucket_name, blob_name = match.groups()
+
+    # For this example, we'll assume the project name is part of the bucket name
+    project = None
+
+    return bucket_name, blob_name
 
 
 def write_into_bigquery(
@@ -1375,35 +1392,37 @@ def generate_signed_url(
     return signed_url
 
 
-def upload_bytesio_blob(bucket_name, blob_name, content,project='cloudflare-ds-data', encode=False):
+def upload_bytesio_blob(
+    bucket_name, blob_name, content, project="cloudflare-ds-data", encode=False
+):
     """
     Uploads a BytesIO object to Google Cloud Storage as a blob.
-    
+
     This function takes in a bucket name, a blob name, a BytesIO object, and a boolean indicating whether the
     BytesIO object should be encoded. If the encode option is set to True, it encodes the BytesIO object before
     uploading it to the specified bucket. It then prints a message indicating that the file has been uploaded.
-    
+
     Args:
         bucket_name: The name of the bucket to upload the blob to.
         blob_name: The name of the blob to upload.
         content: The BytesIO object to be uploaded as a blob.
         encode: A boolean indicating whether the BytesIO object should be encoded before uploading.
-        
+
     Returns:
         None
     """
-    
+
     # Import the io module and Google Cloud Storage client
     import io
     from google.cloud.storage import Client
-    
+
     # Create a BytesIO object
     buff = io.BytesIO()
-    
+
     # Create a Google Cloud Storage client
     storage_client = Client(project=project)
     bucket = storage_client.bucket(bucket_name)
-    
+
     # Encode the BytesIO object if necessary
     if encode:
         buff.seek(0)
@@ -1413,11 +1432,11 @@ def upload_bytesio_blob(bucket_name, blob_name, content,project='cloudflare-ds-d
         buff.seek(0)
         buff.write(content)
         buff.seek(0)
-    
+
     # Upload the BytesIO object to the specified bucket as a blob
     blob = bucket.blob(blob_name)
     blob.upload_from_file(buff)
-    
+
     # Print a message indicating that the file has been uploaded
     print(f"File {blob_name} uploaded to {bucket_name}.")
 
@@ -1457,6 +1476,20 @@ def download_bytesio_blob(bucket_name, blob_name, project):
     # Seek to the beginning of the BytesIO object and return it
     buffer.seek(0)
     return buffer
+
+
+def gcp_get_secrets(secretmanager_client, secret_path: str) -> dict:
+    """
+
+    @param secretmanager_client:
+    @param secret_path:
+    @return:
+    """
+    secret_value = secretmanager_client.access_secret_version(name=secret_path)
+    secret_json = json.loads(
+        secret_value.payload.data.decode("UTF-8").strip().replace("\n", "")
+    )
+    return secret_json
 
 
 def create_secret(project_id, secret_id):
@@ -1648,9 +1681,9 @@ def bq_plan_inspect(bquery_job):
         temp_plan = {}
         temp_plan["start"] = query_plan.start
         temp_plan["end"] = query_plan.end
-        temp_plan[
-            "completed_parallel_inputs    "
-        ] = query_plan.completed_parallel_inputs
+        temp_plan["completed_parallel_inputs    "] = (
+            query_plan.completed_parallel_inputs
+        )
         temp_plan["compute_ms_avg    "] = query_plan.compute_ms_avg
         temp_plan["compute_ms_max"] = query_plan.compute_ms_max
         temp_plan["compute_ratio_avg"] = query_plan.compute_ratio_avg
@@ -1666,9 +1699,9 @@ def bq_plan_inspect(bquery_job):
         temp_plan["records_read"] = query_plan.records_read
         temp_plan["records_written"] = query_plan.records_written
         temp_plan["shuffle_output_bytes"] = query_plan.shuffle_output_bytes
-        temp_plan[
-            "shuffle_output_bytes_spilled"
-        ] = query_plan.shuffle_output_bytes_spilled
+        temp_plan["shuffle_output_bytes_spilled"] = (
+            query_plan.shuffle_output_bytes_spilled
+        )
         temp_plan["status"] = query_plan.status
         temp_plan["wait_ms_avg"] = query_plan.wait_ms_avg
         temp_plan["wait_ms_max"] = query_plan.wait_ms_max
@@ -1686,8 +1719,6 @@ def bq_plan_inspect(bquery_job):
             temp_plan["steps"].append(temp_step)
         result.append(temp_plan)
     return result
-
-
 
 
 def upload_local_directory_to_gcs(local_path, bucket, gcs_path):
@@ -1779,9 +1810,6 @@ def save_model_to_gcs(model, bucket_name, file_name):
         bucket.blob(file_name).upload_from_file(model_file)
 
 
-
-
-
 def load_model_from_gcs(project, bucket_name, file_name):
     """Loads a model from Google Cloud Storage.
 
@@ -1811,9 +1839,7 @@ def load_model_from_gcs(project, bucket_name, file_name):
     return model
 
 
-
-
-def encode_save_return_df(df, col, client, use_existing=False, account_name=''):
+def encode_save_return_df(df, col, client, use_existing=False, account_name=""):
     """
     Encodes a column in a dataframe and saves the encoder to Google Cloud Storage.
 
@@ -1854,8 +1880,6 @@ def encode_save_return_df(df, col, client, use_existing=False, account_name=''):
     return df_res_encoded
 
 
-
-
 def upload_blob_from_bytesio(bucket_name, blob_name, buff, project):
     """
     Uploads a BytesIO object to Google Cloud Storage as a blob using a specified project.
@@ -1891,8 +1915,6 @@ def upload_blob_from_bytesio(bucket_name, blob_name, buff, project):
     print(f"File {blob_name} uploaded to {bucket_name}.")
 
 
-
-
 # Define save_encoder function
 def save_encoder(enc, client, bucket_name, blob_name, account_name):
     """
@@ -1921,8 +1943,6 @@ def save_encoder(enc, client, bucket_name, blob_name, account_name):
     dump(enc, enc_bytes)
     enc_bytes.seek(0)
     upload_blob_from_bytesio(bucket_name, blob_name, enc_bytes, account_name)
-
-
 
 
 # Define load_encoder function
@@ -1967,9 +1987,9 @@ def get_blob_names(bucket, string):
     return blob_names
 
 
-
-
-def query_and_cache(client, query, gcp=False, force=False, bucket_name = '', account_name=''):
+def query_and_cache(
+    client, query, gcp=False, force=False, bucket_name="", account_name=""
+):
     """
     Query a client and cache the results of the query in a local or remote location.
 
@@ -1985,6 +2005,7 @@ def query_and_cache(client, query, gcp=False, force=False, bucket_name = '', acc
 
     import binascii
     import io
+    import pandas as pd
 
     # Create a query_hash by hashing the query and encoding it as hexadecimal
     query_hash = binascii.hexlify(str(hash(query)).encode()).decode()
@@ -2016,14 +2037,10 @@ def query_and_cache(client, query, gcp=False, force=False, bucket_name = '', acc
             buff = io.BytesIO()
             df.to_parquet(buff)
             buff.seek(0)
-            upload_blob_from_bytesio(
-                bucket_name, query_hash, buff, account_name
-            )
+            upload_blob_from_bytesio(bucket_name, query_hash, buff, account_name)
             return df
         try:
-            buff = download_bytesio_blob(
-                bucket_name, query_hash, account_name
-            )
+            buff = download_bytesio_blob(bucket_name, query_hash, account_name)
             df = pd.read_parquet(buff)
         except Exception:
             df = client.query(query).to_dataframe()

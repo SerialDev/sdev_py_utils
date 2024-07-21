@@ -8,6 +8,28 @@ import time
 import functools
 
 
+def retry_decorator(max_retries: int = 5, backoff_factor: int = 2):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except requests.exceptions.RequestException as e:
+                    retry_count += 1
+                    wait_time = backoff_factor**retry_count
+                    print(
+                        f"Request failed with error {e}. Retrying in {wait_time} seconds..."
+                    )
+                    time.sleep(wait_time)
+            print(f"Max retries exceeded. Giving up.")
+            raise
+
+        return wrapper
+
+    return decorator
+
+
 def lazy_property(function):
     attribute = "_" + function.__name__
 
@@ -101,7 +123,7 @@ def retry(
 
 # Todo FIX@ Mon,  5 Jun 2017, 11:41
 def immutable(mutableclass):
-    """ Decorator for making a slot-based class immutable """
+    """Decorator for making a slot-based class immutable"""
 
     if not isinstance(type(mutableclass), type):
         raise (TypeError("@immutable: must be applied to a new-style class"))
@@ -252,26 +274,26 @@ def typecheck(func):
 
 def run_async(func):
     """
-		run_async(func)
-			function decorator, intended to make "func" run in a separate
-			thread (asynchronously).
-			Returns the created Thread object
+    run_async(func)
+            function decorator, intended to make "func" run in a separate
+            thread (asynchronously).
+            Returns the created Thread object
 
-			E.g.:
-			@run_async
-			def task1():
-				do_something
+            E.g.:
+            @run_async
+            def task1():
+                    do_something
 
-			@run_async
-			def task2():
-				do_something_too
+            @run_async
+            def task2():
+                    do_something_too
 
-			t1 = task1()
-			t2 = task2()
-			...
-			t1.join()
-			t2.join()
-	"""
+            t1 = task1()
+            t2 = task2()
+            ...
+            t1.join()
+            t2.join()
+    """
     from threading import Thread
     from functools import wraps
 
@@ -289,6 +311,7 @@ def run_async(func):
 
 import ctypes
 
+
 # TODO FIX
 class C_struct:
     """Decorator to convert the given class into a C struct."""
@@ -304,26 +327,26 @@ class C_struct:
     def __call__(self, cls):
         """Converts the given class into a C struct.
 
-		Usage:
-			>>> @C_struct()
-			... class Account:
-			... 	first_name = "c_char_p"
-			...	last_name = "c_char_p"
-			... 	balance = "c_float"
-			...
-			>>> a = Account()
-			>>> a
-			<cstruct.Account object at 0xb7c0ee84>
+        Usage:
+                >>> @C_struct()
+                ... class Account:
+                ... 	first_name = "c_char_p"
+                ...	last_name = "c_char_p"
+                ... 	balance = "c_float"
+                ...
+                >>> a = Account()
+                >>> a
+                <cstruct.Account object at 0xb7c0ee84>
 
-		A very important note: while it *is* possible to
-		instantiate these classes as follows:
+        A very important note: while it *is* possible to
+        instantiate these classes as follows:
 
-			>>> a = Account("Geremy", "Condra", 0.42)
+                >>> a = Account("Geremy", "Condra", 0.42)
 
-		This is strongly discouraged, because there is at
-		present no way to ensure what order the field names
-		will be read in.
-		"""
+        This is strongly discouraged, because there is at
+        present no way to ensure what order the field names
+        will be read in.
+        """
 
         # build the field mapping (names -> types)
         fields = []
@@ -947,26 +970,26 @@ def load_or_make(filename):
 
 def run_async_process(func):
     """
-        	run_async_process(func)
-        		function decorator, intended to make "func" run in a separate
-        		thread (asynchronously).
-        		Returns the created Thread object
+    run_async_process(func)
+            function decorator, intended to make "func" run in a separate
+            thread (asynchronously).
+            Returns the created Thread object
 
-        		E.g.:
-        		@run_async
-        		def task1():
-        			do_something
+            E.g.:
+            @run_async
+            def task1():
+                    do_something
 
-        		@run_async
-        		def task2():
-        			do_something_too
+            @run_async
+            def task2():
+                    do_something_too
 
-        		t1 = task1()
-        		t2 = task2()
-        		...
-        		t1.join()
-        		t2.join()
-        """
+            t1 = task1()
+            t2 = task2()
+            ...
+            t1.join()
+            t2.join()
+    """
     from functools import wraps
     from multiprocessing import Process
 
@@ -981,26 +1004,26 @@ def run_async_process(func):
 
 def run_async_thread(func):
     """
-		run_async(func)
-			function decorator, intended to make "func" run in a separate
-			thread (asynchronously).
-			Returns the created Thread object
+    run_async(func)
+            function decorator, intended to make "func" run in a separate
+            thread (asynchronously).
+            Returns the created Thread object
 
-			E.g.:
-			@run_async
-			def task1():
-				do_something
+            E.g.:
+            @run_async
+            def task1():
+                    do_something
 
-			@run_async
-			def task2():
-				do_something_too
+            @run_async
+            def task2():
+                    do_something_too
 
-			t1 = task1()
-			t2 = task2()
-			...
-			t1.join()
-			t2.join()
-	"""
+            t1 = task1()
+            t2 = task2()
+            ...
+            t1.join()
+            t2.join()
+    """
     from threading import Thread
     from functools import wraps
 
@@ -1024,14 +1047,14 @@ class TailRecurseException:
 
 def tail_call_optimized(g):
     """
-  This function decorates a function with tail call
-  optimization. It does this by throwing an exception
-  if it is it's own grandparent, and catching such
-  exceptions to fake the tail call optimization.
+    This function decorates a function with tail call
+    optimization. It does this by throwing an exception
+    if it is it's own grandparent, and catching such
+    exceptions to fake the tail call optimization.
 
-  This function fails if the decorated
-  function recurses in a non-tail context.
-  """
+    This function fails if the decorated
+    function recurses in a non-tail context.
+    """
 
     def func(*args, **kwargs):
         f = sys._getframe()
@@ -1050,7 +1073,6 @@ def tail_call_optimized(g):
 
 
 class NoneSoFar:
-
     """
     This is a singleton to give you something to put somewhere that
     should never be a rightfull return value of anything.
@@ -1143,7 +1165,6 @@ def force(value):
 
 
 class PromiseMetaClass(type):
-
     """
     This meta class builds the behaviour of promise classes. It's mainly
     building standard methods with special behaviour to mimick several
@@ -1207,12 +1228,12 @@ class PromiseMetaClass(type):
         for k in klass.__magicmethods__:
             if not attributes.has_key(k):
                 setattr(klass, k, klass.__forcedmethodname__(k))
-        for (k, v) in klass.__magicrmethods__:
+        for k, v in klass.__magicrmethods__:
             if not attributes.has_key(k):
                 setattr(klass, k, klass.__forcedrmethodname__(k, v))
             if not attributes.has_key(v):
                 setattr(klass, v, klass.__forcedrmethodname__(v, k))
-        for (k, v) in klass.__magicfunctions__:
+        for k, v in klass.__magicfunctions__:
             if not attributes.has_key(k):
                 setattr(klass, k, klass.__forcedmethodfunc__(v))
         super(PromiseMetaClass, klass).__init__(name, bases, attributes)
@@ -1291,7 +1312,6 @@ class PromiseMetaClass(type):
 
 
 class Promise(object):
-
     """
     The initialization get's the function and it's parameters to
     delay. If this is a promise that is created because of a delayed
@@ -1393,7 +1413,7 @@ def delayed(function, check_pickle=True):
     try:
         delayed_function = functools.wraps(function)(delayed_function)
     except AttributeError:
-        " functools.wraps fails on some callable objects "
+        "functools.wraps fails on some callable objects"
     return delayed_function
 
 
