@@ -1661,3 +1661,75 @@ def conditional_import(import_statements):
             globals()[alias] = __import__(module, fromlist=[""])
         else:
             globals()[alias] = sys.modules[module]
+
+
+def dict_to_env_vars(env_dict: dict, permanent: bool = False) -> None:
+    """
+    Set environment variables from a dictionary.
+
+    Args:
+    - env_dict: A dictionary with key-value pairs to be set as environment variables.
+    - permanent: If True, sets the environment variables in the `~/.zshrc` file, making them persistent across sessions.
+
+    Warning: Environment variables set by this function will only exist for the duration
+             of the process that sets them. They will be lost when the process finishes,
+             unless the `permanent` option is used.
+
+    Usage:
+    >>> env_dict = {'FOO': 'bar', 'BAZ': 'qux'}
+    >>> dict_to_env_vars(env_dict)
+    >>> os.environ['FOO']
+    'bar'
+    >>> os.environ['BAZ']
+    'qux'
+
+    >>> env_dict = {'FOO': 'bar', 'BAZ': 'qux'}
+    >>> dict_to_env_vars(env_dict, permanent=True)
+    >>> # Restart your terminal or run `source ~/.zshrc` to apply the changes
+    >>> os.environ['FOO']
+    'bar'
+    >>> os.environ['BAZ']
+    'qux'
+    """
+    import os
+
+    if permanent:
+        zshrc_path = os.path.expanduser("~/.zshrc")
+        with open(zshrc_path, "a") as f:
+            for key, value in env_dict.items():
+                f.write(f"export {key}='{value}'\n")
+        print(
+            f"Environment variables set in {zshrc_path}. Restart your terminal or run `source ~/.zshrc` to apply the changes."
+        )
+    else:
+        for key, value in env_dict.items():
+            os.environ[key] = value
+
+
+def env_vars_to_dict(vars_list: list[str] = None) -> dict:
+    """
+    Get a list of environment variables and return them as a dictionary.
+
+    Args:
+    - vars_list: A list of environment variable names. If None, returns all environment variables.
+
+    Returns:
+    - A dictionary with environment variable names as keys and their values as values.
+
+    Usage:
+    >>> env_vars_to_dict(['FOO', 'BAZ'])
+    {'FOO': 'bar', 'BAZ': 'qux'}
+
+    >>> env_vars_to_dict()
+    {'FOO': 'bar', 'BAZ': 'qux', ...}  # returns all environment variables
+    """
+    import os
+
+    env_dict = {}
+    if vars_list is None:
+        for key, value in os.environ.items():
+            env_dict[key] = value
+    else:
+        for var in vars_list:
+            env_dict[var] = os.environ.get(var, "")
+    return env_dict
