@@ -690,6 +690,33 @@ def execute(cmd, working_directory=os.getcwd()):
     return result
 
 
+def execute_async(cmd):
+    import asyncio
+
+    async def run():
+        process = await asyncio.create_subprocess_shell(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        # Real-time stdout
+        async for stdout_line in process.stdout:
+            print(stdout_line.decode("utf-8").strip())
+
+        # Real-time stderr
+        async for stderr_line in process.stderr:
+            print(f"Error: {stderr_line.decode('utf-8').strip()}")
+
+        returncode = await process.wait()
+
+        if returncode == 0:
+            print(f"\nCommand completed successfully.\n")
+        else:
+            print(f"\nError: Command failed with return code {returncode}.\n")
+
+    # Run the async function within the event loop
+    asyncio.run(run())
+
+
 def subdirs(path):
     """
     * ---------------{Function}---------------
