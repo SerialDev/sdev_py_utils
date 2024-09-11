@@ -714,23 +714,36 @@ def execute_async(cmd):
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        # Real-time stdout
-        async for stdout_line in process.stdout:
-            print(stdout_line.decode("utf-8").strip())
+        stdout_lines = []
+        stderr_lines = []
 
-        # Real-time stderr
+        # Capture stdout in real time
+        async for stdout_line in process.stdout:
+            line = stdout_line.decode("utf-8").strip()
+            stdout_lines.append(line)
+            print(line)  # Print each line as it comes
+
+        # Capture stderr in real time
         async for stderr_line in process.stderr:
-            print(f"Error: {stderr_line.decode('utf-8').strip()}")
+            line = stderr_line.decode("utf-8").strip()
+            stderr_lines.append(line)
+            print(f"Error: {line}")  # Print each error line
 
         returncode = await process.wait()
 
-        if returncode == 0:
-            print(f"\nCommand completed successfully.\n")
-        else:
-            print(f"\nError: Command failed with return code {returncode}.\n")
+        # The command's response will typically be the last line in stdout
+        response = stdout_lines[-1] if stdout_lines else ""
 
-    # Run the async function within the event loop
-    asyncio.run(run())
+        result = {
+            "response": response,
+            "stdout": "\n".join(stdout_lines),
+            "stderr": "\n".join(stderr_lines),
+            "returncode": returncode,
+        }
+
+        return result
+
+    return asyncio.run(run())
 
 
 def subdirs(path):
