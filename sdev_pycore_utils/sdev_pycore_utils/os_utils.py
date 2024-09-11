@@ -691,6 +691,22 @@ def execute(cmd, working_directory=os.getcwd()):
 
 
 def execute_async(cmd):
+    """
+    * ---------------Function---------------
+    * Execute a command in an asynchronous manner,
+      printing the output and error streams in real-time.
+    * ----------------Returns---------------
+    * -> None
+    * ----------------Params----------------
+    * cmd ::str: The command to be executed.
+    * ----------------Usage-----------------
+    * execute_async("python script.py")
+    * execute_async("ls -l")
+    * ----------------Notes-----------------
+    * This function uses the asyncio library to create a subprocess
+      that runs the provided command. It then prints the output
+      and error streams in real-time.
+    """
     import asyncio
 
     async def run():
