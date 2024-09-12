@@ -792,6 +792,46 @@ def walklevel(some_dir, level=1):
             del dirs[:]
 
 
+def glob_files(start_dir, file_type, level=1):
+    """
+    Glob all files with a certain file type starting at current level and down
+
+    Parameters
+    ----------
+
+    start_dir : str
+       Path to begin crawling from
+
+    file_type : str
+       File type to search for (e.g. 'txt', 'pdf', 'py', etc.)
+
+    level : int
+       Level to stop the crawler in
+
+    Returns
+    -------
+
+    Generator
+        Generator yielding file paths
+    """
+    import os
+
+    start_dir = start_dir.rstrip(os.path.sep)
+    assert os.path.isdir(start_dir)
+    num_sep = start_dir.count(os.path.sep)
+
+    for root, dirs, files in os.walk(start_dir):
+        num_sep_this = root.count(os.path.sep)
+
+        if num_sep_this > num_sep + level:  # Stop when we've reached the desired depth
+            del dirs[:]  # Prevent descending further into the directory structure
+            continue
+
+        for f in files:
+            if f.endswith(f".{file_type}"):
+                yield os.path.join(root, f)
+
+
 def path_leaf(path):
     """
     * ---------------{Function}---------------
