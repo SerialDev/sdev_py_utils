@@ -451,10 +451,10 @@ def source(data):
     return result
 
 
-
-
-def find_attributes_with_attribute(obj, attribute_name, max_depth, current_depth=0, path=""):
-    '''
+def find_attributes_with_attribute(
+    obj, attribute_name, max_depth, current_depth=0, path=""
+):
+    """
     * ---------------Function---------------
     * Finds all attributes of an object that have a specific attribute.
     * ----------------Returns---------------
@@ -469,22 +469,31 @@ def find_attributes_with_attribute(obj, attribute_name, max_depth, current_depth
     * This function can be used to find all attributes of an object that have a specific attribute. For example, to find all attributes of an object that have an attribute named "id", you would call `find_attributes_with_attribute(obj, "id", 5)`.
     * ----------------Notes-----------------
     * This function uses recursion to search for attributes, so it may cause a stack overflow if the object has a very deep nested structure.
-    '''
+    """
     matched_attrs = []
     if current_depth > max_depth:
         return matched_attrs
     for attr_name in dir(obj):
-        if not attr_name.startswith('__'):  # Ignore built-in attributes/methods
+        if not attr_name.startswith("__"):  # Ignore built-in attributes/methods
             attr = getattr(obj, attr_name)
             current_path = f"{path}.{attr_name}" if path else attr_name
             if hasattr(attr, attribute_name):
                 matched_attrs.append(current_path)
-            if hasattr(attr, '__dict__'):  # Check if the attribute is an object with its own attributes
-                matched_attrs.extend(find_attributes_with_attribute(attr, attribute_name, max_depth, current_depth + 1, current_path))
+            if hasattr(
+                attr, "__dict__"
+            ):  # Check if the attribute is an object with its own attributes
+                matched_attrs.extend(
+                    find_attributes_with_attribute(
+                        attr, attribute_name, max_depth, current_depth + 1, current_path
+                    )
+                )
     return matched_attrs
 
-def find_object_by_class_name(obj, target_class_name, max_depth, current_depth=0, path=""):
-    '''
+
+def find_object_by_class_name(
+    obj, target_class_name, max_depth, current_depth=0, path=""
+):
+    """
     * ---------------Function---------------
     * Searches for objects of a specific class within another object, traversing up to a specified depth.
     * ----------------Returns---------------
@@ -501,17 +510,44 @@ def find_object_by_class_name(obj, target_class_name, max_depth, current_depth=0
     * ----------------Notes-----------------
     * This function uses recursion to traverse the object graph, so be careful not to exceed the maximum recursion depth.
     * The function ignores built-in attributes and methods (those that start with double underscore).
-    '''
+    """
     matched_paths = []
     if current_depth > max_depth:
         return matched_paths
     for attr_name in dir(obj):
-        if not attr_name.startswith('__'):  # Ignore built-in attributes/methods
+        if not attr_name.startswith("__"):  # Ignore built-in attributes/methods
             attr = getattr(obj, attr_name)
             current_path = f"{path}.{attr_name}" if path else attr_name
             if attr.__class__.__name__ == target_class_name:
                 matched_paths.append(current_path)
-            if hasattr(attr, '__dict__'):  # Check if the attribute is an object with its own attributes
-                matched_paths.extend(find_object_by_class_name(attr, target_class_name, max_depth, current_depth + 1, current_path))
+            if hasattr(
+                attr, "__dict__"
+            ):  # Check if the attribute is an object with its own attributes
+                matched_paths.extend(
+                    find_object_by_class_name(
+                        attr,
+                        target_class_name,
+                        max_depth,
+                        current_depth + 1,
+                        current_path,
+                    )
+                )
     return matched_paths
 
+
+def find_function_definition(function):
+    """
+    Returns the file path and line number where the given function is defined.
+
+    :param function: The function to find the definition for
+    :return: A tuple containing the file path and line number, or None if not found
+    """
+    try:
+        func_code = function.__code__
+        file_path = func_code.co_filename
+        line_number = func_code.co_firstlineno
+        print(f"my_function is defined in {file_path} at line {line_number}")
+        return file_path, line_number
+    except AttributeError:
+        print("Could not find definition for my_function")
+        return None
