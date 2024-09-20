@@ -381,3 +381,240 @@ class SlicePlot:
 
 
 # Absolutely the best for directed graphs
+import pandas as pd
+import networkx as nx
+import plotly.graph_objects as go
+import numpy as np
+import plotly.express as px
+from collections import defaultdict
+from functools import lru_cache
+from rtree import index as rtree_index  # Make sure to import rtree_index
+
+
+def add_edge_to_rtree(spatial_index, edge, positions, edge_id):
+    """Adds an edge to the R-tree with a unique ID and a flattened bounding box."""
+    source, target = edge
+    x0, y0 = positions[source]
+    x1, y1 = positions[target]
+    # Flatten the coordinates tuple to (minx, miny, maxx, maxy)
+    minx, miny = min(x0, x1), min(y0, y1)
+    maxx, maxy = max(x0, x1), max(y0, y1)
+    # Insert the edge ID (integer) into the R-tree
+    spatial_index.insert(edge_id, (minx, miny, maxx, maxy), obj=edge_id)
+
+
+def query_proximity(edge, spatial_index, positions, threshold=0.3):
+    """Queries for nearby edges using the spatial index."""
+    source, target = edge
+    x0, y0 = positions[source]
+    x1, y1 = positions[target]
+    # Define the bounding box around the edge with some proximity threshold
+    minx, miny = min(x0, x1) - threshold, min(y0, y1) - threshold
+    maxx, maxy = max(x0, x1) + threshold, max(y0, y1) + threshold
+    # Query the spatial index for all nearby edges within the bounding box
+    return list(spatial_index.intersection((minx, miny, maxx, maxy), objects=True))
+
+
+def create_bundled_edges(
+    G, positions, bundle_strength=0.95, num_curve_points=100, max_iters=10
+):
+    """Edge bundling using a procedure similar to the MINGLE algorithm."""
+    # Initialize variables for edge coordinates and text
+    edge_x, edge_y, edge_text = [], [], []
+    UNGROUPED = -1
+    total_gain = 0
+
+    # Create spatial index for edge proximity
+    spatial_index = rtree_index.Index()
+    edges = list(G.edges(data=True))
+
+    # Assign a unique ID for each edge
+    edge_ids = list(range(len(edges)))
+    edge_map = {edge_id: edge[:2] for edge_id, edge in enumerate(edges)}
+
+    # Build the initial proximity graph Gamma
+    edge_proximity = defaultdict(set)
+    for edge_id, edge in edge_map.items():
+        add_edge_to_rtree(spatial_index, edge, positions, edge_id)
+
+    # Build initial edge proximity graph
+    for edge_id, edge in edge_map.items():
+        neighbors = query_proximity(edge, spatial_index, positions)
+        for neighbor in neighbors:
+            neighbor_id = neighbor.object
+            if neighbor_id != edge_id:
+                edge_proximity[edge_id].add(neighbor_id)
+
+    # Initialize grouping
+    group = {edge_id: UNGROUPED for edge_id in edge_ids}
+
+    @lru_cache(maxsize=None)
+    def calculate_ink(edge_ids):
+        """Calculates the total ink for a set of edges."""
+        total_length = 0
+        for eid in edge_ids:
+            source, target = edge_map[eid]
+            start = np.array(positions[source])
+            end = np.array(positions[target])
+            total_length += np.linalg.norm(end - start)
+        return total_length
+
+    def bundle_edges(edge_ids):
+        """Creates a bundled Bezier curve for a group of edges."""
+        # Calculate the average positions of sources and targets
+        sources = [np.array(positions[edge_map[eid][0]]) for eid in edge_ids]
+        targets = [np.array(positions[edge_map[eid][1]]) for eid in edge_ids]
+        source_mean = np.mean(sources, axis=0)
+        target_mean = np.mean(targets, axis=0)
+
+        # Control point for the Bezier curve
+        control = source_mean + (target_mean - source_mean) * bundle_strength
+
+        t = np.linspace(0, 1, num_curve_points)
+        curve_points = quadratic_bezier_curve(source_mean, control, target_mean, t)
+        edge_x.extend(curve_points[:, 0].tolist() + [None])
+        edge_y.extend(curve_points[:, 1].tolist() + [None])
+
+        # For hover text, we can list the number of edges in the bundle
+        edge_text.append(f"Bundled Edges: {len(edge_ids)}")
+
+    def quadratic_bezier_curve(p0, p1, p2, t_values):
+        """Returns points along a quadratic bezier curve."""
+        return (
+            np.outer((1 - t_values) ** 2, p0)
+            + 2 * np.outer((1 - t_values) * t_values, p1)
+            + np.outer(t_values**2, p2)
+        )
+
+    # Main iterative bundling process
+    iteration = 0
+    while iteration < max_iters:
+        gain = 0
+        k = 0
+        group = {edge_id: UNGROUPED for edge_id in edge_ids}
+        for u in edge_ids:
+            if group[u] == UNGROUPED:
+                best_gain = 0
+                best_v = None
+                u_neighbors = edge_proximity[u]
+                ink_u = calculate_ink((u,))
+                for v in u_neighbors:
+                    if group[v] == UNGROUPED:
+                        ink_v = calculate_ink((v,))
+                        # Combined ink if u and v are bundled
+                        bundled_ink = calculate_ink((u, v))
+                        gain_uv = (ink_u + ink_v) - bundled_ink
+                        if gain_uv > best_gain:
+                            best_gain = gain_uv
+                            best_v = v
+                if best_gain > 0 and best_v is not None:
+                    # Bundle u and best_v
+                    gain += best_gain
+                    if group[best_v] != UNGROUPED:
+                        group[u] = group[best_v]
+                    else:
+                        group[u] = k
+                        group[best_v] = k
+                        k += 1
+                else:
+                    group[u] = k
+                    k += 1
+        if gain <= 0:
+            break  # No further gain, exit the loop
+        total_gain += gain
+
+        # Coalesce edges in the same group
+        new_edge_map = {}
+        new_edge_ids = []
+        new_edge_proximity = defaultdict(set)
+        group_to_edge_ids = defaultdict(list)
+        for edge_id, grp in group.items():
+            group_to_edge_ids[grp].append(edge_id)
+
+        for grp, grp_edge_ids in group_to_edge_ids.items():
+            new_edge_id = len(new_edge_ids)
+            new_edge_ids.append(new_edge_id)
+            new_edge_map[new_edge_id] = (
+                grp_edge_ids  # Map new edge ID to list of old edge IDs
+            )
+
+            # Update proximity graph
+            neighbor_groups = set()
+            for eid in grp_edge_ids:
+                for neighbor in edge_proximity[eid]:
+                    neighbor_grp = group[neighbor]
+                    if neighbor_grp != grp:
+                        neighbor_groups.add(neighbor_grp)
+            for neighbor_grp in neighbor_groups:
+                new_edge_proximity[new_edge_id].add(neighbor_grp)
+
+        # Update edge data structures
+        edge_ids = new_edge_ids
+        edge_proximity = new_edge_proximity
+        edge_group_map = new_edge_map
+
+        # Update function to calculate ink for new groups
+        @lru_cache(maxsize=None)
+        def calculate_ink(edge_id_tuple):
+            total_length = 0
+            for eid in edge_id_tuple:
+                if isinstance(eid, int) and eid in edge_map:
+                    source, target = edge_map[eid]
+                    start = np.array(positions[source])
+                    end = np.array(positions[target])
+                    total_length += np.linalg.norm(end - start)
+                elif isinstance(eid, int):
+                    # It's a bundled edge, need to sum lengths of constituent edges
+                    for sub_eid in edge_group_map[eid]:
+                        source, target = edge_map[sub_eid]
+                        start = np.array(positions[source])
+                        end = np.array(positions[target])
+                        total_length += np.linalg.norm(end - start)
+            return total_length
+
+        iteration += 1
+
+    # After bundling, draw the bundled edges
+    for edge_id in edge_ids:
+        if edge_id in edge_map:
+            # It's a single edge
+            source, target = edge_map[edge_id]
+            x0, y0 = positions[source]
+            x1, y1 = positions[target]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+            # Retrieve edge data
+            link_type = G.get_edge_data(source, target).get("link_type", "Undefined")
+            edge_text.append(
+                f"<b>{source}</b> → <b>{target}</b><br>Link Type: {link_type}"
+            )
+        else:
+            # It's a bundled edge
+            constituent_edges = edge_group_map[edge_id]
+            sources = [
+                np.array(positions[edge_map[eid][0]]) for eid in constituent_edges
+            ]
+            targets = [
+                np.array(positions[edge_map[eid][1]]) for eid in constituent_edges
+            ]
+            source_mean = np.mean(sources, axis=0)
+            target_mean = np.mean(targets, axis=0)
+            control = source_mean + (target_mean - source_mean) * bundle_strength
+            t = np.linspace(0, 1, num_curve_points)
+            curve_points = quadratic_bezier_curve(source_mean, control, target_mean, t)
+            edge_x.extend(curve_points[:, 0].tolist() + [None])
+            edge_y.extend(curve_points[:, 1].tolist() + [None])
+            # For hover text, list the number of edges and optionally some of the node pairs
+            num_edges = len(constituent_edges)
+            edge_descriptions = []
+            for eid in constituent_edges[:5]:  # Limit to first 5 edges for brevity
+                source, target = edge_map[eid]
+                edge_descriptions.append(f"{source} → {target}")
+            if num_edges > 5:
+                edge_descriptions.append("...and more")
+            hover_text = f"Bundled Edges: {num_edges}<br>" + "<br>".join(
+                edge_descriptions
+            )
+            edge_text.append(hover_text)
+
+    return edge_x, edge_y, edge_text
