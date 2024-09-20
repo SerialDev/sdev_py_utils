@@ -551,3 +551,25 @@ def find_function_definition(function):
     except AttributeError:
         print("Could not find definition for my_function")
         return None
+
+    # WIP
+    """
+
+    Layer0 -> Transformer Block <- Attention layer(self_attn)  <- Linear (q_proj) <- Inputdims | Outputdims
+       |                |                  |                   <- Linear(k_proj)  <- Inputdims | Outputdims
+       |                |                  |                   <- Linear(v_proj)  <- Inputdims | Outputdims
+       |                |                  |                   <- Linear(o_proj)  <- Inputdims | Outputdims
+       |                |                  |                   <- Rope <- Params
+       |                |                  v
+       |                |                  MLP  <- Linear(gate_proj) <- Inputdims | Outputdims
+       |                |                   |   <- Linear(down_proj) <- Inputdims | Outputdims
+       |                |                   |   <- Linear(up_proj) <- Inputdims | Outputdims
+       |                |                   v
+       |                |        RMSNorm(Input Layernorm)  <- Param
+       |                |                   |
+       |                |                   v
+       |                |        RMSNorm(Post attention Layernorm)  <- Param
+       v                v
+    Layer1 (...)
+
+    """
