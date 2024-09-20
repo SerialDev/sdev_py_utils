@@ -1036,3 +1036,467 @@ def visualize_graph_with_priorities(
         fig.show()
 
     return fig
+
+
+# LLM STUFF
+
+
+def build_model_graph(
+    model,
+    G=None,
+    visited=None,
+    parent_name=None,
+    parent_type=None,
+    parent_path=None,
+    layer_counter=0,
+    layer_based_naming=False,
+    current_layer_number=None,
+):
+    """
+    Recursively builds a NetworkX directed graph representing the model's architecture.
+    Node names follow a hierarchical structure: Model -> Layer -> Block -> Projection.
+    Block types are informative, e.g., 'Projection_Attention_qproj'.
+    Optionally includes layer numbers for grouping when layer_based_naming=True.
+    Handles both MLX components and PyTorch layers.
+
+    Parameters:
+    - model: The model to represent (MLX or PyTorch model)
+    - G: The NetworkX graph being constructed
+    - visited: Set to keep track of visited modules (to prevent infinite loops)
+    - parent_name: Name of the parent module
+    - parent_type: Type of the parent module
+    - parent_path: Full hierarchical path to the parent module
+    - layer_counter: Counter for numbering layers within a grouping
+    - layer_based_naming: Boolean to include layer numbers in node names and grouping
+    - current_layer_number: The current layer number in the hierarchy
+
+    Returns:
+    - G: The constructed NetworkX directed graph
+    """
+    import torch.nn as nn
+
+    # Initialize visited set to avoid infinite loops
+    if visited is None:
+        visited = set()
+
+    # Initialize the graph
+    if G is None:
+        G = nx.DiGraph()
+
+    # If the module has already been visited, skip it to prevent infinite loops
+    if id(model) in visited:
+        return G
+    visited.add(id(model))
+
+    module_type = type(model).__name__
+
+    # Build node name and node ID
+    if parent_name is None and parent_path is None:
+        # Root node
+        module_name = module_type  # Use the root module's class name as its name
+        node_id = module_name  # Node ID for the root node
+        full_name = module_name  # Full hierarchical name for the root node
+    else:
+        # Build child node name with context
+        module_name = parent_name
+        full_name = f"{parent_path}.{module_name}"
+        node_id = full_name  # Use full path as node ID for uniqueness
+
+    # Attempt to get input and output dimensions if possible
+    input_dim = output_dim = None
+    if hasattr(model, "weight") and model.weight is not None:
+        if hasattr(model.weight, "shape"):
+            weight_shape = model.weight.shape
+            if len(weight_shape) == 2:
+                input_dim = weight_shape[1]
+                output_dim = weight_shape[0]
+            else:
+                output_dim = weight_shape
+
+    # Determine block type, using more informative names
+    block_type = module_type  # Default block type is the module's class name
+
+    # Add the current module as a node in the graph
+    node_attrs = {
+        "name": module_name,
+        "type": module_type,
+        "node_type": module_type,
+        "input_dim": input_dim,
+        "output_dim": output_dim,
+        "block_type": block_type,
+        "layer_number": (
+            str(current_layer_number)
+            if layer_based_naming and current_layer_number is not None
+            else None
+        ),
+    }
+
+    G.add_node(node_id, **node_attrs)
+
+    # If there's a parent, add an edge from the parent to this node
+    if parent_path is not None:
+        parent_node_id = parent_path
+        G.add_edge(parent_node_id, node_id, link_type="contains")
+
+    # Process layers in 'model.layers' or 'nn.ModuleList'
+    if hasattr(model, "layers") and isinstance(model.layers, nn.ModuleList):
+        # Process each layer
+        for idx, layer in enumerate(model.layers):
+            layer_name = f"Layer_{idx}"
+            block_type = "Layer"
+            layer_id = f"{node_id}.{layer_name}"
+
+            # Assign the layer number
+            submodule_layer_number = idx  # Use idx + 1 if you prefer 1-based indexing
+
+            layer_attrs = {
+                "name": layer_name,
+                "type": type(layer).__name__,
+                "node_type": "Layer",
+                "block_type": block_type,
+                "layer_number": (
+                    str(submodule_layer_number) if layer_based_naming else None
+                ),
+            }
+
+            G.add_node(layer_id, **layer_attrs)
+            G.add_edge(node_id, layer_id, link_type="contains")
+            # Recursively process the layer
+            build_model_graph(
+                layer,
+                G=G,
+                visited=visited,
+                parent_name=layer_name,
+                parent_type="Layer",
+                parent_path=node_id,
+                layer_counter=0,
+                layer_based_naming=layer_based_naming,
+                current_layer_number=submodule_layer_number,
+            )
+
+    elif isinstance(model, nn.ModuleList):
+        # Process each module in the ModuleList
+        for idx, submodule in enumerate(model):
+            submodule_name = f"Layer_{idx}"
+            block_type = "Layer"
+            submodule_id = f"{node_id}.{submodule_name}"
+
+            # Assign the layer number
+            submodule_layer_number = idx  # Adjust for 1-based indexing if desired
+
+            submodule_attrs = {
+                "name": submodule_name,
+                "type": type(submodule).__name__,
+                "node_type": "Layer",
+                "block_type": block_type,
+                "layer_number": (
+                    str(submodule_layer_number) if layer_based_naming else None
+                ),
+            }
+
+            G.add_node(submodule_id, **submodule_attrs)
+            G.add_edge(node_id, submodule_id, link_type="contains")
+            # Recursively process the submodule
+            build_model_graph(
+                submodule,
+                G=G,
+                visited=visited,
+                parent_name=submodule_name,
+                parent_type="Layer",
+                parent_path=node_id,
+                layer_counter=0,
+                layer_based_naming=layer_based_naming,
+                current_layer_number=submodule_layer_number,
+            )
+    else:
+        # Process other submodules and layers
+        # Handle attention layers
+        if hasattr(model, "attn_layer") or hasattr(model, "self_attn"):
+            # Handling attention layers
+            attn_layer = getattr(model, "attn_layer", None) or getattr(
+                model, "self_attn", None
+            )
+            if attn_layer:
+                attn_heads = (
+                    getattr(attn_layer, "num_heads", None)
+                    or getattr(attn_layer, "n_heads", None)
+                    or "Unknown"
+                )
+                attn_name = "Attention"
+                attn_id = f"{node_id}.{attn_name}"
+                block_type = "Attention"
+
+                attn_attrs = {
+                    "name": attn_name,
+                    "type": type(attn_layer).__name__,
+                    "node_type": "Attention",
+                    "attention_heads": attn_heads,
+                    "block_type": block_type,
+                    "layer_number": (
+                        str(current_layer_number) if layer_based_naming else None
+                    ),
+                }
+
+                G.add_node(attn_id, **attn_attrs)
+                G.add_edge(node_id, attn_id, link_type="contains")
+
+                # Handle projection layers within the attention layer
+                for proj_name in [
+                    "query_proj",
+                    "key_proj",
+                    "value_proj",
+                    "out_proj",
+                    "q_proj",
+                    "k_proj",
+                    "v_proj",
+                    "o_proj",
+                ]:
+                    proj_layer = getattr(attn_layer, proj_name, None)
+                    if proj_layer is not None:
+                        proj_input_dim = proj_output_dim = None
+                        if (
+                            hasattr(proj_layer, "weight")
+                            and proj_layer.weight is not None
+                        ):
+                            proj_weight_shape = proj_layer.weight.shape
+                            if len(proj_weight_shape) == 2:
+                                proj_input_dim = proj_weight_shape[1]
+                                proj_output_dim = proj_weight_shape[0]
+                        proj_node_name = proj_name
+                        proj_node_id = f"{attn_id}.{proj_node_name}"
+                        # Define block type with context
+                        block_type = f"Projection_{attn_name}_{proj_name}"
+
+                        proj_attrs = {
+                            "name": proj_node_name,
+                            "type": type(proj_layer).__name__,
+                            "node_type": "Projection",
+                            "input_dim": proj_input_dim,
+                            "output_dim": proj_output_dim,
+                            "block_type": block_type,
+                            "layer_number": (
+                                str(current_layer_number)
+                                if layer_based_naming
+                                else None
+                            ),
+                        }
+
+                        G.add_node(proj_node_id, **proj_attrs)
+                        G.add_edge(attn_id, proj_node_id, link_type="projects_to")
+
+                # Handle RoPE if present
+                rope_layer = getattr(attn_layer, "rope", None)
+                if rope_layer is not None:
+                    rope_name = "RoPE"
+                    rope_id = f"{attn_id}.{rope_name}"
+                    block_type = "PositionEncoding"
+
+                    rope_attrs = {
+                        "name": rope_name,
+                        "type": type(rope_layer).__name__,
+                        "node_type": "PositionEncoding",
+                        "block_type": block_type,
+                        "layer_number": (
+                            str(current_layer_number) if layer_based_naming else None
+                        ),
+                    }
+
+                    G.add_node(rope_id, **rope_attrs)
+                    G.add_edge(attn_id, rope_id, link_type="position_encoding")
+                    # Recursively process RoPE sublayers if any
+                    build_model_graph(
+                        rope_layer,
+                        G=G,
+                        visited=visited,
+                        parent_name=rope_name,
+                        parent_type="PositionEncoding",
+                        parent_path=attn_id,
+                        layer_counter=0,
+                        layer_based_naming=layer_based_naming,
+                        current_layer_number=current_layer_number,
+                    )
+
+        # Handle MLP layers
+        if hasattr(model, "mlp") or any(
+            hasattr(model, attr) for attr in ["gate_proj", "down_proj", "up_proj"]
+        ):
+            mlp_layer = getattr(model, "mlp", None) or model
+            if mlp_layer:
+                mlp_name = "MLP"
+                mlp_id = f"{node_id}.{mlp_name}"
+                block_type = "MLP"
+
+                mlp_attrs = {
+                    "name": mlp_name,
+                    "type": type(mlp_layer).__name__,
+                    "node_type": "MLP",
+                    "block_type": block_type,
+                    "layer_number": (
+                        str(current_layer_number) if layer_based_naming else None
+                    ),
+                }
+
+                G.add_node(mlp_id, **mlp_attrs)
+                G.add_edge(node_id, mlp_id, link_type="contains")
+
+                # Handle projection layers within the MLP
+                for proj_name in ["fc1", "fc2", "gate_proj", "down_proj", "up_proj"]:
+                    proj_layer = getattr(mlp_layer, proj_name, None)
+                    if proj_layer is not None:
+                        proj_input_dim = proj_output_dim = None
+                        if (
+                            hasattr(proj_layer, "weight")
+                            and proj_layer.weight is not None
+                        ):
+                            proj_weight_shape = proj_layer.weight.shape
+                            if len(proj_weight_shape) == 2:
+                                proj_input_dim = proj_weight_shape[1]
+                                proj_output_dim = proj_weight_shape[0]
+                        proj_node_name = proj_name
+                        proj_node_id = f"{mlp_id}.{proj_node_name}"
+                        # Define block type with context
+                        block_type = f"Projection_{mlp_name}_{proj_name}"
+
+                        proj_attrs = {
+                            "name": proj_node_name,
+                            "type": type(proj_layer).__name__,
+                            "node_type": "Projection",
+                            "input_dim": proj_input_dim,
+                            "output_dim": proj_output_dim,
+                            "block_type": block_type,
+                            "layer_number": (
+                                str(current_layer_number)
+                                if layer_based_naming
+                                else None
+                            ),
+                        }
+
+                        G.add_node(proj_node_id, **proj_attrs)
+                        G.add_edge(mlp_id, proj_node_id, link_type="projects_to")
+
+        # Handle normalization layers
+        for norm_attr in ["input_layernorm", "post_attention_layernorm", "norm"]:
+            norm_layer = getattr(model, norm_attr, None)
+            if norm_layer and isinstance(
+                norm_layer, (nn.LayerNorm, nn.modules.normalization.LayerNorm)
+            ):
+                norm_dims = getattr(norm_layer, "normalized_shape", None)
+                eps = getattr(norm_layer, "eps", None)
+                norm_name = norm_attr
+                norm_id = f"{node_id}.{norm_name}"
+                block_type = f"Normalization"
+
+                norm_attrs = {
+                    "name": norm_name,
+                    "type": type(norm_layer).__name__,
+                    "node_type": "Normalization",
+                    "dims": norm_dims,
+                    "eps": eps,
+                    "block_type": block_type,
+                    "layer_number": (
+                        str(current_layer_number) if layer_based_naming else None
+                    ),
+                }
+
+                G.add_node(norm_id, **norm_attrs)
+                G.add_edge(node_id, norm_id, link_type="normalizes")
+
+        # Handle embedding layers
+        if isinstance(model, nn.Embedding):
+            num_embeddings, embedding_dim = model.weight.shape
+            block_type = "Embedding"
+
+            embedding_attrs = {
+                "num_embeddings": num_embeddings,
+                "embedding_dim": embedding_dim,
+                "node_type": "Embedding",
+                "block_type": block_type,
+                "layer_number": (
+                    str(current_layer_number) if layer_based_naming else None
+                ),
+            }
+
+            G.nodes[node_id].update(embedding_attrs)
+
+        # Recursively explore child modules, but avoid infinite recursion
+        child_modules = []
+        if hasattr(model, "_modules"):
+            child_modules = list(model._modules.items())
+        elif hasattr(model, "modules"):
+            child_modules = [
+                (str(idx), m) for idx, m in enumerate(model.modules()) if m is not model
+            ]
+        if child_modules:
+            for child_name, child in child_modules:
+                if child_name in ["layers", "mlp", "attn_layer", "self_attn", "rope"]:
+                    continue
+                child_module_name = child_name
+                child_node_id = f"{node_id}.{child_module_name}"
+                block_type = f"{type(child).__name__}"
+
+                child_attrs = {
+                    "name": child_module_name,
+                    "type": type(child).__name__,
+                    "node_type": type(child).__name__,
+                    "block_type": block_type,
+                    "layer_number": (
+                        str(current_layer_number) if layer_based_naming else None
+                    ),
+                }
+
+                G.add_node(child_node_id, **child_attrs)
+                G.add_edge(node_id, child_node_id, link_type="contains")
+                build_model_graph(
+                    child,
+                    G=G,
+                    visited=visited,
+                    parent_name=child_module_name,
+                    parent_type=type(child).__name__,
+                    parent_path=node_id,
+                    layer_counter=0,
+                    layer_based_naming=layer_based_naming,
+                    current_layer_number=current_layer_number,
+                )
+
+    return G
+
+
+def assign_layer_numbers(G):
+    """
+    Iterate through all nodes in graph G and assign an attribute 'layer_number' based on node_name.split()[1] if found, otherwise 0.
+
+    USAGE:
+    G = nx.Graph()
+    # add nodes to G
+    assign_layer_numbers(G)
+    """
+    for node in G.nodes:
+        node_name = node
+        layer_number = 0
+        if node_name:
+            try:
+                layer_number = node_name.split(".")[1]
+            except Exception as e:
+                layer_number = "0"
+                pass
+        nx.set_node_attributes(G, {node: {"layer_number": layer_number}})
+
+
+def assign_groups(G):
+    """
+    Assign groups to nodes in graph G based on 'layer_number' or 'block_type'.
+
+    :param G: Graph object
+    :return: None
+    """
+    groups = []
+    for node_id in G.nodes():
+        node_data = G.nodes[node_id]
+        if node_data.get("layer_number") is not None:
+            group = node_data["layer_number"]
+        else:
+            group = node_data.get("block_type", "Other").lower()
+        groups.append(group)
+        G.nodes[node_id]["group"] = group  # Store the group in node attributes
+        G.nodes[node_id]["node_type"] = group  # Store the group in node attributes
+    return groups
