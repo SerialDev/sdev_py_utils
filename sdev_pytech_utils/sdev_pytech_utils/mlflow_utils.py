@@ -45,7 +45,6 @@ class MLFRunManager:
         mlflow.end_run()
 
 
-# Decorator to log stdout to both the console and mlflow
 def log_stdout_to_mlflow(func):
     from functools import wraps
     from contextlib import redirect_stdout
@@ -54,18 +53,20 @@ def log_stdout_to_mlflow(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        original_stdout = sys.stdout  # Save the original stdout
-        buffer = io.StringIO()  # Buffer to capture output for mlflow
+        buffer = io.StringIO()
+        original_stdout = sys.stdout
 
-        # TeeOutput sends output to both console and mlflow buffer
-        with redirect_stdout(TeeOutput(original_stdout, buffer)):
-            result = func(*args, **kwargs)
+        # Automatically enter the mlflow run manager
+        with MLFRunManager() as manager:
+            # TeeOutput sends output to both console and mlflow buffer
+            with redirect_stdout(TeeOutput(original_stdout, buffer)):
+                result = func(*args, **kwargs)
 
-        # If an active mlflow run exists, log the captured output to mlflow
-        if mlflow.active_run():
-            captured_stdout = buffer.getvalue()
-            mlflow.log_text(captured_stdout, "captured_stdout.txt")
-            logging.info("Logged captured stdout to mlflow.")
+            # Log captured stdout to mlflow if a run is active
+            if mlflow.active_run():
+                captured_stdout = buffer.getvalue()
+                mlflow.log_text(captured_stdout, "captured_stdout.txt")
+                logging.info("Logged captured stdout to mlflow.")
 
         return result
 
