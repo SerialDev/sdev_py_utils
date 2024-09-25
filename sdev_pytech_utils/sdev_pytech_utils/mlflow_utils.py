@@ -103,7 +103,7 @@ def log_stdout_to_mlflow(strip_ansi=False, end=False):
                 mlflow.log_text(captured_stdout, file_name)
                 logging.info(f"Logged captured stdout to {file_name} in mlflow.")
                 if end:
-                    manager.end_run()
+                    manager.final_run()
 
             return result
 
