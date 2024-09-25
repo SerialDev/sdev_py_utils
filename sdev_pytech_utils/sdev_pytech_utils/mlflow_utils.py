@@ -45,29 +45,68 @@ class MLFRunManager:
         mlflow.end_run()
 
 
-def log_stdout_to_mlflow(func):
+def log_stdout_counter():
+    count = 0
+
+    def increment():
+        nonlocal count
+        count += 1
+        return count
+
+    return increment
+
+
+def log_stdout_to_mlflow(strip_ansi=False, end=False):
     from functools import wraps
     from contextlib import redirect_stdout
     import sys
     import io
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        buffer = io.StringIO()
-        original_stdout = sys.stdout
+    counter = log_stdout_counter()  # Create a new counter instance
 
-        # Automatically enter the mlflow run manager
-        with MLFRunManager() as manager:
-            # TeeOutput sends output to both console and mlflow buffer
-            with redirect_stdout(TeeOutput(original_stdout, buffer)):
-                result = func(*args, **kwargs)
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            call_count = counter()
 
-            # Log captured stdout to mlflow if a run is active
-            if mlflow.active_run():
+            # Get the caller's line number and function name
+            func_name = func.__name__
+            func_line_number = inspect.getsourcelines(func)[1]
+
+            buffer = io.StringIO()
+            original_stdout = sys.stdout
+            if strip_ansi:
+                ANSI_ESCAPE = re.compile(r"\x1B[@-_][0-?]*[ -/]*[@-~]")
+
+            # Automatically enter the mlflow run manager
+            with MLFRunManager() as manager:
+                # TeeOutput sends output to both console and mlflow buffer
+                with redirect_stdout(TeeOutput(original_stdout, buffer)):
+                    result = func(*args, **kwargs)
+
+                # Create the folder "stdouts" if it doesn't exist
+                folder_name = "stdouts"
+                if not os.path.exists(folder_name):
+                    os.makedirs(folder_name)
+
+                # Prepare the file name based on line number, function name, and call count
+                file_name = (
+                    f"{folder_name}/{func_line_number}_{func_name}_{call_count}.txt"
+                )
+
+                # Optionally strip ANSI escape codes
                 captured_stdout = buffer.getvalue()
-                mlflow.log_text(captured_stdout, "captured_stdout.txt")
-                logging.info("Logged captured stdout to mlflow.")
+                if strip_ansi:
+                    captured_stdout = ANSI_ESCAPE.sub("", captured_stdout)
 
-        return result
+                # Log the captured stdout to a new file in mlflow
+                mlflow.log_text(captured_stdout, file_name)
+                logging.info(f"Logged captured stdout to {file_name} in mlflow.")
+                if end:
+                    manager.end_run()
 
-    return wrapper
+            return result
+
+        return wrapper
+
+    return decorator
