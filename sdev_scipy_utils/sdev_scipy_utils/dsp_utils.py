@@ -75,18 +75,18 @@ def findpeaks(data, spacing=1, limit=None):
     """
     len = data.size
     x = np.zeros(len + 2 * spacing)
-    x[:spacing] = data[0] - 1.e-6
-    x[-spacing:] = data[-1] - 1.e-6
-    x[spacing: spacing + len] = data
+    x[:spacing] = data[0] - 1.0e-6
+    x[-spacing:] = data[-1] - 1.0e-6
+    x[spacing : spacing + len] = data
     peak_candidate = np.zeros(len)
     peak_candidate[:] = True
     for s in range(spacing):
         start = spacing - s - 1
-        h_b = x[start: start + len]  # before
+        h_b = x[start : start + len]  # before
         start = spacing
-        h_c = x[start: start + len]  # central
+        h_c = x[start : start + len]  # central
         start = spacing + s + 1
-        h_a = x[start: start + len]  # after
+        h_a = x[start : start + len]  # after
         peak_candidate = np.logical_and(
             peak_candidate, np.logical_and(h_c > h_b, h_c > h_a)
         )
@@ -212,7 +212,7 @@ def grubbs(series):
     tail_average = tail_avg(series, 30)
     z_score = (tail_average - mean) / stdDev
     len_series = len(series)
-    threshold = scipy.stats.t.isf(.05 / (2 * len_series), len_series - 2)
+    threshold = scipy.stats.t.isf(0.05 / (2 * len_series), len_series - 2)
     threshold_squared = threshold * threshold
     grubbs_score = ((len_series - 1) / np.sqrt(len_series)) * np.sqrt(
         threshold_squared / (len_series - 2 + threshold_squared)
@@ -294,8 +294,8 @@ def mean_subtraction_cumulation(timeseries):
 
     # series = pandas.Series([x[1] if x[1] else 0 for x in timeseries])
     series = timeseries
-    series = series - series[0: len(series) - 1].mean()
-    stdDev = series[0: len(series) - 1].std()
+    series = series - series[0 : len(series) - 1].mean()
+    stdDev = series[0 : len(series) - 1].std()
     expAverage = series.ewm(com=15).mean()
 
     return abs(series.iloc[-1]) > 3 * stdDev
@@ -470,7 +470,7 @@ def bayesian_anomaly(series):
     """
     index = bayesian_changepoint(series)[1]
     MAD = series.mad()
-    subset = series[index - 2: index + 5].mean()
+    subset = series[index - 2 : index + 5].mean()
     return subset > MAD
 
 
@@ -619,7 +619,7 @@ def bayesian_changepoint(data):
 
     z, zz = np.max(y), np.argmax(y)
     mean1 = sum(data[: zz + 1] / float(len(data[: zz + 1])))
-    mean2 = sum(data[(zz + 1): n]) / float(n - 1 - zz)
+    mean2 = sum(data[(zz + 1) : n]) / float(n - 1 - zz)
     # p = y.argsort()[-3:][::-1]
     p = sorted(range(len(y)), key=lambda x: y[x])[-5:]
     return y, zz, mean1, mean2, p
@@ -649,6 +649,7 @@ def sliding_window(data, segment_length, slide_length, flag="chunks"):
         * If 'flag' is set to "chunks", the function returns a list of all segments.
         * If 'flag' is set to "lazy", the function returns an iterator that generates segments on the fly.
     """
+
     def iter_sliding_window(data, segment_length, slide_length):
         for start_position in range(0, len(data), slide_length):
             end_position = start_position + segment_length
@@ -777,6 +778,29 @@ def log10_window_func(data, segment_length):
 
 
 def gradient_window_func(data, segment_length):
+    """
+    * ---------------Typedef----------------
+    * type-def ::(array_like, int) -> array_like
+    * ---------------Function---------------
+    * This function calculates the gradient of the input data and returns the result as a window.
+    *
+    * ----------------Returns---------------
+    * -> result ::array_like
+    *   The gradient of the input data.
+    * ----------------Params----------------
+    * data ::array_like
+    *   The input data to calculate the gradient of.
+    * segment_length ::int
+    *   Not used in the current implementation.
+    * ----------------Usage-----------------
+    * This function can be used to calculate the gradient of a signal or an array of values.
+    * Example:
+    * gradient_window_func([1, 2, 3, 4, 5], 2) -> [1., 1., 1., 1.]
+    * ----------------Notes-----------------
+    * The segment_length parameter is currently not used in the function implementation.
+    * The function uses the numpy gradient function to calculate the gradient of the input data.
+
+    """
     window = np.gradient(data, 1)
     return window
 
@@ -789,20 +813,20 @@ from scipy.signal import kaiser
 
 def find(condition):
     "Return the indices where ravel(condition) is true"
-    res, = np.nonzero(np.ravel(condition))
+    (res,) = np.nonzero(np.ravel(condition))
     return res
 
 
 def freq_from_crossings(signal, fs):
     """Estimate frequency by counting zero crossings
 
-   Pros: Fast, accurate (increasing with signal length). Works well for long
-   low-noise sines, square, triangle, etc.
+    Pros: Fast, accurate (increasing with signal length). Works well for long
+    low-noise sines, square, triangle, etc.
 
-   Cons: Doesn't work if there are multiple zero crossings per cycle,
-   low-frequency baseline shift, noise, etc.
+    Cons: Doesn't work if there are multiple zero crossings per cycle,
+    low-frequency baseline shift, noise, etc.
 
-   """
+    """
     # Find all indices right before a rising-edge zero crossing
     indices = find((signal[1:] >= 0) & (signal[:-1] < 0))
 
@@ -833,24 +857,24 @@ def parabolic(f, x):
     In [4]: parabolic(f, argmax(f))
     Out[4]: (3.2142857142857144, 6.1607142857142856)
     """
-    xv = 1 / 2. * (f[x - 1] - f[x + 1]) / (f[x - 1] - 2 * f[x] + f[x + 1]) + x
-    yv = f[x] - 1 / 4. * (f[x - 1] - f[x + 1]) * (xv - x)
+    xv = 1 / 2.0 * (f[x - 1] - f[x + 1]) / (f[x - 1] - 2 * f[x] + f[x + 1]) + x
+    yv = f[x] - 1 / 4.0 * (f[x - 1] - f[x + 1]) * (xv - x)
     return (xv, yv)
 
 
 def freq_from_fft(signal, fs):
     """Estimate frequency from peak of FFT
 
-   Pros: Accurate, usually even more so than zero crossing counter
-   (1000.000004 Hz for 1000 Hz, for instance). Due to parabolic
-   interpolation being a very good fit for windowed log FFT peaks?
-   https://ccrma.stanford.edu/~jos/sasp/Quadratic_Interpolation_Spectral_Peaks.html
-   Accuracy also increases with signal length
+    Pros: Accurate, usually even more so than zero crossing counter
+    (1000.000004 Hz for 1000 Hz, for instance). Due to parabolic
+    interpolation being a very good fit for windowed log FFT peaks?
+    https://ccrma.stanford.edu/~jos/sasp/Quadratic_Interpolation_Spectral_Peaks.html
+    Accuracy also increases with signal length
 
-   Cons: Doesn't find the right value if harmonics are stronger than
-   fundamental, which is common.
+    Cons: Doesn't find the right value if harmonics are stronger than
+    fundamental, which is common.
 
-   """
+    """
 
     N = len(signal)
 
@@ -867,18 +891,18 @@ def freq_from_fft(signal, fs):
 def freq_from_autocorr(signal, fs):
     """Estimate frequency using autocorrelation
 
-   Pros: Best method for finding the true fundamental of any repeating wave,
-   even with strong harmonics or completely missing fundamental
+    Pros: Best method for finding the true fundamental of any repeating wave,
+    even with strong harmonics or completely missing fundamental
 
-   Cons: Not as accurate, doesn't work for inharmonic things like musical
-   instruments, this implementation has trouble with finding the true peak
+    Cons: Not as accurate, doesn't work for inharmonic things like musical
+    instruments, this implementation has trouble with finding the true peak
 
-   """
+    """
     # Calculate autocorrelation (same thing as convolution, but with one input
     # reversed in time), and throw away the negative lags
     signal -= np.mean(signal)  # Remove DC offset
     corr = fftconvolve(signal, signal[::-1], mode="full")
-    corr = corr[len(corr) // 2:]
+    corr = corr[len(corr) // 2 :]
 
     # Find the first low point
     d = np.diff(corr)
@@ -924,7 +948,7 @@ def freq_from_hps(signal, fs):
 
 
 def simple_complexity(data):
-    """ Calculate the complexity of a series of data by calculating the
+    """Calculate the complexity of a series of data by calculating the
     length of the square root of the sume of the squares of the
     v-yalues for the signal.
     Inputs
@@ -946,7 +970,7 @@ def complexity_correction_factor(t1, t2):
 
 
 def euclidean(t1, t2, **kwargs):
-   """
+    """
     * ---------------{Function}---------------
     * Computes the Euclidean distance between two vectors using the numpy library.
     * ----------------{Returns}---------------
@@ -959,7 +983,7 @@ def euclidean(t1, t2, **kwargs):
     * >>> euclidean([1, 2, 3], [4, 5, 6])
     * 5.196152422706632
     """
-   return np.sqrt(np.sum(np.abs(t1 ** 2 - t2 ** 2)))
+    return np.sqrt(np.sum(np.abs(t1**2 - t2**2)))
 
 
 # ------{From High Energy Physics}------#
@@ -996,7 +1020,7 @@ def evaluate_statistic(data, mc, verbose=False, edges=None):
         * The function uses the `poisson.cdf()` function from the `scipy.stats` library to compute p-values.
     """
     # Get search range (first bin with data, last bin with data)
-    nzi, = mc.nonzero()  # nzi = non-zero indices
+    (nzi,) = mc.nonzero()  # nzi = non-zero indices
     search_lo, search_hi = nzi[0], nzi[-1]
 
     def all_windows():
@@ -1116,8 +1140,8 @@ def bumphunter(hdata, hmc, n):
 
     measurement, (lo, hi) = evaluate_statistic(data, mc)
 
-    pvalue = 1. - (percentileofscore(pseudo_experiments, measurement) / 100.)
-    pvalue_uncertainty = sqrt(pvalue * (1. - pvalue) / n)
+    pvalue = 1.0 - (percentileofscore(pseudo_experiments, measurement) / 100.0)
+    pvalue_uncertainty = sqrt(pvalue * (1.0 - pvalue) / n)
 
     return measurement, (lo, hi), pseudo_experiments, pvalue, pvalue_uncertainty
 
