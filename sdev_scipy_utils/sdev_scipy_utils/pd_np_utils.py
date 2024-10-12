@@ -2929,6 +2929,7 @@ def efficient_hypot(a, b):
 
 # GOLDMINE: https://personal.math.ubc.ca/~cbm/aands/frameindex.htm
 
+
 def Q_rsqrt_numpy(number):
     """Fast inverse square root using NumPy. DOOM sourced"""
     threehalfs = 1.5
@@ -3054,7 +3055,7 @@ def fast_log2_numpy(x):
 def fast_pow(x, y):
     """Fast power approximation using NumPy."""
     # Approximate x^y uses the identity x^y = e^(y * ln(x))
- 
+
     x = np.float32(x)
     y = np.float32(y)
     log_x = fast_log_numpy(x)
@@ -3066,16 +3067,16 @@ def fast_sigmoid_numpy(x):
     return 0.5 * x / (1 + np.abs(x)) + 0.5
 
 
-
 def fast_inverse_numpy(x):
     """Fast inverse approximation using NumPy.
-TODO: Still slower
+    TODO: Still slower
     """
     x = np.float32(x)
     y_i = x.view(np.int32)
     y_i = 0x7EEEEBB3 - y_i
     y = y_i.view(np.float32)
     return y
+
 
 def fast_isqrt_numpy(x):
     """Fast integer square root approximation using NumPy.
@@ -3104,6 +3105,7 @@ def fast_cbrt_numpy(x):
     y = y_i.view(np.float32)
     return y
 
+
 def fast_log2_numpy(x):
     """Fast base-2 logarithm approximation using NumPy."""
     x = np.float32(x)
@@ -3112,6 +3114,7 @@ def fast_log2_numpy(x):
     mantissa = (y_i & 0x7FFFFF) | 0x800000
     mantissa = mantissa / float(1 << 23)
     return exponent + mantissa - 1.0
+
 
 def fast_atan_numpy(x):
     """Fast arctangent approximation using NumPy."""
@@ -3122,17 +3125,18 @@ def fast_atan_numpy(x):
 
 def fast_cosh(x):
     """Fast hyperbolic cosine approximation using NumPy.
-    Uses truncated Taylor series expansions for cosh 
+    Uses truncated Taylor series expansions for cosh
     """
     x = np.float32(x)
     x2 = x * x
     cosh = 1 + x2 / 2 + x2 * x2 / 24
     return cosh
 
+
 def fast_sinh(x):
     """Fast hyperbolic sine approximation using NumPy.
-    Uses truncated Taylor series expansions for sinh 
-"""
+    Uses truncated Taylor series expansions for sinh
+    """
     x = np.float32(x)
     x2 = x * x
     sinh = x * (1 + x2 / 6 + x2 * x2 / 120)
@@ -3142,7 +3146,7 @@ def fast_sinh(x):
 def fast_log_small(x):
     """Fast natural logarithm approximation for small x using NumPy.
     Uses a truncated Taylor series expansion around x = 1.
-"""
+    """
     x = np.float32(x)
     y = x - 1
     log = y - y * y / 2 + y * y * y / 3
@@ -3152,10 +3156,11 @@ def fast_log_small(x):
 def fast_exp_small(x):
     """Fast exponential approximation for small x using NumPy.
     Uses a truncated Taylor series expansion around x = 0.
-"""
+    """
     x = np.float32(x)
     exp = 1 + x + x * x / 2 + x * x * x / 6
     return exp
+
 
 def fast_erf(x):
     """Fast error function approximation using NumPy."""
@@ -3167,8 +3172,8 @@ def fast_erf(x):
     x = np.float32(x)
     sign = np.sign(x)
     x = np.abs(x)
-    t = 1 / (1 + a1 * x + a2 * x * x + a3 * x ** 3 + a4 * x ** 4)
-    erf = sign * (1 - t ** 4)
+    t = 1 / (1 + a1 * x + a2 * x * x + a3 * x**3 + a4 * x**4)
+    erf = sign * (1 - t**4)
     return erf
 
 
@@ -3178,6 +3183,7 @@ def fast_digamma(x):
     digamma = np.log(x) - 1 / (2 * x)
     return digamma
 
+
 def fast_lgamma(x):
     """Fast log-gamma function approximation using NumPy.
     Uses the logarithm of Stirling's approximation.
@@ -3185,13 +3191,16 @@ def fast_lgamma(x):
     """
     x = np.float32(x)
     x_minus_one = x - 1
-    lgamma = (x_minus_one + 0.5) * np.log(x_minus_one) - x_minus_one + 0.9189385332  # 0.918... = 0.5 * ln(2π)
+    lgamma = (
+        (x_minus_one + 0.5) * np.log(x_minus_one) - x_minus_one + 0.9189385332
+    )  # 0.918... = 0.5 * ln(2π)
     return lgamma
+
 
 def fast_gamma(x):
     """Fast gamma function approximation using NumPy.
     Uses Stirling's approximation for the gamma function.
-"""
+    """
     x = np.float32(x)
     sqrt_two_pi = np.float32(2.5066282746310002)
     x_minus_one = x - 1
@@ -3199,220 +3208,219 @@ def fast_gamma(x):
     return gamma
 
 
-import numpy as np
-import timeit
+# import numpy as np
+# import timeit
 
-# Fast inverse square root
-number = np.array([1.0, 2.0, 4.0, 9.0], dtype=np.float32)
-inv_sqrt = Q_rsqrt_numpy(number)
-print("Fast inverse square roots:", inv_sqrt)
-print("Standard inverse square roots:", 1 / np.sqrt(number))
+# # Fast inverse square root
+# number = np.array([1.0, 2.0, 4.0, 9.0], dtype=np.float32)
+# inv_sqrt = Q_rsqrt_numpy(number)
+# print("Fast inverse square roots:", inv_sqrt)
+# print("Standard inverse square roots:", 1 / np.sqrt(number))
 
-%timeit Q_rsqrt_numpy(number)
-%timeit 1 / np.sqrt(number)
+# %timeit Q_rsqrt_numpy(number)
+# %timeit 1 / np.sqrt(number)
 
-# Fast sine
-angles = np.linspace(0, 2 * np.pi, 5, dtype=np.float32)
-fast_sines = fast_sin_numpy(angles)
-fast_sines = fast_sin_lut(angles, 10000000)
-print("Fast sines:", fast_sines)
-print("Standard sines:", np.sin(angles))
+# # Fast sine
+# angles = np.linspace(0, 2 * np.pi, 5, dtype=np.float32)
+# fast_sines = fast_sin_numpy(angles)
+# fast_sines = fast_sin_lut(angles, 10000000)
+# print("Fast sines:", fast_sines)
+# print("Standard sines:", np.sin(angles))
 
-%timeit fast_sin_numpy(angles)
-%timeit fast_sin_numpy_fifth(angles)
-%timeit np.sin(angles)
+# %timeit fast_sin_numpy(angles)
+# %timeit fast_sin_numpy_fifth(angles)
+# %timeit np.sin(angles)
 
-values = np.array([1.0, 2.0, 4.0, 10.0], dtype=np.float32)
-approx_log = fast_log_numpy(values)
-standard_log = np.log(values)
+# values = np.array([1.0, 2.0, 4.0, 10.0], dtype=np.float32)
+# approx_log = fast_log_numpy(values)
+# standard_log = np.log(values)
 
-print("Approximate log:", approx_log)
-print("Standard log:", standard_log)
+# print("Approximate log:", approx_log)
+# print("Standard log:", standard_log)
 
-abs_error = np.abs(approx_log - standard_log)
-relative_error = abs_error / standard_log
-print("Absolute error:", abs_error)
-print("Relative error:", relative_error)
+# abs_error = np.abs(approx_log - standard_log)
+# relative_error = abs_error / standard_log
+# print("Absolute error:", abs_error)
+# print("Relative error:", relative_error)
 
-%timeit fast_log_numpy(values)
-%timeit np.log(values)
+# %timeit fast_log_numpy(values)
+# %timeit np.log(values)
 
 
-values = np.array([1.0, 2.0, 4.0, 0.5], dtype=np.float32)
-approx_inv = fast_inverse_numpy(values)
-standard_inv = 1 / values
+# values = np.array([1.0, 2.0, 4.0, 0.5], dtype=np.float32)
+# approx_inv = fast_inverse_numpy(values)
+# standard_inv = 1 / values
 
-print("Approximate inverse:", approx_inv)
-print("Standard inverse:", standard_inv)
+# print("Approximate inverse:", approx_inv)
+# print("Standard inverse:", standard_inv)
 
 
-%timeit fast_inverse_numpy(values)
-%timeit 1/ values
+# %timeit fast_inverse_numpy(values)
+# %timeit 1/ values
 
-values = np.array([1, 2, 4, 9, 16, 25, 36, 49, 64, 81], dtype=np.uint32)
-approx_isqrt = fast_isqrt_numpy(values)
-standard_isqrt = np.floor(np.sqrt(values)).astype(np.uint32)
+# values = np.array([1, 2, 4, 9, 16, 25, 36, 49, 64, 81], dtype=np.uint32)
+# approx_isqrt = fast_isqrt_numpy(values)
+# standard_isqrt = np.floor(np.sqrt(values)).astype(np.uint32)
 
-print("Approximate integer sqrt:", approx_isqrt)
-print("Standard integer sqrt:", standard_isqrt)
+# print("Approximate integer sqrt:", approx_isqrt)
+# print("Standard integer sqrt:", standard_isqrt)
 
 
-%timeit fast_isqrt_numpy(values)
-%timeit np.floor(np.sqrt(values))
+# %timeit fast_isqrt_numpy(values)
+# %timeit np.floor(np.sqrt(values))
 
 
-values = np.array([1.0, 8.0, 27.0, 64.0], dtype=np.float32)
-approx_cbrt = fast_cbrt_numpy(values)
-standard_cbrt = np.cbrt(values)
+# values = np.array([1.0, 8.0, 27.0, 64.0], dtype=np.float32)
+# approx_cbrt = fast_cbrt_numpy(values)
+# standard_cbrt = np.cbrt(values)
 
-print("Approximate cube root:", approx_cbrt)
-print("Standard cube root:", standard_cbrt)
+# print("Approximate cube root:", approx_cbrt)
+# print("Standard cube root:", standard_cbrt)
 
 
-%timeit fast_cbrt_numpy(values)
-%timeit np.cbrt(values)
+# %timeit fast_cbrt_numpy(values)
+# %timeit np.cbrt(values)
 
 
-angles = np.linspace(-np.pi / 2 + 0.1, np.pi / 2 - 0.1, 10, dtype=np.float32)
-approx_tan = fast_tan_numpy(angles)
-standard_tan = np.tan(angles)
+# angles = np.linspace(-np.pi / 2 + 0.1, np.pi / 2 - 0.1, 10, dtype=np.float32)
+# approx_tan = fast_tan_numpy(angles)
+# standard_tan = np.tan(angles)
 
-print("Approximate tangent:", approx_tan)
-print("Standard tangent:", standard_tan)
+# print("Approximate tangent:", approx_tan)
+# print("Standard tangent:", standard_tan)
 
 
-%timeit fast_tan_numpy(values)
-%timeit np.tan(values)
+# %timeit fast_tan_numpy(values)
+# %timeit np.tan(values)
 
 
-values = np.array([0.0, 1.0, 2.0, -1.0], dtype=np.float32)
-approx_exp2 = fast_exp2_numpy(values)
-standard_exp2 = 2 ** values
+# values = np.array([0.0, 1.0, 2.0, -1.0], dtype=np.float32)
+# approx_exp2 = fast_exp2_numpy(values)
+# standard_exp2 = 2 ** values
 
-print("Approximate exp2:", approx_exp2)
-print("Standard exp2:", standard_exp2)
+# print("Approximate exp2:", approx_exp2)
+# print("Standard exp2:", standard_exp2)
 
 
-%timeit fast_exp2_numpy(values)
-%timeit 2 ** values
+# %timeit fast_exp2_numpy(values)
+# %timeit 2 ** values
 
 
-values = np.array([1.0, 2.0, 4.0, 8.0], dtype=np.float32)
-approx_log2 = fast_log2_numpy(values)
-standard_log2 = np.log2(values)
+# values = np.array([1.0, 2.0, 4.0, 8.0], dtype=np.float32)
+# approx_log2 = fast_log2_numpy(values)
+# standard_log2 = np.log2(values)
 
-print("Approximate log2:", approx_log2)
-print("Standard log2:", standard_log2)
+# print("Approximate log2:", approx_log2)
+# print("Standard log2:", standard_log2)
 
 
+# %timeit fast_log2_numpy(values)
+# %timeit np.log2(values)
 
-%timeit fast_log2_numpy(values)
-%timeit np.log2(values)
 
+# values = np.linspace(-1.0, 1.0, 10, dtype=np.float32)
+# approx_atan = fast_atan_numpy(values)
+# standard_atan = np.arctan(values)
 
-values = np.linspace(-1.0, 1.0, 10, dtype=np.float32)
-approx_atan = fast_atan_numpy(values)
-standard_atan = np.arctan(values)
+# print("Approximate arctangent:", approx_atan)
+# print("Standard arctangent:", standard_atan)
 
-print("Approximate arctangent:", approx_atan)
-print("Standard arctangent:", standard_atan)
+# %timeit fast_atan_numpy(values)
+# %timeit np.arctan(values)
 
-%timeit fast_atan_numpy(values)
-%timeit np.arctan(values)
 
+# values = np.linspace(-2, 2, 10, dtype=np.float32)
+# approx_sinh = fast_sinh(values)
+# standard_sinh = np.sinh(values)
 
-values = np.linspace(-2, 2, 10, dtype=np.float32)
-approx_sinh = fast_sinh(values)
-standard_sinh = np.sinh(values)
+# approx_cosh = fast_cosh(values)
+# standard_cosh = np.cosh(values)
 
-approx_cosh = fast_cosh(values)
-standard_cosh = np.cosh(values)
+# print("Approximate sinh:", approx_sinh)
+# print("Standard sinh:", standard_sinh)
+# print("Approximate cosh:", approx_cosh)
+# print("Standard cosh:", standard_cosh)
 
-print("Approximate sinh:", approx_sinh)
-print("Standard sinh:", standard_sinh)
-print("Approximate cosh:", approx_cosh)
-print("Standard cosh:", standard_cosh)
+# %timeit fast_sinh(values)
+# %timeit np.sinh(values)
+# %timeit fast_cosh(values)
+# %timeit np.cosh(values)
 
-%timeit fast_sinh(values)
-%timeit np.sinh(values)
-%timeit fast_cosh(values)
-%timeit np.cosh(values)
 
+# values = np.linspace(0.9, 1.1, 100, dtype=np.float32)
+# approx_log = fast_log_small(values)
+# standard_log = np.log(values)
 
-values = np.linspace(0.9, 1.1, 100, dtype=np.float32)
-approx_log = fast_log_small(values)
-standard_log = np.log(values)
+# print("Approximate log (small x):", approx_log)
+# print("Standard log:", standard_log)
+# %timeit fast_log_small(values)
+# %timeit np.log(values)
 
-print("Approximate log (small x):", approx_log)
-print("Standard log:", standard_log)
-%timeit fast_log_small(values)
-%timeit np.log(values)
 
+# values = np.linspace(-0.5, 0.5, 10, dtype=np.float32)
+# approx_exp = fast_exp_small(values)
+# standard_exp = np.exp(values)
 
-values = np.linspace(-0.5, 0.5, 10, dtype=np.float32)
-approx_exp = fast_exp_small(values)
-standard_exp = np.exp(values)
+# print("Approximate exp (small x):", approx_exp)
+# print("Standard exp:", standard_exp)
+# %timeit fast_exp_small(values)
+# %timeit np.exp(values)
 
-print("Approximate exp (small x):", approx_exp)
-print("Standard exp:", standard_exp)
-%timeit fast_exp_small(values)
-%timeit np.exp(values)
+# abs_error = np.abs(approx_exp - standard_exp)
+# max_abs_error = np.max(abs_error)
+# print("Maximum absolute error:", max_abs_error)
 
-abs_error = np.abs(approx_exp - standard_exp)
-max_abs_error = np.max(abs_error)
-print("Maximum absolute error:", max_abs_error)
+# base = np.array([2.0, 3.0, 4.0, 5.0], dtype=np.float32)
+# exponent = np.array([2.0, 1.5, 0.5, -1.0], dtype=np.float32)
+# approx_pow = fast_pow(base, exponent)
+# standard_pow = np.power(base, exponent)
 
-base = np.array([2.0, 3.0, 4.0, 5.0], dtype=np.float32)
-exponent = np.array([2.0, 1.5, 0.5, -1.0], dtype=np.float32)
-approx_pow = fast_pow(base, exponent)
-standard_pow = np.power(base, exponent)
+# print("Approximate power:", approx_pow)
+# print("Standard power:", standard_pow)
+# %timeit fast_pow(base, exponent)
+# %timeit np.power(base, exponent)
 
-print("Approximate power:", approx_pow)
-print("Standard power:", standard_pow)
-%timeit fast_pow(base, exponent)
-%timeit np.power(base, exponent)
+# from scipy.special import erf
+# values = np.linspace(-3, 3, 10, dtype=np.float32)
+# approx_erf = fast_erf(values)
+# standard_erf = erf(values)  # Import erf from scipy.special
 
-from scipy.special import erf
-values = np.linspace(-3, 3, 10, dtype=np.float32)
-approx_erf = fast_erf(values)
-standard_erf = erf(values)  # Import erf from scipy.special
+# print("Approximate erf:", approx_erf)
+# print("Standard erf:", standard_erf)
+# %timeit fast_erf(values)
+# %timeit erf(values)
 
-print("Approximate erf:", approx_erf)
-print("Standard erf:", standard_erf)
-%timeit fast_erf(values)
-%timeit erf(values)
+# values = np.linspace(1, 5, 10, dtype=np.float32)
+# approx_gamma = fast_gamma(values)
+# from scipy.special import gamma
+# standard_gamma = gamma(values)
 
-values = np.linspace(1, 5, 10, dtype=np.float32)
-approx_gamma = fast_gamma(values)
-from scipy.special import gamma
-standard_gamma = gamma(values)
+# print("Approximate gamma:", approx_gamma)
+# print("Standard gamma:", standard_gamma)
+# %timeit fast_gamma(values)
+# %timeit gamma(values)
 
-print("Approximate gamma:", approx_gamma)
-print("Standard gamma:", standard_gamma)
-%timeit fast_gamma(values)
-%timeit gamma(values)
 
+# values = np.linspace(1, 10, 10, dtype=np.float32)
+# approx_lgamma = fast_lgamma(values)
+# from scipy.special import gammaln
+# standard_lgamma = gammaln(values)
 
-values = np.linspace(1, 10, 10, dtype=np.float32)
-approx_lgamma = fast_lgamma(values)
-from scipy.special import gammaln
-standard_lgamma = gammaln(values)
+# print("Approximate lgamma:", approx_lgamma)
+# print("Standard lgamma:", standard_lgamma)
+# %timeit fast_lgamma(values)
+# %timeit gammaln(values)
 
-print("Approximate lgamma:", approx_lgamma)
-print("Standard lgamma:", standard_lgamma)
-%timeit fast_lgamma(values)
-%timeit gammaln(values)
 
+# values = np.linspace(1, 10, 10, dtype=np.float32)
+# approx_digamma = fast_digamma(values)
+# from scipy.special import psi
+# standard_digamma = psi(values)
 
-values = np.linspace(1, 10, 10, dtype=np.float32)
-approx_digamma = fast_digamma(values)
-from scipy.special import psi
-standard_digamma = psi(values)
-
-print("Approximate digamma:", approx_digamma)
-print("Standard digamma:", standard_digamma)
-%timeit fast_digamma(values)
-%timeit psi(values)
+# print("Approximate digamma:", approx_digamma)
+# print("Standard digamma:", standard_digamma)
+# %timeit fast_digamma(values)
+# %timeit psi(values)
 
 
 # def fast_j0(x):
@@ -3450,7 +3458,6 @@ print("Standard digamma:", standard_digamma)
 # print("Standard J1:", standard_j1)
 
 
-
 # import numpy as np
 
 # def traditional_softmax(x):
@@ -3478,7 +3485,6 @@ print("Standard digamma:", standard_digamma)
 #     return x_exp / x_sum
 
 
-
 # x = np.random.rand(1000, 512).astype(np.float32)
 
 # softmax_traditional = traditional_softmax(x)
@@ -3495,4 +3501,3 @@ print("Standard digamma:", standard_digamma)
 # %timeit traditional_softmax(x)
 
 # %timeit optimized_softmax(x)
-
