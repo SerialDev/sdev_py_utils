@@ -3019,3 +3019,8 @@ def fast_log2_numpy(x):
     mantissa = (y_i & 0x7FFFFF) | 0x800000
     mantissa = mantissa / float(1 << 23)
     return exponent + mantissa - 1.0
+
+
+def fast_sigmoid_numpy(x):
+    """Fast sigmoid approximation using NumPy."""
+    return 0.5 * x / (1 + np.abs(x)) + 0.5
