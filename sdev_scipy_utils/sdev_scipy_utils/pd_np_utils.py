@@ -3001,3 +3001,11 @@ def fast_tan_numpy(x):
     sin_x = fast_sin_numpy(x)
     cos_x = fast_cos_numpy(x)
     return sin_x / cos_x
+
+
+def fast_exp2_numpy(x):
+    """Fast base-2 exponential approximation using NumPy."""
+    x = np.float32(x)
+    exp_i = np.int32(x * 8388608 + 1065353216)
+    exp_f = exp_i.view(np.float32)
+    return exp_f
