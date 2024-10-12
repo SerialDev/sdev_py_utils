@@ -3080,7 +3080,8 @@ def fast_inverse_numpy(x):
 
 def fast_isqrt_numpy(x):
     """Fast integer square root approximation using NumPy.
-    TODO: not quite there yet"""
+    TODO: not quite there yet
+    """
     x = np.asarray(x, dtype=np.uint32)
     result = np.zeros_like(x, dtype=np.uint32)
     bit = np.uint32(1 << 30)
@@ -3496,6 +3497,45 @@ def fast_gamma(x):
 # difference = np.max(np.abs(softmax_traditional - softmax_optimized))
 # print(f"Maximum difference: {difference}")
 # ## -> Maximum difference: 6.984919309616089e-10
+
+
+def fast_beta(a, b):
+    """Fast beta function approximation using NumPy."""
+    return np.exp(fast_lgamma(a) + fast_lgamma(b) - fast_lgamma(a + b))
+
+
+a = np.linspace(1, 5, 10, dtype=np.float32)
+b = np.linspace(1, 5, 10, dtype=np.float32)
+approx_beta = fast_beta(a, b)
+from scipy.special import beta
+
+standard_beta = beta(a, b)
+
+print("Approximate beta:", approx_beta)
+print("Standard beta:", standard_beta)
+
+%timeit fast_beta(a,b)
+%timeit beta(a,b)
+
+# def fast_incgamma(a, x):
+#     """Fast incomplete gamma function approximation using NumPy.
+#     TODO: not quite there yet
+#     """
+#     x = np.float32(x)
+#     a = np.float32(a)
+#     t = x ** a * np.exp(-x) / a
+#     return t
+
+
+# a = np.linspace(1, 5, 10, dtype=np.float32)
+# x = np.linspace(0.1, 5, 10, dtype=np.float32)
+# approx_incgamma = fast_incgamma(a, x)
+# from scipy.special import gammainc
+# standard_incgamma = gammainc(a, x) * gamma(a)
+
+# print("Approximate incomplete gamma:", approx_incgamma)
+# print("Standard incomplete gamma:", standard_incgamma)
+
 
 
 # %timeit traditional_softmax(x)
