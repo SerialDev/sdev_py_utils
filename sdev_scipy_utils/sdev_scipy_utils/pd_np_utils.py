@@ -3009,3 +3009,13 @@ def fast_exp2_numpy(x):
     exp_i = np.int32(x * 8388608 + 1065353216)
     exp_f = exp_i.view(np.float32)
     return exp_f
+
+
+def fast_log2_numpy(x):
+    """Fast base-2 logarithm approximation using NumPy."""
+    y = np.float32(x)
+    y_i = y.view(np.int32)
+    exponent = ((y_i >> 23) & 255) - 127
+    mantissa = (y_i & 0x7FFFFF) | 0x800000
+    mantissa = mantissa / float(1 << 23)
+    return exponent + mantissa - 1.0
