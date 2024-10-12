@@ -2943,3 +2943,18 @@ def Q_rsqrt_numpy(number):
     y = y * (threehalfs - (x2 * y * y))
 
     return y
+
+
+def fast_sqrt_numpy(number):
+    """Fast square root approximation using NumPy."""
+    y = number
+
+    # Bit level hacking
+    y_i = y.view(np.int32)
+    y_i = np.int32(1 << 29) + (y_i >> 1) - np.int32(1 << 22)
+    y = y_i.view(np.float32)
+
+    # One iteration of Newton-Raphson method
+    y = y - (y * y - number) * 0.5 / y
+
+    return y
