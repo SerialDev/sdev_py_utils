@@ -2966,3 +2966,11 @@ def fast_exp_numpy(x):
     exp_i = np.int32(x * 12102203 + 1065353216)
     exp_f = exp_i.view(np.float32)
     return exp_f
+
+
+def fast_log_numpy(x):
+    """Fast natural logarithm approximation using NumPy."""
+    y = np.float32(x)
+    y_i = y.view(np.int32)
+    ln = (y_i - 1064866805) * 8.262958288192749e-8
+    return ln
