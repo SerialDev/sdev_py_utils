@@ -2878,3 +2878,68 @@ def load_csv_from_url(url: str) -> pd.DataFrame:
         return pd.read_csv(url)
     else:
         raise Exception("Failed to load the CSV file from the given URL.")
+
+
+def align_data(data):
+    """
+    Return a copy of the array that is aligned in memory.
+    Performance: Improves cache utilization and memory access speed.
+    Stability: Reduces unexpected performance hits due to misalignment.
+    """
+    return np.ascontiguousarray(data)
+
+
+def efficient_sum(x):
+    """
+    Efficiently sum elements of x using np.einsum.
+    prob = efficient_sum(np.log1p((data[t:s] - muT) ** 2 * inv_nuT_scale))
+    """
+    return np.einsum("i->", x)
+
+
+def load_memmap(filename, dtype="float32", mode="r", shape=None):
+    """
+    Load a memory-mapped array from a file.
+    """
+    return np.memmap(filename, dtype=dtype, mode=mode, shape=shape)
+
+
+def efficient_hypot(a, b):
+    """
+    * ---------------Typedef----------------
+    * type-def ::(a: <any>, b: <any>) -> float*
+    * ---------------Function---------------
+    * Computes the Euclidean norm efficiently.
+    * This function calculates the square root of the sum of the squares of a and b.
+    * It is more accurate for large or small values and has an optimized C implementation in NumPy.
+    * ---------------Returns---------------
+    * -> result ::float | The Euclidean norm sqrt(a**2 + b**2).
+    * ---------------Params----------------
+    * a ::<any> | The first input value.
+    * b ::<any> | The second input value.
+    * ---------------Usage-----------------
+    * This function can be used to calculate the distance between two points in a 2D space.
+    * For example: efficient_hypot(3, 4) would return 5.0.
+    * ---------------Notes-----------------
+    * This function uses the hypot function from NumPy, which is implemented in C for better performance.
+    * It is more accurate than calculating the Euclidean norm manually, especially for large or small values.
+    """
+    return np.hypot(a, b)
+
+
+def Q_rsqrt_numpy(number):
+    """Fast inverse square root using NumPy. DOOM sourced"""
+    threehalfs = 1.5
+
+    x2 = number * 0.5
+    y = number
+
+    # Evil floating point bit level hacking
+    y_i = y.view(np.int32)  # Interpret the bits of y as int32
+    y_i = np.int32(0x5F3759DF) - (y_i >> 1)
+    y = y_i.view(np.float32)  # Interpret the bits back to float32
+
+    # Newton-Raphson iteration
+    y = y * (threehalfs - (x2 * y * y))
+
+    return y
