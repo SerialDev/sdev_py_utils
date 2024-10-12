@@ -2989,3 +2989,8 @@ def fast_sin_numpy(x):
     P = 0.225
     y = P * (y * np.abs(y) - y) + y
     return y
+
+
+def fast_cos_numpy(x):
+    """Fast cosine approximation using NumPy."""
+    return fast_sin_numpy(x + np.pi / 2)
