@@ -2974,3 +2974,18 @@ def fast_log_numpy(x):
     y_i = y.view(np.int32)
     ln = (y_i - 1064866805) * 8.262958288192749e-8
     return ln
+
+
+def fast_sin_numpy(x):
+    """Fast sine approximation using NumPy."""
+    x = np.float32(x % (2 * np.pi))  # Wrap x within [0, 2π)
+    if x > np.pi:
+        x -= 2 * np.pi
+    B = 1.27323954  # 4 / π
+    C = -0.40528473  # -4 / π²
+    y = B * x + C * x * np.abs(x)
+
+    # Approximation improvement
+    P = 0.225
+    y = P * (y * np.abs(y) - y) + y
+    return y
