@@ -2994,3 +2994,10 @@ def fast_sin_numpy(x):
 def fast_cos_numpy(x):
     """Fast cosine approximation using NumPy."""
     return fast_sin_numpy(x + np.pi / 2)
+
+
+def fast_tan_numpy(x):
+    """Fast tangent approximation using NumPy."""
+    sin_x = fast_sin_numpy(x)
+    cos_x = fast_cos_numpy(x)
+    return sin_x / cos_x
