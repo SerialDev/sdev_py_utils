@@ -3567,6 +3567,24 @@ print("Standard beta:", standard_beta)
 # print("Approximate cosine integral:", approx_cosint)
 # print("Standard cosine integral:", standard_cosint)
 
+# def fast_logsumexp(a, b):
+#     """Fast log-sum-exp approximation for two numbers.
+# Note: slightly faster only than  logsumexp(np.vstack([a, b]), axis=0), but no need for a scipy import
+#     """
+#     max_ab = np.maximum(a, b)
+#     lse = max_ab + fast_log_small(1 + np.exp(-np.abs(a - b)))
+#     return lse
+
+# a = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+# b = np.array([2.0, 1.0, 0.5], dtype=np.float32)
+# approx_lse = fast_logsumexp(a, b)
+# from scipy.special import logsumexp
+# standard_lse = logsumexp(np.vstack([a, b]), axis=0)
+
+# print("Approximate log-sum-exp:", approx_lse)
+# print("Standard log-sum-exp:", standard_lse)
+# %timeit fast_logsumexp(a, b)
+# %timeit logsumexp(np.vstack([a, b]), axis=0)
 
 # %timeit traditional_softmax(x)
 
