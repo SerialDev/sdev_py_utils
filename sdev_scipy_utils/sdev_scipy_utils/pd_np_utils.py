@@ -3537,6 +3537,36 @@ print("Standard beta:", standard_beta)
 # print("Standard incomplete gamma:", standard_incgamma)
 
 
+# def fast_sinint(x):
+#     """Fast sine integral approximation using NumPy.
+#     TODO: not quite there yet, works till 1
+#     """
+#     x = np.float32(x)
+#     sinint = x - x ** 3 / 18 + x ** 5 / 600
+#     return sinint
+
+
+# def fast_cosint(x):
+#     """Fast cosine integral approximation using NumPy.
+#     TODO: not quite there yet
+# """
+#     x = np.float32(x)
+#     cosint = 0.5772156649 + np.log(x) + x ** 2 / 4 - x ** 4 / 96
+#     return cosint
+
+# values = np.linspace(0.1, 5, 10, dtype=np.float32)
+# approx_sinint = fast_sinint(values)
+# from scipy.special import sici
+# standard_sinint, _ = sici(values)
+
+# approx_cosint = fast_cosint(values)
+# _, standard_cosint = sici(values)
+
+# print("Approximate sine integral:", approx_sinint)
+# print("Standard sine integral:", standard_sinint)
+# print("Approximate cosine integral:", approx_cosint)
+# print("Standard cosine integral:", standard_cosint)
+
 
 # %timeit traditional_softmax(x)
 
