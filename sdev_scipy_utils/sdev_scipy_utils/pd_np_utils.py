@@ -2958,3 +2958,11 @@ def fast_sqrt_numpy(number):
     y = y - (y * y - number) * 0.5 / y
 
     return y
+
+
+def fast_exp_numpy(x):
+    """Fast exponential approximation using NumPy."""
+    x = np.float32(x)
+    exp_i = np.int32(x * 12102203 + 1065353216)
+    exp_f = exp_i.view(np.float32)
+    return exp_f
