@@ -110,3 +110,18 @@ def log_stdout_to_mlflow(strip_ansi=False, end=False):
         return wrapper
 
     return decorator
+
+
+def nossl_hf():
+    """
+    ALERT: Do not use unless you know exactly why I need this.
+    """
+    import requests
+    from huggingface_hub import configure_http_backend
+
+    def backend_factory() -> requests.Session:
+        session = requests.Session()
+        session.verify = False
+        return session
+
+    configure_http_backend(backend_factory=backend_factory)
