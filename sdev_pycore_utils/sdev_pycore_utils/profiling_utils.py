@@ -188,7 +188,6 @@ class Timer(object):
 
 @decorator
 def timing_function(some_function, *args, **kwargs):
-
     """
     Outputs the time a function takes
     to execute.
@@ -545,7 +544,7 @@ def numGen(input):
 
 
 class debug_context:
-    """ Debug context to trace any function calls inside the context """
+    """Debug context to trace any function calls inside the context"""
 
     def __init__(self, name):
         self.name = name
@@ -586,7 +585,7 @@ class debug_context:
 
 
 def debug_decorator(func):
-    """ Debug decorator to call the function within the debug context """
+    """Debug decorator to call the function within the debug context"""
 
     def decorated_func(*args, **kwargs):
         with debug_context(func.__name__):
@@ -725,7 +724,6 @@ class profile(object):
 #
 
 
-
 def print_usage(marker: str = None, unit: str = "MB") -> float:
     """
     Prints the current memory usage of the process.
@@ -748,12 +746,47 @@ def print_usage(marker: str = None, unit: str = "MB") -> float:
         usage /= 1024
         usage_str = f"{usage:.2f} kilobytes"
     elif unit == "MB":
-        usage /= 1024 ** 2
+        usage /= 1024**2
         usage_str = f"{usage:.2f} megabytes"
     elif unit == "GB":
-        usage /= 1024 ** 3
+        usage /= 1024**3
         usage_str = f"{usage:.2f} gigabytes"
     else:
         raise ValueError(f"Invalid unit: {unit}")
     print(f"***MEM USG @{marker}, {usage_str}")
     return usage
+
+
+def profile_func(func):
+    """
+    Decorator for profiling a function using cProfile.
+
+    Parameters
+    ----------
+    func : callable
+        The function to profile.
+
+    Returns
+    -------
+    callable
+        The wrapped function with profiling enabled.
+    """
+    import cProfile
+    import pstats
+    import io
+    import functools
+
+    @functools.wraps(func)
+    def wrapper_profile(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+        s = io.StringIO()
+        sortby = "cumulative"
+        ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+        return result
+
+    return wrapper_profile
