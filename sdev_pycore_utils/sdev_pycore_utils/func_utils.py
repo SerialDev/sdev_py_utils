@@ -1,4 +1,3 @@
-
 """Python core functions  utilitites"""
 
 
@@ -61,3 +60,28 @@ def apply_at_tup(func, pos_lst, iterable, apply_to_value=True):
                 else:
                     temp.append(x)
     return temp
+
+
+def batchify(data, batch_size, func):
+    """
+    Process data in batches using a provided function.
+
+    Parameters
+    ----------
+    data : iterable
+        The data to process.
+    batch_size : int
+        The size of each batch.
+    func : callable
+        The function to process each batch.
+
+    Returns
+    -------
+    list
+        List of results from processing each batch.
+    """
+    results = []
+    for batch in chunked(data, batch_size):
+        result = func(batch)
+        results.extend(result)
+    return results
