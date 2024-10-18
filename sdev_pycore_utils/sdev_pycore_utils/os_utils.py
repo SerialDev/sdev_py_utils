@@ -1829,3 +1829,29 @@ def env_vars_to_dict(vars_list: list[str] = None) -> dict:
         for var in vars_list:
             env_dict[var] = os.environ.get(var, "")
     return env_dict
+
+
+def delete_empty_dirs(some_dir, level=1):
+    """
+    Delete empty directories up to a certain directory level.
+
+    Parameters
+    ----------
+    some_dir : str
+        Path to begin deletion from.
+    level : int
+        Maximum directory depth to delete empty directories in.
+
+    Returns
+    -------
+    None
+    """
+    some_dir = some_dir.rstrip(os.path.sep)
+    assert os.path.isdir(some_dir), f"{some_dir} is not a valid directory."
+    num_sep = some_dir.count(os.path.sep)
+    for root, dirs, files in os.walk(some_dir, topdown=False):
+        num_sep_this = root.count(os.path.sep)
+        if num_sep + level < num_sep_this:
+            continue
+        if not dirs and not files:
+            os.rmdir(root)
