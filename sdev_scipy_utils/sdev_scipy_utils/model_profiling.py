@@ -1962,3 +1962,30 @@ def plot_lime_explanation(
     fig.write_image(f"{output_filename}.png")
 
     fig.show()
+
+
+def set_seed(seed):
+    """
+    Set the seed for random number generators in Python, NumPy, and PyTorch.
+
+    Parameters
+    ----------
+    seed : int
+        The seed value to set.
+
+    Returns
+    -------
+    None
+    """
+
+    import random
+    import numpy as np
+    import torch
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # For reproducibility in CUDA deterministic algorithms
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
