@@ -363,3 +363,26 @@ def temporary_env_vars(**env_vars):
                 del os.environ[key]
             else:
                 os.environ[key] = value
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def acquire_lock(resource):
+    """
+
+    import threading
+
+    lock = threading.Lock()
+
+    with acquire_lock(lock):
+        # Critical section
+        print("Lock acquired.")
+
+    """
+    try:
+        resource.acquire()
+        yield resource
+    finally:
+        resource.release()
