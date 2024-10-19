@@ -630,11 +630,11 @@ def resource_p99(interval=0.1):
         )
 
         # Output results
-        print(f"\033[34mCPU p99 usage: {p99_cpu:.2f}%\033[0m")
-        print(f"\033[34mMemory p99 usage: {p99_memory / 1024**2:.2f} MB\033[0m")
+        print(f"\033[36mCPU p99 usage: {p99_cpu:.2f}%\033[0m")
+        print(f"\033[36mMemory p99 usage: {p99_memory / 1024**2:.2f} MB\033[0m")
         print(
-            f"\033[34mNetwork p99 usage - Sent: {p99_sent / 1024:.2f} KB/s, Received: {p99_recv / 1024:.2f} KB/s\033[0m"
+            f"\033[36mNetwork p99 usage - Sent: {p99_sent / 1024:.2f} KB/s, Received: {p99_recv / 1024:.2f} KB/s\033[0m"
         )
         print(
-            f"\033[34mDisk I/O p99 usage - Read: {p99_disk_read / 1024:.2f} KB/s, Write: {p99_disk_write / 1024:.2f} KB/s\033[0m"
+            f"\033[36mDisk I/O p99 usage - Read: {p99_disk_read / 1024:.2f} KB/s, Write: {p99_disk_write / 1024:.2f} KB/s\033[0m"
         )
