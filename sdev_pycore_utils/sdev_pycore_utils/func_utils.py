@@ -475,3 +475,25 @@ def retry_functions(
     print("\033[31mAll functions failed.\033[0m")
     if last_exception:
         raise last_exception
+
+
+@contextmanager
+def atomic_write(filename, mode="w", as_file=True):
+    """
+    with atomic_write('safe_output.txt') as f:
+    f.write("Atomic write content")
+
+    """
+    import os
+    import tempfile
+    from contextlib import contextmanager
+
+    temp_file = tempfile.NamedTemporaryFile(mode=mode, delete=False)
+    try:
+        yield temp_file if as_file else temp_file.name
+        temp_file.close()
+        os.replace(temp_file.name, filename)
+    except Exception:
+        temp_file.close()
+        os.unlink(temp_file.name)
+        raise
