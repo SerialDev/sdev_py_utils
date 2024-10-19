@@ -401,3 +401,77 @@ def temp_dir():
         yield dirpath
     finally:
         shutil.rmtree(dirpath)
+
+
+from contextlib import contextmanager
+import time
+
+
+@contextmanager
+def retry_functions(
+    functions, retries=3, delay=1, exceptions=(Exception,), args=None, kwargs=None
+):
+    """
+        Context manager to retry a list of functions until one succeeds.
+
+        Parameters
+        ----------
+        functions : list
+            List of functions to attempt.
+        retries : int
+            Number of retries for each function.
+        delay : int or float
+            Delay between retries in seconds.
+        exceptions : tuple
+            Exceptions that trigger a retry.
+        args : list or tuple
+            Positional arguments to pass to the functions.
+        kwargs : dict
+            Keyword arguments to pass to the functions.
+        USAGE:
+
+    def func1():
+        raise ValueError("func1 failed")
+
+    def func2():
+        raise RuntimeError("func2 failed")
+
+    def func3():
+        return "Success from func3"
+
+    functions = [func1, func2, func3]
+
+    with retry_functions(functions, retries=2, delay=0.5) as result:
+        print(f"Result: {result}")
+
+    """
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
+
+    last_exception = None
+    for func in functions:
+        attempt = 0
+        while attempt < retries:
+            try:
+                result = func(*args, **kwargs)
+                yield result
+                return  # Exit the context manager upon success
+            except exceptions as e:
+                attempt += 1
+                last_exception = e
+                print(
+                    f"\033[31mFunction '{func.__name__}' attempt {attempt} failed: {e}\033[0m"
+                )
+                if attempt < retries:
+                    time.sleep(delay)
+                else:
+                    print(
+                        f"\033[31mFunction '{func.__name__}' failed after {retries} retries.\033[0m"
+                    )
+                    break  # Move to the next function
+    # If all functions failed
+    print("\033[31mAll functions failed.\033[0m")
+    if last_exception:
+        raise last_exception
