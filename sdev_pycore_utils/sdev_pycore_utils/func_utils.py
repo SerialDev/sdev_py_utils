@@ -386,3 +386,18 @@ def acquire_lock(resource):
         yield resource
     finally:
         resource.release()
+
+
+@contextmanager
+def temp_dir():
+    """
+        import tempfile
+    import shutil
+    from contextlib import contextmanager
+
+    """
+    dirpath = tempfile.mkdtemp()
+    try:
+        yield dirpath
+    finally:
+        shutil.rmtree(dirpath)
