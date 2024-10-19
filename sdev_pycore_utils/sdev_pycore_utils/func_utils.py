@@ -497,3 +497,32 @@ def atomic_write(filename, mode="w", as_file=True):
         temp_file.close()
         os.unlink(temp_file.name)
         raise
+
+
+class ResourcePool:
+    """
+        # Usage
+
+    resources = ['conn1', 'conn2', 'conn3']
+    pool = ResourcePool(resources)
+
+    with pool.acquire() as conn:
+        print(f"Using {conn}")
+
+    """
+
+    from contextlib import contextmanager
+    from queue import Queue
+
+    def __init__(self, resources):
+        self._pool = Queue()
+        for resource in resources:
+            self._pool.put(resource)
+
+    @contextmanager
+    def acquire(self):
+        resource = self._pool.get()
+        try:
+            yield resource
+        finally:
+            self._pool.put(resource)
