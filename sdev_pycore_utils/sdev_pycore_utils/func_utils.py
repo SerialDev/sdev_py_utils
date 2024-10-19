@@ -340,3 +340,26 @@ def detailed_resource_monitor(label="Block", interval=0.5):
         elapsed_time = end_time - start_time
 
         print(f"\n\033[33m{label} executed in {elapsed_time:.4f} seconds\033[0m")
+
+
+@contextmanager
+def temporary_env_vars(**env_vars):
+    """
+        print("Original PATH:", os.environ.get("PATH"))
+
+    with temporary_env_vars(PATH="/temporary/path"):
+        print("Temporary PATH:", os.environ.get("PATH"))
+
+    print("PATH after context:", os.environ.get("PATH"))
+
+    """
+    original_env_vars = {key: os.environ.get(key) for key in env_vars}
+    try:
+        os.environ.update(env_vars)
+        yield
+    finally:
+        for key, value in original_env_vars.items():
+            if value is None:
+                del os.environ[key]
+            else:
+                os.environ[key] = value
