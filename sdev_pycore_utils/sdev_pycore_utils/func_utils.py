@@ -526,3 +526,115 @@ class ResourcePool:
             yield resource
         finally:
             self._pool.put(resource)
+
+
+@contextmanager
+def resource_p99(interval=0.1):
+    """
+
+    import time
+    import requests
+    import os
+
+    def simulate_workload():
+        # Memory-intensive operation
+        data = [i ** 2 for i in range(1000000)]
+        time.sleep(0.5)
+
+        # CPU-intensive operation
+        for _ in range(5):
+            sum([i * i for i in range(1000000)])
+            time.sleep(0.2)
+
+        # # Network-intensive operation
+        # for _ in range(5):
+        #     requests.get('https://www.example.com')
+        #     time.sleep(0.2)
+
+        # Disk I/O-intensive operation
+        with open('temp_file.bin', 'wb') as f:
+            f.write(os.urandom(1024 * 1024 * 10))  # Write 10 MB
+        time.sleep(0.5)
+        os.remove('temp_file.bin')
+
+    # Use the context manager
+    with resource_p99(interval=0.1):
+        simulate_workload()
+
+    """
+
+    import tracemalloc
+    import psutil
+    import time
+    import numpy as np
+    from contextlib import contextmanager
+    import threading
+
+    # Initialize sampling data
+    cpu_samples = []
+    memory_samples = []
+    net_samples_sent = []
+    net_samples_recv = []
+    disk_samples_read = []
+    disk_samples_write = []
+    running = True
+
+    def sample_resources():
+        prev_net_counters = psutil.net_io_counters()
+        prev_disk_counters = psutil.disk_io_counters()
+        while running:
+            # CPU Usage
+            cpu_percent = psutil.cpu_percent(interval=None)
+            cpu_samples.append(cpu_percent)
+
+            # Memory Usage
+            current_memory = psutil.Process().memory_info().rss  # Resident Set Size
+            memory_samples.append(current_memory)
+
+            # Network I/O
+            net_counters = psutil.net_io_counters()
+            bytes_sent = net_counters.bytes_sent - prev_net_counters.bytes_sent
+            bytes_recv = net_counters.bytes_recv - prev_net_counters.bytes_recv
+            net_samples_sent.append(bytes_sent / interval)
+            net_samples_recv.append(bytes_recv / interval)
+            prev_net_counters = net_counters
+
+            # Disk I/O
+            disk_counters = psutil.disk_io_counters()
+            read_bytes = disk_counters.read_bytes - prev_disk_counters.read_bytes
+            write_bytes = disk_counters.write_bytes - prev_disk_counters.write_bytes
+            disk_samples_read.append(read_bytes / interval)
+            disk_samples_write.append(write_bytes / interval)
+            prev_disk_counters = disk_counters
+
+            time.sleep(interval)
+
+    # Start the sampling thread
+    sampler_thread = threading.Thread(target=sample_resources)
+    sampler_thread.start()
+
+    try:
+        yield
+    finally:
+        running = False
+        sampler_thread.join()
+
+        # Calculate p99 values
+        p99_cpu = np.percentile(cpu_samples, 99) if cpu_samples else 0
+        p99_memory = np.percentile(memory_samples, 99) if memory_samples else 0
+        p99_sent = np.percentile(net_samples_sent, 99) if net_samples_sent else 0
+        p99_recv = np.percentile(net_samples_recv, 99) if net_samples_recv else 0
+        p99_disk_read = np.percentile(disk_samples_read, 99) if disk_samples_read else 0
+        p99_disk_write = (
+            np.percentile(disk_samples_write, 99) if disk_samples_write else 0
+        )
+
+        # Output results
+        print(f"\033[34mCPU p99 usage: {p99_cpu:.2f}%\033[0m")
+        print(f"\033[34mMemory p99 usage: {p99_memory / 1024**2:.2f} MB\033[0m")
+        print(
+            f"\033[34mNetwork p99 usage - Sent: {p99_sent / 1024:.2f} KB/s, Received: {p99_recv / 1024:.2f} KB/s\033[0m"
+        )
+        print(
+            f"\033[34mDisk I/O p99 usage - Read: {p99_disk_read / 1024:.2f} KB/s, Write: {p99_disk_write / 1024:.2f} KB/s\033[0m"
+        )
