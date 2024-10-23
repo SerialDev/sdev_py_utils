@@ -51,13 +51,13 @@ def network_compress_decode(data):
     *
     * process, the function will return 'Failure'.
     *
-    * 
+    *
     * Example:
     *
-    * 
+    *
     * result = network_compress_decode('eJxNjYGsDA8kJUKr1Go5Iz8=')
     *
-    * 
+    *
     * In this example, the data being passed into the function is the base64
     * encoded
     *
@@ -87,12 +87,12 @@ def to_buffer(data):
     * data <any> - The object to be serialized and stored in the buffer.
     * ----------------Usage-----------------
     * to_buffer(data)
-    * 
+    *
     * Example:
-    * 
+    *
     * >>> to_buffer("Hello, World!")
     * <_io.BytesIO object at 0x104a67460>
-    * 
+    *
     * Note:
     * The function returns a BytesIO object that contains the serialized version of the input data.
     """
@@ -115,9 +115,9 @@ def from_buffer(buf):
     * buf :: <io.BytesIO> | A byte buffer containing a pickled object.
     * ----------------Usage-----------------
     * from_buffer(buf)
-    *  
+    *
     * Example:
-    *  
+    *
     * from_buffer(io.BytesIO(pickle.dumps({'foo': 'bar'})))
     '''
     import dill as pickle  # Dill allows serializing lambdas
@@ -335,6 +335,3 @@ def generator_range(generator, count):
     * 2
     """
     return [generator.__next__() for i in range(count)]
-
-
-
