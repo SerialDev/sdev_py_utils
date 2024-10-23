@@ -600,3 +600,138 @@ def plot_feature_importances(
     fig.write_image(f"{output_filename}.png")
 
     fig.show()
+
+
+def plot_categorical_comparison(
+    df,
+    category_x,
+    category_y,
+    filter_non_frequent=False,
+    threshold=0.05,
+    relative_by_category=False,
+    normalized=False,
+    size_max=40,
+    height=800,
+    width=1200,
+    title=None,
+):
+    """
+    Plots a bubble chart comparing two categorical variables with options for relative percentages and normalization.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame containing the data.
+    - category_x (str): The name of the categorical variable to be plotted on the x-axis.
+    - category_y (str): The name of the categorical variable to be plotted on the y-axis.
+    - filter_non_frequent (bool): If True, filters out categories with occurrences below the threshold.
+    - threshold (float): The minimum proportion required to keep a category (default is 0.05, i.e., 5%).
+    - relative_by_category (bool): If True, calculates relative percentages by category_x. If False, by category_y.
+    - normalized (bool): If True, normalizes the data to account for category size imbalances.
+    - size_max (int): Maximum size of the bubbles.
+    - height (int): Height of the plot.
+    - width (int): Width of the plot.
+    - title (str): Title of the plot.
+    # Example: Comparing 'cat1' and 'cat2' with relative percentage by 'cat2'
+    plot_categorical_comparison(
+        df,
+        category_x='cat1',
+        category_y='cat2',
+        filter_non_frequent=True,
+        threshold=0.05,
+        relative_by_category=True,
+        normalized=True,
+        title='Normalized Relative Percentages of cat2 by cat1'
+    )
+
+    """
+
+    import plotly.express as px
+    import numpy as np
+
+    # Copy the DataFrame to avoid modifying the original
+    df = df.copy()
+
+    # Ensure the categorical columns exist
+    if category_x not in df.columns:
+        raise ValueError(f"DataFrame does not contain '{category_x}' column")
+    if category_y not in df.columns:
+        raise ValueError(f"DataFrame does not contain '{category_y}' column")
+
+    # Drop rows with NaN in the categorical columns
+    df = df.dropna(subset=[category_x, category_y])
+
+    # Optionally filter out infrequent categories based on the threshold
+    if filter_non_frequent:
+        # Filter category_x
+        counts_x = df[category_x].value_counts(normalize=True)
+        frequent_x = counts_x[counts_x >= threshold].index
+        df = df[df[category_x].isin(frequent_x)]
+
+        # Filter category_y
+        counts_y = df[category_y].value_counts(normalize=True)
+        frequent_y = counts_y[counts_y >= threshold].index
+        df = df[df[category_y].isin(frequent_y)]
+
+    if relative_by_category:
+        # Calculate relative percentage by category_x (across the entire dataset)
+        df["Total_in_X"] = df.groupby(category_x)[category_y].transform("count")
+        df["Count_in_Y"] = df.groupby([category_x, category_y])[category_y].transform(
+            "count"
+        )
+
+        if normalized:
+            # Normalize based on the size of category_y to prevent large categories from dominating
+            df["Total_in_Y"] = df.groupby(category_y)[category_x].transform("count")
+            df["Weighted_Contribution"] = (df["Count_in_Y"] / df["Total_in_X"]) * (
+                1 / df["Total_in_Y"]
+            )
+            df["Relative_Percentage"] = df["Weighted_Contribution"] * 100
+        else:
+            # Normal relative percentage calculation
+            df["Relative_Percentage"] = (df["Count_in_Y"] / df["Total_in_X"]) * 100
+    else:
+        # Calculate relative percentage by category_y (within each category_y)
+        df["Total_in_Y"] = df.groupby(category_y)[category_x].transform("count")
+        df["Count_in_X"] = df.groupby([category_y, category_x])[category_x].transform(
+            "count"
+        )
+        df["Relative_Percentage"] = (df["Count_in_X"] / df["Total_in_Y"]) * 100
+
+    # Replace NaN values with 0 in Relative_Percentage
+    df["Relative_Percentage"] = df["Relative_Percentage"].replace(np.nan, 0)
+
+    # Create a bubble chart
+    fig_bubble = px.scatter(
+        df,
+        x=category_x,
+        y=category_y,
+        size="Relative_Percentage",
+        color=category_y,
+        hover_data={
+            "Relative_Percentage": ":.2f",
+            category_x: True,
+            category_y: True,
+            "Count_in_Y" if relative_by_category else "Count_in_X": True,
+            "Total_in_X" if relative_by_category else "Total_in_Y": True,
+        },
+        title=title or f"Relative Percentages of {category_x} by {category_y}",
+        labels={
+            category_x: category_x.replace("_", " ").title(),
+            category_y: category_y.replace("_", " ").title(),
+        },
+        size_max=size_max,
+    )
+
+    # Customize layout for better visuals
+    fig_bubble.update_layout(
+        xaxis_title=category_x.replace("_", " ").title(),
+        yaxis_title=category_y.replace("_", " ").title(),
+        legend_title=category_y.replace("_", " ").title(),
+        showlegend=True,
+        height=height,
+        width=width,
+        margin=dict(l=40, r=40, t=80, b=40),
+        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Rockwell"),
+    )
+
+    # Display the plot
+    fig_bubble.show()
