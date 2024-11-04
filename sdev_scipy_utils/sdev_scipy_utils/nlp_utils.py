@@ -470,7 +470,7 @@ def words_to_index(wordlist, vocab=None):
     return [vocab[word] if word in vocab else 0 for word in wordlist]
 
 
-def arithmetize(text, basis=2 ** 16):
+def arithmetize(text, basis=2**16):
     """convert substring to number using basis powers
     employs Horner rule"""
     partial_sum = 0
@@ -479,7 +479,7 @@ def arithmetize(text, basis=2 ** 16):
     return partial_sum
 
 
-def arithmetize_text(text, m, basis=2 ** 16):
+def arithmetize_text(text, m, basis=2**16):
     """computes arithmization of all m long substrings
     of text, using basis powers"""
     t = []  # will store list of numbers representing
@@ -491,7 +491,7 @@ def arithmetize_text(text, m, basis=2 ** 16):
 
 
 # Something is Off here TODO text2 and efficient
-def arithmetize_text2(text, m, basis=2 ** 16):
+def arithmetize_text2(text, m, basis=2**16):
     """efficiently computes arithmetization of all m long
     substrings of text, using basis powers"""
     b_power = basis ** (m - 1)
@@ -505,7 +505,7 @@ def arithmetize_text2(text, m, basis=2 ** 16):
     # t stores list of numbers representing m long words of text
 
 
-def arithmetize_text_efficient(text, m, basis=2 ** 6):
+def arithmetize_text_efficient(text, m, basis=2**6):
     """
     efficiently computes arithmetization of all m long
     substrings of text, using basis powers
@@ -522,7 +522,7 @@ def arithmetize_text_efficient(text, m, basis=2 ** 6):
     return t  # t stores list of umbers representing m long words of text
 
 
-def find_matches_arithmetize(pattern, text, basis=2 ** 16):
+def find_matches_arithmetize(pattern, text, basis=2**16):
     """find all occurrences of pattern in text
     using efficient arithmetization of text"""
     assert len(pattern) <= len(text)
@@ -535,7 +535,7 @@ def find_matches_arithmetize(pattern, text, basis=2 ** 16):
     return matches
 
 
-def fingerprint(text, basis=2 ** 16, r=2 ** 32 - 3):
+def fingerprint(text, basis=2**16, r=2**32 - 3):
     """used to compute karp-rabin fingerprint of the pattern
     employs Horner method (modulo r)"""
     partial_sum = 0
@@ -544,8 +544,8 @@ def fingerprint(text, basis=2 ** 16, r=2 ** 32 - 3):
     return partial_sum
 
 
-def text_fingerprint(text, m, basis=2 ** 16, r=2 ** 32 - 3):
-    """ used to computes karp-rabin fingerprint of the text """
+def text_fingerprint(text, m, basis=2**16, r=2**32 - 3):
+    """used to computes karp-rabin fingerprint of the text"""
     f = []
     b_power = pow(basis, m - 1, r)
     list.append(f, fingerprint(text[0:m], basis, r))
@@ -559,7 +559,7 @@ def text_fingerprint(text, m, basis=2 ** 16, r=2 ** 32 - 3):
     return f
 
 
-def find_matches_KR(pattern, text, basis=2 ** 16, r=2 ** 32 - 3):
+def find_matches_KR(pattern, text, basis=2**16, r=2**32 - 3):
     """find all occurrences of pattern in text
     using coin flipping Karp-Rabin algorithm"""
 
@@ -917,3 +917,34 @@ def pd_tfidf_transform(vectorizer, feature_list):
     """
     features = vectorizer.transform(feature_list)
     return pd_tfidf(vectorizer, features)
+
+
+def load_model_and_get_entity_types(model_name: str) -> list:
+    """
+    * ---------------Typedef----------------
+    * type-def ::(str) -> list
+
+    * ---------------Function---------------
+    * Load a pre-trained BERT model and retrieve the entity types from the model config.
+
+    * ----------------Returns---------------
+    * -> list: A list of entity types.
+
+    * ----------------Params----------------
+    * model_name :: str: The name of the pre-trained model to load.
+
+    * ----------------Usage-----------------
+    * entity_types = load_model_and_get_entity_types("dbmdz/bert-large-cased-finetuned-conll03-english")
+    * print("Entity Types:", entity_types)
+
+    * ----------------Notes-----------------
+    * This function loads a pre-trained BERT model using the Hugging Face transformers library.
+    * It then retrieves the entity types from the model config and returns them as a list.
+    """
+    from transformers import AutoModelForTokenClassification, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForTokenClassification.from_pretrained(model_name)
+    label_map = model.config.id2label
+    entity_types = list(label_map.values())
+    return entity_types
