@@ -671,21 +671,52 @@ def winnowing_hash_new(kgram):
     return (kgram[0][0], hs)
 
 
-def winnowing_hash(kgram):
+def winnowing_hash(kgram, k, hash_function=hash):
     """
-    :param kgram: e.g., [(0, 'a'), (2, 'd'), (3, 'o'), (5, 'r'), (6, 'u')]
+    Computes the hash of a k-gram for use in the winnowing algorithm.
+
+    Winnowing is a document fingerprinting technique used to detect similarities between documents,
+    such as in plagiarism detection. The algorithm involves the following steps:
+
+    1. **K-Gram Generation**: Break the document into all possible substrings (k-grams) of length `k`.
+    2. **Hashing**: Compute a hash for each k-gram to represent it numerically.
+    3. **Windowing**: Slide a window of size `w` over the sequence of hashes.
+    4. **Selection**: In each window, select the minimum hash (the "fingerprint").
+    5. **Comparison**: Compare the fingerprints of different documents to detect similarities.
+
+    By selecting only the minimum hashes within each window, winnowing reduces the amount of data
+    needed for comparison while retaining the most significant features of the document.
+    This makes the algorithm efficient and robust against minor changes like insertions or deletions.
+
+    **Parameters:**
+    - `kgram` (list of tuples): A list of tuples where each tuple contains the position and character
+      of the k-gram, e.g., `[(0, 'a'), (1, 'b'), (2, 'c')]`.
+    - `k` (int): The expected length of the k-gram.
+    - `hash_function` (callable, optional): A hash function to compute the hash of the k-gram text.
+      Defaults to Python's built-in `hash` function.
+
+    **Returns:**
+    - `tuple`: A tuple containing the starting position of the k-gram and its hash value.
+      If the k-gram is shorter than `k`, returns `(-1, None)` to indicate an invalid k-gram.
+
+    **Example:**
+
+    ```python
+    kgram = [(0, 'a'), (1, 'b'), (2, 'c')]
+    position, hash_value = winnowing_hash(kgram, k=3)
+    print(position)     # Output: 0
+    print(hash_value)   # Output: Hash value of 'abc'
+    ```
     """
-    kgram = zip(*kgram)
-    kgram = list(kgram)
+    if len(kgram) < k:
+        return (-1, None)
 
-    # FIXME: What should we do when kgram is shorter than k?
-    text = "".join(kgram[1]) if len(kgram) > 1 else ""
+    positions, characters = zip(*kgram)
+    text = "".join(characters)
 
-    hash_function = default_hash
     hs = hash_function(text)
 
-    # FIXME: What should we do when kgram is shorter than k?
-    return (kgram[0][0] if len(kgram) > 1 else -1, hs)
+    return (positions[0], hs)
 
 
 def default_hash(text):
