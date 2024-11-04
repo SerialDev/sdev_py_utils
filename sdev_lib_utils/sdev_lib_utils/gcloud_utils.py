@@ -2048,3 +2048,113 @@ def query_and_cache(
             df.to_parquet(buff)
             buff.seek(0)
             upload_blob_from_bytes
+
+
+def upload_blob_from_bytesio_return_url(bucket_name, blob_name, buff, project):
+    from google.cloud.storage import Client
+
+    storage_client = Client(project=project)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    blob.upload_from_file(buff)
+    public_url = blob.public_url
+    print(f"File {blob_name} uploaded to {bucket_name}. Public URL: {public_url}")
+    return public_url
+
+
+import requests
+
+
+def send_card_message(
+    webhook_url, title, subtitle, text=None, image_url=None, log_level="INFO"
+):
+    """
+    Sends a Google Chat card message with a title, subtitle, log level, and optional text or image.
+
+    Args:
+        webhook_url (str): The Google Chat webhook URL.
+        title (str): The title for the card.
+        subtitle (str): The subtitle for the card.
+        text (str): Optional additional text to include.
+        image_url (str): Optional URL of an image to display.
+        log_level (str): The logging level (e.g., "INFO", "ERROR", "WARNING", "DEBUG").
+
+    Returns:
+        None
+    """
+    # Define logging level markers
+    log_prefix = {
+        "INFO": "|-  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  - INFO -  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -- |",
+        "ERROR": "|-  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -ERROR -  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -- |",
+        "WARNING": "|-  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  WARNING -  --  --  --  --  --  --  --  --  --  --  --  --  --  --  - |",
+        "DEBUG": "|-  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -DEBUG -  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -- |",
+    }
+
+    # Default to INFO if log_level is unknown
+    log_header = log_prefix.get(log_level, log_prefix["INFO"])
+
+    # Prepare the widgets for the card message
+    widgets = [
+        {"keyValue": {"topLabel": log_header, "content": f"{title} - {log_level}\n"}}
+    ]
+
+    # Add the subtitle and additional text if present
+    if text:
+        widgets.append({"textParagraph": {"text": "" + text}})
+
+    # Add the image if present
+    if image_url:
+        widgets.append({"image": {"imageUrl": image_url}})
+
+    # Structure the message data for Google Chat
+    message_data = {"cards": [{"sections": [{"widgets": widgets}]}]}
+
+    # Send the message via webhook
+    response = requests.post(webhook_url, json=message_data)
+
+    # Print success or failure message with logging
+    if response.status_code == 200:
+        print(f"{log_header}\nCard message sent successfully!\n{log_header}")
+    else:
+        print(
+            f"{log_header}\nFailed to send message. Status code: {response.status_code}\n{log_header}"
+        )
+
+
+def gcp_create_secret(
+    secretmanager_client, secret_path: str, secret_data: dict
+) -> None:
+    """
+    Creates a new secret or adds a version to an existing secret in Google Cloud Secret Manager.
+
+    Args:
+        secretmanager_client: The Secret Manager client.
+        secret_path (str): The secret path in the format 'projects/{project_id}/secrets/{secret_id}'.
+        secret_data (dict): The secret data to store, which will be JSON encoded.
+
+    Returns:
+        None
+    """
+    # Convert the dictionary to a JSON string
+    secret_payload = json.dumps(secret_data).encode("UTF-8")
+
+    # Add a new version of the secret with the encoded JSON string
+    response = secretmanager_client.add_secret_version(
+        parent=secret_path, payload={"data": secret_payload}
+    )
+
+    print(f"Secret version {response.name} added to {secret_path}")
+
+
+def gcp_get_secrets(secretmanager_client, secret_path: str) -> dict:
+    """
+
+    @param secretmanager_client:
+    @param secret_path:
+    @return:
+    """
+    secret_value = secretmanager_client.access_secret_version(name=secret_path)
+    secret_json = json.loads(
+        secret_value.payload.data.decode("UTF-8").strip().replace("\n", "")
+    )
+    return secret_json
