@@ -3461,29 +3461,30 @@ def fast_gamma(x):
 
 # import numpy as np
 
-# def traditional_softmax(x):
-#     """
-#     Compute the softmax of each row of the input x.
-#     """
-#     x_exp = np.exp(x)
-#     x_sum = np.sum(x_exp, axis=-1, keepdims=True)
-#     return x_exp / x_sum
+
+def traditional_softmax(x):
+    """
+    Compute the softmax of each row of the input x.
+    """
+    x_exp = np.exp(x)
+    x_sum = np.sum(x_exp, axis=-1, keepdims=True)
+    return x_exp / x_sum
 
 
-# def optimized_softmax(x):
-#     """
-#     Optimized softmax function with numerical stability.
-#     """
-#     # Subtract the max for numerical stability
-#     x_max = np.max(x, axis=-1, keepdims=True)
-#     x_sub = x - x_max
+def optimized_softmax(x):
+    """
+    Optimized softmax function with numerical stability.
+    """
+    # Subtract the max for numerical stability
+    x_max = np.max(x, axis=-1, keepdims=True)
+    x_sub = x - x_max
 
-#     # Use exp approximation for faster computation
-#     # Approximate exp(x) using a bit-level trick
-#     x_exp = fast_exp_numpy(x_sub)
+    # Use exp approximation for faster computation
+    # Approximate exp(x) using a bit-level trick
+    x_exp = fast_exp_numpy(x_sub)
 
-#     x_sum = np.sum(x_exp, axis=-1, keepdims=True)
-#     return x_exp / x_sum
+    x_sum = np.sum(x_exp, axis=-1, keepdims=True)
+    return x_exp / x_sum
 
 
 # x = np.random.rand(1000, 512).astype(np.float32)
@@ -3504,18 +3505,18 @@ def fast_beta(a, b):
     return np.exp(fast_lgamma(a) + fast_lgamma(b) - fast_lgamma(a + b))
 
 
-a = np.linspace(1, 5, 10, dtype=np.float32)
-b = np.linspace(1, 5, 10, dtype=np.float32)
-approx_beta = fast_beta(a, b)
-from scipy.special import beta
+# a = np.linspace(1, 5, 10, dtype=np.float32)
+# b = np.linspace(1, 5, 10, dtype=np.float32)
+# approx_beta = fast_beta(a, b)
+# from scipy.special import beta
 
-standard_beta = beta(a, b)
+# standard_beta = beta(a, b)
 
-print("Approximate beta:", approx_beta)
-print("Standard beta:", standard_beta)
+# print("Approximate beta:", approx_beta)
+# print("Standard beta:", standard_beta)
 
-%timeit fast_beta(a,b)
-%timeit beta(a,b)
+# %timeit fast_beta(a,b)
+# %timeit beta(a,b)
 
 # def fast_incgamma(a, x):
 #     """Fast incomplete gamma function approximation using NumPy.
@@ -3586,6 +3587,411 @@ print("Standard beta:", standard_beta)
 # %timeit fast_logsumexp(a, b)
 # %timeit logsumexp(np.vstack([a, b]), axis=0)
 
+
+def fast_erfc(x):
+    """Fast complementary error function approximation using NumPy."""
+    return 1 - fast_erf(x)
+
+
+def traditional_scaled_dot_product_attention(q, k, v, mask=None):
+    """
+    Compute the scaled dot-product attention using traditional methods.
+    """
+    d_k = q.shape[-1]
+    scores = np.matmul(q, np.transpose(k, (0, 1, 3, 2))) / np.sqrt(d_k)
+    if mask is not None:
+        scores += mask * -1e9
+    attn_weights = traditional_softmax(scores)
+    output = np.matmul(attn_weights, v)
+    return output, attn_weights
+
+
+def optimized_scaled_dot_product_attention(q, k, v, mask=None):
+    """
+    Optimized scaled dot-product attention.
+    """
+    d_k = q.shape[-1]
+    scores = np.matmul(q, k.transpose(0, 1, 3, 2)) / np.sqrt(d_k)
+    if mask is not None:
+        scores += mask * -1e9
+    attn_weights = optimized_softmax(scores)
+    output = np.matmul(attn_weights, v)
+    return output, attn_weights
+
+
+# # Randomly initialized queries, keys, and values
+# batch_size = 32
+# num_heads = 8
+# seq_length = 128
+# d_k = 64
+
+# q = np.random.rand(batch_size, num_heads, seq_length, d_k).astype(np.float32)
+# k = np.random.rand(batch_size, num_heads, seq_length, d_k).astype(np.float32)
+# v = np.random.rand(batch_size, num_heads, seq_length, d_k).astype(np.float32)
+
+# # Timing traditional attention
+# %timeit traditional_scaled_dot_product_attention(q, k, v)
+
+# # Timing optimized attention
+# %timeit optimized_scaled_dot_product_attention(q, k, v)
+
+# # Compute outputs
+# output_traditional, _ = traditional_scaled_dot_product_attention(q, k, v)
+# output_optimized, _ = optimized_scaled_dot_product_attention(q, k, v)
+
+# print("output_traditional:", output_traditional[:1])
+# print("output_optimized:", output_optimized[:1])
+
+
+# difference = np.max(np.abs(output_traditional - output_optimized))
+# print(f"Maximum difference: {difference}")
+# ## -> Maximum difference: 6.984919309616089e-10
+
+# # Check if the outputs are close
+# np.allclose(output_traditional, output_optimized, atol=1e-6)
+
+
+import numpy as np
+import ctypes
+
+
+def fast_inverse_sqrt(number):
+    """Fast inverse square root approximation using bit-level operations."""
+    threehalfs = 1.5
+
+    x2 = number * 0.5
+    y = number
+
+    # Bit-level manipulation using ctypes for direct memory access
+    y_i = ctypes.cast(
+        ctypes.pointer(ctypes.c_float(y)), ctypes.POINTER(ctypes.c_int32)
+    ).contents.value
+    i = 0x5F3759DF - (y_i >> 1)
+    y = ctypes.cast(
+        ctypes.pointer(ctypes.c_int32(i)), ctypes.POINTER(ctypes.c_float)
+    ).contents.value
+
+    y = y * (threehalfs - (x2 * y * y))  # First iteration
+    # y = y * (threehalfs - (x2 * y * y))  # Second iteration (optional)
+
+    return y
+
+
+def optimized_softmax(x):
+    """Optimized and numerically stable softmax function."""
+    # Use in-place operations to reduce memory usage
+    max_x = np.amax(x, axis=-1, keepdims=True)
+    np.subtract(x, max_x, out=x)
+    np.exp(x, out=x)
+    sum_x = np.sum(x, axis=-1, keepdims=True)
+    np.divide(x, sum_x, out=x)
+    return x
+
+
+def optimized_scaled_dot_product_attention(q, k, v, mask=None):
+    """
+    Fully optimized scaled dot-product attention function with cache-friendly memory layout.
+    """
+    # Ensure the inputs are contiguous in memory and of type float32
+    q = np.ascontiguousarray(q, dtype=np.float32)
+    k = np.ascontiguousarray(k, dtype=np.float32)
+    v = np.ascontiguousarray(v, dtype=np.float32)
+    if mask is not None:
+        mask = np.ascontiguousarray(mask, dtype=np.float32)
+
+    batch_size, num_heads, seq_len, depth = q.shape
+
+    # Compute scaling factor using fast inverse square root
+    scale = fast_inverse_sqrt(float(depth))
+
+    # Rearrange data to improve cache performance
+    # Combine batch_size and num_heads into a single dimension
+    q_reshaped = q.reshape(-1, seq_len, depth)
+    k_reshaped = k.reshape(-1, seq_len, depth)
+    v_reshaped = v.reshape(-1, seq_len, depth)
+
+    # Preallocate scores array with proper alignment
+    scores = np.empty((q_reshaped.shape[0], seq_len, seq_len), dtype=np.float32)
+
+    # Compute attention scores
+    np.matmul(q_reshaped, k_reshaped.transpose(0, 2, 1), out=scores)
+    scores *= scale  # In-place scaling
+
+    # Apply mask if provided
+    if mask is not None:
+        # Expand mask to match the combined batch and heads dimension
+        if mask.ndim == 3:
+            mask = np.repeat(mask, num_heads, axis=0)
+        elif mask.ndim == 2:
+            mask = np.repeat(mask[np.newaxis, :, :], q_reshaped.shape[0], axis=0)
+        else:
+            raise ValueError("Mask dimension mismatch.")
+        scores += mask * -1e9
+
+    # Compute attention weights using the optimized softmax function
+    attn_weights = optimized_softmax(scores)
+
+    # Compute the output
+    output = np.empty_like(q_reshaped)
+    np.matmul(attn_weights, v_reshaped, out=output)
+
+    # Reshape output back to original dimensions
+    output = output.reshape(batch_size, num_heads, seq_len, depth)
+    attn_weights = attn_weights.reshape(batch_size, num_heads, seq_len, seq_len)
+
+    return output, attn_weights
+
+
+# output, attn_weights = optimized_scaled_dot_product_attention(q, k, v, None)
+
+# %timeit optimized_scaled_dot_product_attention(q, k, v, None)
+# %timeit traditional_scaled_dot_product_attention(q, k, v)
+# %timeit optimized_scaled_dot_product_attention(q, k, v)
+
+# difference = np.max(np.abs(output_traditional - output))
+# print(f"Maximum difference: {difference}")
+# ## -> Maximum difference: 6.984919309616089e-10
+
+
+def approximate_softmax(x):
+    """Approximate softmax function using a linear function.
+
+    This is an example of a numerical approximation to reduce computational complexity.
+    """
+    # Use a first-order Taylor expansion around zero
+    # softmax(x) ≈ 1 + x (when x is small)
+    # To ensure x is small, we normalize it
+    x = x - np.max(x, axis=-1, keepdims=True)
+    # Choose a scaling factor to keep x small
+    scaling_factor = 0.1
+    x_scaled = x * scaling_factor
+    # Approximate exp(x_scaled) ≈ 1 + x_scaled
+    exp_approx = 1 + x_scaled
+    sum_exp = np.sum(exp_approx, axis=-1, keepdims=True)
+    softmax_approx = exp_approx / sum_exp
+    return softmax_approx
+
+
+# x = np.random.rand(1000, 512).astype(np.float32)
+# optimized_softmax(x)
+# approximate_softmax(x)
+# traditional_softmax(x)
+
 # %timeit traditional_softmax(x)
+# %timeit approximate_softmax(x)
 
 # %timeit optimized_softmax(x)
+
+
+import numpy as np
+
+
+def float32_to_uint32(arr):
+    return arr.view(np.uint32)
+
+
+def uint32_to_float32(arr):
+    return arr.view(np.float32)
+
+
+def decompose_float32(arr):
+    """Decompose float32 numbers into sign, exponent, and mantissa."""
+    uint_arr = float32_to_uint32(arr)
+    sign = (uint_arr >> 31) & 0x1
+    exponent = (uint_arr >> 23) & 0xFF
+    mantissa = uint_arr & 0x7FFFFF
+    return sign, exponent, mantissa
+
+
+def compose_float32(sign, exponent, mantissa):
+    """Compose float32 numbers from sign, exponent, and mantissa."""
+    uint_arr = (sign << 31) | (exponent << 23) | mantissa
+    return uint32_to_float32(uint_arr)
+
+
+def bitwise_float32_mul(a, b):
+    """
+    Multiply two float32 numbers at the bit level.
+    """
+    # Decompose a and b
+    sign_a, exp_a, mant_a = decompose_float32(a)
+    sign_b, exp_b, mant_b = decompose_float32(b)
+
+    # Add implicit leading 1 to mantissas
+    mant_a |= 0x800000
+    mant_b |= 0x800000
+
+    # Multiply mantissas (result can be up to 48 bits)
+    mant_result = mant_a.astype(np.uint64) * mant_b.astype(np.uint64)
+
+    # Add exponents and adjust for bias (127)
+    exp_result = exp_a + exp_b - 127
+
+    # Determine the sign
+    sign_result = sign_a ^ sign_b
+
+    # Normalize the result
+    # Shift mantissa right if overflowed (mantissa >= 2^47)
+    overflow = mant_result >= (1 << 47)
+    mant_result = np.where(overflow, mant_result >> 24, mant_result >> 23)
+    exp_result += overflow.astype(np.uint32)
+
+    # Handle underflow and overflow in exponent
+    underflow = exp_result <= 0
+    overflow_exp = exp_result >= 255
+    exp_result = np.where(underflow, 0, exp_result)
+    exp_result = np.where(overflow_exp, 255, exp_result)
+
+    # Remove implicit leading 1 from mantissa
+    mant_result &= 0x7FFFFF
+
+    # Compose the float32 result
+    result = compose_float32(sign_result, exp_result, mant_result.astype(np.uint32))
+    return result
+
+
+def bitwise_matmul(A, B):
+    """
+    Matrix multiplication using bit-level floating-point multiplication.
+    """
+    M, K = A.shape
+    K2, N = B.shape
+    assert K == K2, "Inner dimensions must match."
+
+    C = np.zeros((M, N), dtype=np.float32)
+    for i in range(M):
+        for j in range(N):
+            sum = np.float32(0.0)
+            for k in range(K):
+                # Bitwise multiplication
+                product = bitwise_float32_mul(A[i, k], B[k, j])
+                # Standard addition
+                sum += product
+            C[i, j] = sum
+    return C
+
+
+import numpy as np
+
+# # Define matrix dimensions
+# M, K, N = 4, 4, 4  # Use small sizes due to performance constraints of bitwise_matmul
+
+# # Generate random matrices with values in a reasonable range
+# np.random.seed(0)  # For reproducibility
+# A = np.random.rand(M, K).astype(np.float32)
+# B = np.random.rand(K, N).astype(np.float32)
+
+# C_bitwise = bitwise_matmul(A, B)
+# C_numpy = np.matmul(A, B)
+
+
+# %timeit bitwise_matmul(A, B)
+# %timeit np.matmul(A, B)
+
+# # Compute the absolute difference
+# difference = np.abs(C_bitwise - C_numpy)
+
+# # Print the maximum difference
+# max_difference = np.max(difference)
+# print(f"Maximum difference between bitwise and NumPy matmul: {max_difference:e}")
+
+
+def randomized_matmul(A, B, r):
+    """
+    Approximate matrix multiplication using randomized projections.
+    A: (m x k) matrix
+    B: (k x n) matrix
+    r: Reduced dimension
+    """
+    # Generate random projection matrices
+    R = np.random.randn(A.shape[1], r)
+    S = np.random.randn(B.shape[0], r)
+
+    # Project A and B
+    AR = np.dot(A, R)  # (m x r)
+    SB = np.dot(S.T, B)  # (r x n)
+
+    # Multiply the reduced matrices
+    C_approx = np.dot(AR, SB)
+    return C_approx
+
+
+# # Define matrix dimensions
+# M, K, N = 500, 500, 500
+
+# # Generate random matrices
+# A = np.random.rand(M, K)
+# B = np.random.rand(K, N)
+
+# # Choose reduced dimension
+# r = 100  # Adjust based on desired accuracy and performance
+
+# # Compute approximate multiplication
+# C_approx = randomized_matmul(A, B, r)
+
+# # Compute exact multiplication for comparison
+# C_exact = np.dot(A, B)
+
+# C_approx = randomized_matmul(A, B, r)
+# %timeit randomized_matmul(A, B, r)
+
+
+# C_exact = np.dot(A, B)
+# %timeit np.dot(A,B)
+
+# # Compute relative error
+# relative_error = np.linalg.norm(C_exact - C_approx) / np.linalg.norm(C_exact)
+# print(f"Relative error: {relative_error:.4e}")
+
+
+def fjlt_matmul(A, B, r):
+    """
+    Approximate matrix multiplication using Fast Johnson-Lindenstrauss Transform.
+    """
+    # Generate random diagonal matrices with entries +1 or -1
+    D_A = np.random.choice([-1, 1], size=A.shape[1])
+    D_B = np.random.choice([-1, 1], size=B.shape[0])
+
+    # Apply random sign flips
+    A_tilde = A * D_A
+    B_tilde = D_B[:, np.newaxis] * B
+
+    # Apply the Fast Hadamard Transform (here we use the FFT as a stand-in)
+    A_hadamard = np.fft.fft(A_tilde, axis=1).real
+    B_hadamard = np.fft.fft(B_tilde, axis=0).real
+
+    # Sample r columns/rows
+    indices = np.random.choice(A_hadamard.shape[1], size=r, replace=False)
+    A_reduced = A_hadamard[:, indices] / np.sqrt(r)
+    B_reduced = B_hadamard[indices, :] / np.sqrt(r)
+
+    # Multiply the reduced matrices
+    C_approx = np.dot(A_reduced, B_reduced)
+    return C_approx
+
+
+# # Define matrix dimensions
+# M, K, N = 500, 500, 500
+
+# # Generate random matrices
+# A = np.random.rand(M, K)
+# B = np.random.rand(K, N)
+
+# # Choose reduced dimension
+# r = 100  # Adjust based on desired accuracy and performance
+
+# # Compute approximate multiplication
+# C_approx = fjlt_matmul(A, B, r)
+
+# # Compute exact multiplication for comparison
+# C_exact = np.dot(A, B)
+
+# %timeit fjlt_matmul(A, B, r)
+
+
+# C_exact = np.dot(A, B)
+# %timeit np.dot(A,B)
+
+# # Compute relative error
+# relative_error = np.linalg.norm(C_exact - C_approx) / np.linalg.norm(C_exact)
+# print(f"Relative error: {relative_error:.4e}")
