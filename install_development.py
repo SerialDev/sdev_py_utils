@@ -1,4 +1,5 @@
-import os, subprocess
+import os
+import subprocess
 
 
 def walklevel(some_dir, level=1):
@@ -12,15 +13,7 @@ def walklevel(some_dir, level=1):
             del dirs[:]
 
 
-# Python script to run a command line
-
-
 def execute(cmd, working_directory=os.getcwd()):
-    """
-    Purpose  : To execute a command and return exit status
-    Argument : cmd - command to execute
-    Return   : exit_code
-    """
     process = subprocess.Popen(
         cmd,
         shell=True,
@@ -28,17 +21,61 @@ def execute(cmd, working_directory=os.getcwd()):
         stderr=subprocess.PIPE,
         cwd=working_directory,
     )
-    (result, error) = process.communicate()
-
-    rc = process.wait()
+    result, error = process.communicate()
+    rc = process.returncode
 
     if rc != 0:
-        print("Error: failed to execute command:", cmd)
-        print(error)
-    return result
+        print(f"\033[31mError: Command failed -> {cmd}\033[0m")
+        print(f"\033[31mError Details:\n{error.decode()}\033[0m")
+    else:
+        print(f"\033[32mSuccess: Command executed -> {cmd}\033[0m")
 
+    return rc, result.decode() if rc == 0 else None
+
+
+successes = []
+failures = []
+
+try:
+    # Activate .venv once at the beginning
+    venv_activate = "source .venv/bin/activate"
+    print("\033[36mActivating virtual environment...\033[0m")
+    rc, _ = execute(venv_activate)
+    if rc != 0:
+        print("\033[31mFailed to activate virtual environment. Exiting.\033[0m")
+        exit(1)
+    print("\033[32mVirtual environment activated successfully.\033[0m")
+except Exception:
+    print("\033[32mVirtual environment activation failed.\033[0m")
 
 for name, dirs, files in walklevel(os.getcwd(), 1):
     if "setup.py" in files:
-        proc = execute("pip3 install -e .", name)
-        print(proc)
+        print(f"\033[36mChecking directory: {name}\033[0m")
+
+        rc, result = execute("uv pip install -e .", name)
+        if rc == 0:
+            successes.append(name)
+            print(f"\033[35mPip install successful in {name}\033[0m")
+        else:
+            failures.append(name)
+            print(f"\033[31mError: Pip install failed in {name}\033[0m")
+
+        print(
+            f"\033[34mOutput:\n{result}\033[0m"
+            if result
+            else "\033[34mNo output\033[0m"
+        )
+
+print("\033[36m\nSummary Report:\033[0m")
+print(f"\033[32mSuccesses ({len(successes)}):\033[0m")
+for success in successes:
+    print(f" - {success}")
+
+print(f"\033[31mFailures ({len(failures)}):\033[0m")
+for failure in failures:
+    print(f" - {failure}")
+
+if not failures:
+    print("\033[32mAll installations were successful.\033[0m")
+else:
+    print("\033[31mSome installations encountered issues.\033[0m")
