@@ -163,6 +163,7 @@ def uniquify_list_transform(seq, idfun=None):  # Alex Martelli ******* order pre
 
 def uniquify_list(seq):  # Dave Kirby
     """
+    NOTE: USE C impl for performance 2x, status: DONE
     * ---------------{Function}---------------
     * Remove duplicates from a list while preserving the order
     * ----------------{Returns}---------------
@@ -476,13 +477,9 @@ def depth_flatten(array, depth=2):
     return result
 
 
-
 def eliminate_common_elements(list1, list2):
     return list(set(list1) - set(list2))
 
 
 def retain_common_elements(list1, list2):
     return [element for element in list1 if element in list2]
-
-
-
