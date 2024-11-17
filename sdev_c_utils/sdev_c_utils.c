@@ -162,12 +162,133 @@ static PyObject *uniquify_to_dict(PyObject *self, PyObject *args) {
 }
 
 
+// Helper function to flatten the dictionary recursively
+static int flatten_dict_helper(PyObject *d, PyObject *result, PyObject *parent_key, const char *sep) {
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
+
+    while (PyDict_Next(d, &pos, &key, &value)) {
+        // Create a new key by combining parent_key and current key
+        PyObject *new_key;
+        if (parent_key && PyUnicode_GetLength(parent_key) > 0) {
+            new_key = PyUnicode_FromFormat("%U%s%U", parent_key, sep, key);
+        } else {
+            new_key = key;
+            Py_INCREF(new_key);
+        }
+
+        // Check if the value is a dictionary
+        if (PyDict_Check(value)) {
+            // Recursively flatten the nested dictionary
+            if (flatten_dict_helper(value, result, new_key, sep) < 0) {
+                Py_DECREF(new_key);
+                return -1;
+            }
+        } else {
+            // Add the item to the result dictionary
+            if (PyDict_SetItem(result, new_key, value) < 0) {
+                Py_DECREF(new_key);
+                return -1;
+            }
+        }
+        Py_DECREF(new_key);
+    }
+    return 0;
+}
+
+static PyObject *flatten_dictionary(PyObject *self, PyObject *args, PyObject *kwargs) {
+    PyObject *d;
+    const char *sep = "_";
+    static char *kwlist[] = {"d", "sep", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", kwlist, &d, &sep)) {
+        return NULL;
+    }
+
+    // Check if the input is a dictionary
+    if (!PyDict_Check(d)) {
+        PyErr_SetString(PyExc_TypeError, "The first argument must be a dictionary");
+        return NULL;
+    }
+
+    // Create a result dictionary
+    PyObject *result = PyDict_New();
+    if (!result) {
+        return NULL;
+    }
+
+    // Recursively flatten the dictionary
+    if (flatten_dict_helper(d, result, NULL, sep) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+
+
+
+static PyObject *uniquify_list(PyObject *self, PyObject *args) {
+    PyObject *seq;
+    if (!PyArg_ParseTuple(args, "O", &seq)) {
+        return NULL;
+    }
+
+    if (!PyList_Check(seq)) {
+        PyErr_SetString(PyExc_TypeError, "The input must be a list.");
+        return NULL;
+    }
+
+    // Create a new list for the result
+    PyObject *result = PyList_New(0);
+    if (!result) {
+        return NULL;
+    }
+
+    // Create a set to keep track of seen items
+    PyObject *seen = PySet_New(NULL);
+    if (!seen) {
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    // Iterate over the input list
+    Py_ssize_t len = PyList_Size(seq);
+    for (Py_ssize_t i = 0; i < len; i++) {
+        PyObject *item = PyList_GetItem(seq, i);  // Borrowed reference
+
+        // Check if item is in seen set
+        int in_seen = PySet_Contains(seen, item);
+        if (in_seen == -1) {  // Error checking
+            Py_DECREF(seen);
+            Py_DECREF(result);
+            return NULL;
+        }
+
+        if (!in_seen) {
+            // Add item to seen set and result list
+            if (PySet_Add(seen, item) < 0 || PyList_Append(result, item) < 0) {
+                Py_DECREF(seen);
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
+    Py_DECREF(seen);
+    return result;
+}
+
+
 static PyMethodDef SdevCUtilsMethods[] = {
     {"add", method_add, METH_VARARGS, "Add two numbers"},
     {"create_arena", create_arena, METH_VARARGS, "Create a new memory arena"},
     {"free_arena", free_arena, METH_VARARGS, "Free the memory arena stored in a PyObject"},
     {"median_arena", method_median_arena, METH_VARARGS, "Calculate the median of a list of numbers"},
     {"uniquify_to_dict", uniquify_to_dict, METH_VARARGS, "Uniquify values in an iterator into a dictionary."},
+    {"flatten_dictionary", (PyCFunction)flatten_dictionary, METH_VARARGS | METH_KEYWORDS, "Flatten a nested dictionary into a single-level dictionary."},
+    {"uniquify_list", uniquify_list, METH_VARARGS, "Remove duplicates from a list while preserving order."},
+
     {NULL, NULL, 0, NULL}
 };
 
