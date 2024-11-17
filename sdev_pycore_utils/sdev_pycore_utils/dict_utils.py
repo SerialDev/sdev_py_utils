@@ -4,7 +4,7 @@
 def uniquify_to_dict(value):
     """
     Uniquify values in an iterator into a dictionary
-
+    NOTE: USE C impl for performance 2x, status: DONE
     Parameters
     ----------
 
@@ -508,6 +508,7 @@ def del_by_path(root, items):
 
 def flatten_dictionary(d, parent_key="", sep="_"):
     """
+    NOTE: USE C impl for performance 6x, status: DONE
     * ---------------{Function}---------------
     * Flatten a nested dictionary into a single-level dictionary
     * ----------------{Returns}---------------
@@ -531,3 +532,4 @@ def flatten_dictionary(d, parent_key="", sep="_"):
         else:
             items.append((new_key, v))
     return dict(items)
+
