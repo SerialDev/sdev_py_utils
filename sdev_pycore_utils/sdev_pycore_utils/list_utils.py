@@ -483,3 +483,10 @@ def eliminate_common_elements(list1, list2):
 
 def retain_common_elements(list1, list2):
     return [element for element in list1 if element in list2]
+
+
+def show_duplicates(iterable):
+    """Show duplicates in an iterable."""
+    seen = set()
+    duplicates = [x for x in iterable if x in seen or seen.add(x)]
+    return duplicates
