@@ -306,3 +306,66 @@ def stratified_sample(data, target_column, sample_size):
 
     # If no split was made, raise an error
     raise RuntimeError("Failed to generate stratified sample.")
+
+
+def stratified_sample_with_positive_bias(
+    data, target_column, sample_size, bias_factor=1.5
+):
+    """
+    Returns a stratified sample of the dataset with an increased proportion of positive samples.
+    The sample size will match the specified value, and the positive bias is controlled by the bias_factor.
+
+    Parameters:
+    - data: pandas DataFrame containing your dataset.
+    - target_column: string, the name of your target column.
+    - sample_size: int, the desired number of samples in the output dataset.
+    - bias_factor: float, multiplier to increase the proportion of positive samples in the result.
+
+    Returns:
+    - biased_sample: pandas DataFrame containing the stratified sample with positive bias.
+    """
+    import pandas as pd
+    from sklearn.utils import resample
+
+    # Ensure the sample size is less than the total number of samples
+    if sample_size >= len(data):
+        raise ValueError(
+            "Sample size must be less than the total number of samples in the dataset."
+        )
+
+    # Split the dataset by class
+    positive_samples = data[data[target_column] == 1]
+    negative_samples = data[data[target_column] == 0]
+
+    # Calculate the desired number of positive samples based on the bias factor
+    total_positive = len(positive_samples)
+    total_negative = len(negative_samples)
+    total_current = len(data)
+
+    target_positive_count = int(
+        min(total_positive, bias_factor * (sample_size / (1 + bias_factor)))
+    )
+    target_negative_count = sample_size - target_positive_count
+
+    # Subsample positive and negative classes
+    positive_sampled = resample(
+        positive_samples,
+        replace=False,
+        n_samples=target_positive_count,
+        random_state=42,
+    )
+    negative_sampled = resample(
+        negative_samples,
+        replace=False,
+        n_samples=target_negative_count,
+        random_state=42,
+    )
+
+    # Combine and shuffle the biased sample
+    biased_sample = (
+        pd.concat([positive_sampled, negative_sampled])
+        .sample(frac=1, random_state=42)
+        .reset_index(drop=True)
+    )
+
+    return biased_sample
