@@ -1855,3 +1855,64 @@ def delete_empty_dirs(some_dir, level=1):
             continue
         if not dirs and not files:
             os.rmdir(root)
+
+
+def cache_object_locally(obj=None, cache_dir="cache", filename="cached_object.pkl"):
+    """
+    * ---------------Typedef----------------
+    * type-def ::(any, str, str) -> object
+    * ---------------Function---------------
+    *
+    * Stores an object locally in a cache directory and loads it if it already exists.
+    *
+    * ---------------Returns---------------
+    * -> result ::object | The cached object if it was loaded successfully, None otherwise
+    * ---------------Params----------------
+    * obj ::any | The object to be cached
+    * cache_dir ::str | The directory to store the cache (default: 'cache')
+    * filename ::str | The filename to use for the cache (default: 'cached_object.pkl')
+    * ---------------Usage-----------------
+    * cache_object_locally(my_object, cache_dir='my_cache', filename='my_cache.pkl')
+    *
+    * ---------------Notes-----------------
+    * This function uses pickle to serialize the object, so it may not work with all types of objects.
+    * The cache directory and filename can be customized, but the default values are used if not provided.
+    * If the object is loaded successfully from cache, it is returned. Otherwise, the original object is returned.
+    * Why: This function is useful for storing and loading large objects that are expensive to compute, to avoid recomputing them.
+
+    """
+    import os
+    import pickle
+
+    print("\033[36m[INFO]\033[0m Checking cache directory...")
+    if not os.path.exists(cache_dir):
+        print(
+            f"\033[33m[NOTE]\033[0m Cache directory '{cache_dir}' not found. Creating it."
+        )
+        os.makedirs(cache_dir)
+
+    file_path = os.path.join(cache_dir, filename)
+
+    if os.path.exists(file_path):
+        print(
+            f"\033[32m[SUCCESS]\033[0m Cached object found at '{file_path}'. Loading it."
+        )
+        try:
+            with open(file_path, "rb") as f:
+                cached_obj = pickle.load(f)
+            print(f"\033[32m[SUCCESS]\033[0m Object loaded successfully from cache.")
+            return cached_obj
+        except (pickle.UnpicklingError, FileNotFoundError) as e:
+            print(f"\033[31m[ERROR]\033[0m Failed to load cached object: {e}")
+            return None
+
+    print("\033[36m[INFO]\033[0m Object not cached yet. Caching it now...")
+    try:
+        with open(file_path, "wb") as f:
+            pickle.dump(obj, f)
+        print(f"\033[32m[SUCCESS]\033[0m Object cached successfully at '{file_path}'.")
+    except pickle.PickleError as e:
+        print(f"\033[31m[ERROR]\033[0m Failed to cache object: {e}")
+        return None
+
+    return obj
