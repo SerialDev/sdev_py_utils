@@ -3995,3 +3995,39 @@ def fjlt_matmul(A, B, r):
 # # Compute relative error
 # relative_error = np.linalg.norm(C_exact - C_approx) / np.linalg.norm(C_exact)
 # print(f"Relative error: {relative_error:.4e}")
+
+
+def conditional_apply(df, condition, func, target_column, **func_kwargs):
+    """
+    * ---------------Typedef----------------
+    * type-def ::(pandas.DataFrame, Boolean Series, function, str, **any) -> None
+
+    * ---------------Function---------------
+    * Apply a function to rows of a DataFrame where a condition is True.
+
+    * ----------------Returns---------------
+    * -> None
+
+    * ----------------Params----------------
+    * * df ::pandas.DataFrame : Input DataFrame
+    * * condition ::Boolean Series : Condition to select rows
+    * * func ::function : Function to apply to each row
+    * * target_column ::str : The column where to store the result
+    * * func_kwargs ::**any : Additional keyword arguments to pass to func
+
+    * ----------------Usage-----------------
+    * This function can be used to perform custom operations on specific rows of a DataFrame based on a condition.
+    * For example, you can use it to calculate the square root of a column only for rows where another column meets a certain condition.
+
+    * ----------------Notes-----------------
+    * The condition is reindexed to match the index of the input DataFrame, filling missing values with False.
+    * The function is applied to each row using the apply method, and the result is stored in the target column.
+    """
+    import pandas as pd
+    from functools import partial
+
+    condition = condition.reindex(df.index, fill_value=False)
+
+    df.loc[condition, target_column] = df.loc[condition].apply(
+        lambda row: func(row, **func_kwargs), axis=1
+    )
