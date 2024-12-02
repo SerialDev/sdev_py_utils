@@ -4031,3 +4031,55 @@ def conditional_apply(df, condition, func, target_column, **func_kwargs):
     df.loc[condition, target_column] = df.loc[condition].apply(
         lambda row: func(row, **func_kwargs), axis=1
     )
+
+
+def insert_list_into_masked_df(df, mask, column, values):
+    """
+    Inserts a list of values into a DataFrame column based on a boolean mask.
+    Handles cases where list length differs from masked rows.
+    """
+    print("\033[36mProcessing DataFrame insertion\033[0m")
+
+    if column not in df.columns:
+        raise KeyError(f"Column '{column}' does not exist in the DataFrame.")
+
+    # Align mask with DataFrame
+    if not mask.index.equals(df.index):
+        print("\033[33mRealigning mask with DataFrame indices.\033[0m")
+        mask = mask.reindex(df.index, fill_value=False)
+
+    # Extract masked positions
+    masked_positions = np.flatnonzero(mask.values)
+    print(f"\033[35mNumber of masked rows: {len(masked_positions)}\033[0m")
+    print(f"\033[35mLength of provided values: {len(values)}\033[0m")
+
+    if len(masked_positions) == 0:
+        raise ValueError("No rows match the mask. Cannot insert values.")
+
+    column_idx = df.columns.get_loc(column)
+
+    if len(values) == len(masked_positions):
+        print("\033[32mLength matches. Using direct insertion.\033[0m")
+        try:
+            df.iloc[masked_positions, column_idx] = values
+        except Exception as e:
+            print(f"\033[31mError during direct insertion: {e}\033[0m")
+            raise
+    else:
+        print("\033[33mLength mismatch. Inserting sequentially.\033[0m")
+        for i, value in enumerate(values):
+            if i < len(masked_positions):
+                pos = masked_positions[i]
+                # Print message for the first value and every 1000th value
+                if i == 0 or (i % 1000 == 0):
+                    print(
+                        f"\033[34mInserting value {i + 1}/{len(values)} at position {pos}\033[0m"
+                    )
+                try:
+                    df.iat[pos, column_idx] = value
+                except Exception as e:
+                    print(f"\033[31mError inserting at position {pos}: {e}\033[0m")
+                    raise
+
+    print("\033[32mDataFrame updated successfully.\033[0m")
+    return df
