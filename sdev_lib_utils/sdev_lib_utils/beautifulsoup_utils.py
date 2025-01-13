@@ -1,4 +1,5 @@
 """ Utilities to use with beautifulsoup"""
+
 from bs4 import BeautifulSoup
 import requests
 
@@ -242,7 +243,7 @@ def yahoo_dividends_history(ticker):
     return parsed_table
 
 
-def yahoo_fin_summary(ticker):
+def yahoo_find_summary(ticker):
     # ticker = "PSXP"
     base_url = "https://finance.yahoo.com/quote"
     url = f"{base_url}/{ticker}"
@@ -258,3 +259,35 @@ def render_js(url):
     r = session.get(url)
     r.html.render()
     return r.content
+
+
+def quick_html_inspect(response, save_to_file="response.html", snippet_length=500):
+    from bs4 import BeautifulSoup
+
+    if response.status_code == 200:
+        print("\033[32m[INFO] HTTP Response: 200 OK\033[0m")
+        try:
+            html_content = response.content.decode("utf-8")
+        except UnicodeDecodeError:
+            print("\033[31m[ERROR] Could not decode the response content.\033[0m")
+            return
+
+        print("\033[35m[HTML Snippet]\033[0m")
+        print(html_content[:snippet_length])
+
+        if save_to_file:
+            with open(save_to_file, "w", encoding="utf-8") as file:
+                file.write(html_content)
+            print(f"\033[34m[INFO] Full HTML saved to '{save_to_file}'.\033[0m")
+
+        soup = BeautifulSoup(html_content, "html.parser")
+        print(
+            "\033[36m[INFO] Page Title:\033[0m",
+            soup.title.string if soup.title else "No title found",
+        )
+        print(
+            "\033[36m[INFO] First 500 characters of body:\033[0m",
+            soup.body.text[:500] if soup.body else "No body found",
+        )
+    else:
+        print(f"\033[31m[ERROR] HTTP Response: {response.status_code}\033[0m")
