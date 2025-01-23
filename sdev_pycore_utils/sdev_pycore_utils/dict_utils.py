@@ -533,3 +533,125 @@ def flatten_dictionary(d, parent_key="", sep="_"):
             items.append((new_key, v))
     return dict(items)
 
+
+
+
+def prepend_key(d, prefix):
+    if not isinstance(d, dict):
+        raise ValueError(f"Expected a dictionary, got {type(d).__name__}: {d}")
+    return {f"{prefix}{k}": v for k, v in d.items()}
+
+
+def flatten_json_hybrid(obj, parent_key="", sep="_", max_depth=None, current_depth=0):
+    items = {}
+    if isinstance(obj, dict):
+        print(f"\033[36mProcessing a dictionary at depth {current_depth}...\033[0m")
+        for k, v in obj.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                if max_depth is None or current_depth < max_depth:
+                    print(
+                        f"\033[33mFlattening nested dictionary at key: {new_key}\033[0m"
+                    )
+                    items.update(
+                        flatten_json_hybrid(
+                            v,
+                            new_key,
+                            sep=sep,
+                            max_depth=max_depth,
+                            current_depth=current_depth + 1,
+                        )
+                    )
+                else:
+                    print(
+                        f"\033[35mMax depth reached for dictionary at key: {new_key}. Serializing it.\033[0m"
+                    )
+                    items[new_key] = json.dumps(v)
+            elif isinstance(v, list):
+                if max_depth is None or current_depth < max_depth:
+                    print(f"\033[33mFlattening list at key: {new_key}\033[0m")
+                    for i, item in enumerate(v):
+                        items.update(
+                            flatten_json_hybrid(
+                                item,
+                                f"{new_key}_{i}",
+                                sep=sep,
+                                max_depth=max_depth,
+                                current_depth=current_depth + 1,
+                            )
+                        )
+                else:
+                    print(
+                        f"\033[35mMax depth reached for list at key: {new_key}. Serializing it.\033[0m"
+                    )
+                    items[new_key] = json.dumps(v)
+            else:
+                print(f"\033[32mAdding flat field: {new_key} -> \033[0m")
+                items[new_key] = v
+    else:
+        print(
+            f"\033[31mUnexpected object type, assigning value directly: {parent_key} -> {obj}\033[0m"
+        )
+        items[parent_key] = obj
+    return items
+
+
+def flatten_json(obj, parent_key="", sep="_"):
+    items = {}
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.update(flatten_json(v, new_key, sep=sep))
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    items.update(flatten_json(item, f"{new_key}_{i}", sep=sep))
+            else:
+                items[new_key] = v
+    else:
+        items[parent_key] = obj
+    return items
+
+
+def flatten_json_aggregate(
+    obj, parent_key="", sep="_", max_depth=None, current_depth=0
+):
+    aggregated_items = []
+    if isinstance(obj, dict):
+        print(f"\033[36mProcessing dictionary at depth {current_depth}...\033[0m")
+        for key, value in obj.items():
+            if isinstance(value, list):
+                print(
+                    f"\033[35mAggregating list at key: {key} (depth {current_depth})\033[0m"
+                )
+                for item in value:
+                    if isinstance(item, dict):
+                        # Check depth before flattening
+                        if max_depth is None or current_depth < max_depth:
+                            flat_items = flatten_json_aggregate(
+                                item,
+                                f"{parent_key}{sep}{key}",
+                                sep,
+                                max_depth,
+                                current_depth + 1,
+                            )
+                        else:
+                            print(
+                                f"\033[35mMax depth reached for list item at key: {key}. Serializing it.\033[0m"
+                            )
+                            flat_items = [{f"{parent_key}{sep}{key}": json.dumps(item)}]
+
+                        # Ensure flat_items is always a list
+                        if not isinstance(flat_items, list):
+                            flat_items = [flat_items]
+
+                        for sub_item in flat_items:
+                            aggregated_item = {k: v for k, v in obj.items() if k != key}
+                            aggregated_item.update(sub_item)
+                            aggregated_items.append(aggregated_item)
+            else:
+                print(f"\033[33mSkipping non-list key: {key}\033[0m")
+    else:
+        print("\033[31mTop-level object must be a dictionary.\033[0m")
+    return aggregated_items
+
