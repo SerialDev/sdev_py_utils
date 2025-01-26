@@ -30,6 +30,20 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install --no-cache-dir \
     jupyter fastapi uvicorn
 
+
+# Create repl.py during the build This will allow working directly with a repl on the right context uvicorn does
+# use ipython repl.py
+RUN echo \"import os\n\
+import code\n\
+\n\
+# Ensure project root is in PYTHONPATH\n\
+project_root = os.path.dirname(os.path.abspath(__file__))\n\
+if project_root not in os.sys.path:\n\
+    os.sys.path.insert(0, project_root)\n\
+\n\
+print('Interactive REPL loaded with project modules...')\n\
+code.interact(local=dict(globals(), **locals()))\" > repl.py
+
 # Expose FastAPI port
 EXPOSE 8000
 
