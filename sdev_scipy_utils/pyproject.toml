@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdev_scipy_utils"
+version = "0.1"
+description = "Utility functions for dealing with the scipy python stack"
+authors = [{name = "Andres Mariscal", email = "carlos.mariscal.melgar@gmail.com"}]
+license = {text = "MIT"}
+dependencies = [
+    "unidecode"
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pandas"
+]
+
+
