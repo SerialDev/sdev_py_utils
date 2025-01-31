@@ -13,7 +13,11 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "pandas"
+    "pandas",
+    "scikit-learn",
+    "nltk",
+    "tensorflow",
+    "keras",
 ]
 
 
