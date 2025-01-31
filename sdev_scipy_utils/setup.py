@@ -9,8 +9,5 @@ setup(name = 'sdev_scipy_utils',
       author_email='carlos.mariscal.melgar@gmail.com',
       license='MIT',
       packages=['sdev_scipy_utils'],
-      install_requires=[
-          'unidecode',
-          ],
       zip_safe=False)
         
