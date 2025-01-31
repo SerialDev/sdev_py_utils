@@ -34,6 +34,29 @@ def get_non_matching_columns(data, substrings):
     return non_matching_columns
 
 
+def browse_df(df, col=True, n=3):
+    """
+    Generator function to iterate through a DataFrame.
+
+    - Column-wise (`col=True`): Yields `n` columns at a time.
+    - Row-wise (`col=False`): Always yields 3 rows at a time, with `n` visible columns.
+
+    :param df: Pandas DataFrame to iterate through.
+    :param col: If True, iterate by columns; otherwise, iterate by rows.
+    :param n: Number of columns (when `col=True`) or number of visible columns (when `col=False`).
+    :yield: A DataFrame slice according to the iteration mode.
+    """
+    if col:
+        # Iterate by columns
+        for i in range(0, len(df.columns), n):
+            yield df.iloc[:, i : i + n]
+    else:
+        # Iterate by rows (always 3 rows at a time, controlling column visibility)
+        for i in range(0, len(df.columns), n):
+            for j in range(0, len(df), 3):
+                yield df.iloc[j : j + 3, i : i + n]
+
+
 def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
     """
     Enhanced pretty print for pandas DataFrame, DataFrame columns (Pandas Index), or lists,
