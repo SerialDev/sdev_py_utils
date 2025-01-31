@@ -18,6 +18,8 @@ dependencies = [
     "nltk",
     "tensorflow",
     "keras",
+    "opencv-python",
+    "torchvision"
 ]
 
 
