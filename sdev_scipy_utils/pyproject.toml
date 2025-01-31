@@ -9,7 +9,7 @@ description = "Utility functions for dealing with the scipy python stack"
 authors = [{name = "Andres Mariscal", email = "carlos.mariscal.melgar@gmail.com"}]
 license = {text = "MIT"}
 dependencies = [
-    "unidecode"
+    "unidecode",
     "numpy",
     "scipy",
     "matplotlib",
