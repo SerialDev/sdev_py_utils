@@ -47,6 +47,10 @@ code.interact(local=dict(globals(), **locals()))\" > repl.py
 # Expose FastAPI port
 EXPOSE 8000
 
+        
+# Add Docker HEALTHCHECK
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -f http://localhost:8000/health || exit 1
+
 # Set the default command to run the FastAPI app
 CMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\", \"--reload\"]
 """,
@@ -84,6 +88,13 @@ from utilities.utils import some_utility_function
 
 app = FastAPI()
 
+@app.get("/health", tags=["Health"])
+def health():
+    return dict(status="ok")
+
+        
+
+        
 class TextInput(BaseModel):
     text: str
 
@@ -141,3 +152,25 @@ if __name__ == "__main__":
     )
     create_fastapi_project(args.name, parsed_endpoints)
     print("\033[32mProject creation complete!\033[0m")
+
+
+# notes:
+
+# def check_db():
+#     try:
+#         conn = sqlite3.connect("database.db")
+#         conn.execute("SELECT 1")  # Simple query to check if DB is responsive
+#         conn.close()
+#         return True
+#     except Exception:
+#         return False
+
+# @app.get("/health", tags=["Health"])
+# def health():
+#     db_status = "ok" if check_db() else "down"
+#     return {
+#         "status": "ok" if db_status == "ok" else "degraded",
+#         "dependencies": {
+#             "database": db_status
+#         }
+#     }
