@@ -4,18 +4,12 @@ PROJECT_NAME=$1
 ACTION=$2
 
 if [ -z "$PROJECT_NAME" ] || [ -z "$ACTION" ]; then
-  echo -e "\033[31mUsage: $0 <project_name> <up|down|docker_cleanup|cleanup|dev>\033[0m"
+  echo -e "\033[31mUsage: $0 <project_name|all> <up|down|docker_cleanup|cleanup|dev>\033[0m"
   exit 1
 fi
 
 DOCKER_IMAGE="${PROJECT_NAME}-app"
 DOCKER_CONTAINER="${PROJECT_NAME}-container"
-
-if [ ! -d "./$PROJECT_NAME" ]; then
-  echo -e "\033[31mError: Project directory '$PROJECT_NAME' does not exist.\033[0m"
-  exit 1
-fi
-cd "./$PROJECT_NAME" || { echo -e "\033[31mFailed to change to project directory '$PROJECT_NAME'.\033[0m"; exit 1; }
 
 pre_launch_check() {
   echo -e "\033[36mChecking prerequisites...\033[0m"
@@ -56,22 +50,70 @@ pre_launch_check() {
   fi
 }
 
+handle_docker_compose() {
+  if [ -f "docker-compose.yml" ]; then
+    echo -e "\033[36mDetected docker-compose.yml, using Docker Compose...\033[0m"
+    return 0
+  else
+    echo -e "\033[33mNo docker-compose.yml found, using standalone Docker commands.\033[0m"
+    return 1
+  fi
+}
+
+if [ "$PROJECT_NAME" == "all" ]; then
+  case $ACTION in
+    up)
+      echo -e "\033[36mStarting all services using Docker Compose...\033[0m"
+      docker-compose up --build -d
+      echo -e "\033[32mAll services started successfully.\033[0m"
+      exit 0
+      ;;
+    down)
+      echo -e "\033[36mStopping all services...\033[0m"
+      docker-compose down
+      echo -e "\033[32mAll services stopped successfully.\033[0m"
+      exit 0
+      ;;
+    *)
+      echo -e "\033[31mInvalid action for 'all'. Use 'up' or 'down'.\033[0m"
+      exit 1
+      ;;
+  esac
+fi
+
+if [ ! -d "./$PROJECT_NAME" ]; then
+  echo -e "\033[31mError: Project directory '$PROJECT_NAME' does not exist.\033[0m"
+  exit 1
+fi
+
+cd "./$PROJECT_NAME" || { echo -e "\033[31mFailed to change to project directory '$PROJECT_NAME'.\033[0m"; exit 1; }
+
 case $ACTION in
   up)
-    echo -e "\033[36mBuilding the Docker image...\033[0m"
-    docker build -t $DOCKER_IMAGE .
-    echo -e "\033[32mDocker image built successfully.\033[0m"
-    echo -e "\033[36mStarting the Docker container...\033[0m"
-    docker run -d -p 8000:8000 --name $DOCKER_CONTAINER $DOCKER_IMAGE
-    echo -e "\033[32mContainer started successfully. Access the API at http://localhost:8000\033[0m"
+    if handle_docker_compose; then
+      echo -e "\033[36mStarting $PROJECT_NAME with Docker Compose...\033[0m"
+      docker-compose up --build -d
+    else
+      echo -e "\033[36mBuilding the Docker image...\033[0m"
+      docker build -t $DOCKER_IMAGE .
+      echo -e "\033[32mDocker image built successfully.\033[0m"
+      echo -e "\033[36mStarting the Docker container...\033[0m"
+      docker run -d -p 8000:8000 --name $DOCKER_CONTAINER $DOCKER_IMAGE
+    fi
+    echo -e "\033[32m$PROJECT_NAME started successfully. Access the API at http://localhost:8000\033[0m"
     ;;
   down)
-    echo -e "\033[36mStopping and removing the Docker container...\033[0m"
-    docker stop $DOCKER_CONTAINER && docker rm $DOCKER_CONTAINER
-    echo -e "\033[32mDocker container stopped and removed successfully.\033[0m"
-    echo -e "\033[36mRemoving the Docker image...\033[0m"
-    docker rmi $DOCKER_IMAGE
-    echo -e "\033[32mDocker image removed successfully.\033[0m"
+    if handle_docker_compose; then
+      echo -e "\033[36mStopping $PROJECT_NAME with Docker Compose...\033[0m"
+      docker-compose down
+    else
+      echo -e "\033[36mStopping and removing the Docker container...\033[0m"
+      docker stop $DOCKER_CONTAINER && docker rm $DOCKER_CONTAINER
+      echo -e "\033[32mDocker container stopped and removed successfully.\033[0m"
+      echo -e "\033[36mRemoving the Docker image...\033[0m"
+      docker rmi $DOCKER_IMAGE
+      echo -e "\033[32mDocker image removed successfully.\033[0m"
+    fi
     ;;
   docker_cleanup)
     echo -e "\033[36mCleaning up dangling Docker containers and images...\033[0m"
