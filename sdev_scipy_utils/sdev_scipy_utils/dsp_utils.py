@@ -808,7 +808,11 @@ def gradient_window_func(data, segment_length):
 # ---------{Frequency detection}--------#
 
 from scipy.signal import fftconvolve
-from scipy.signal import kaiser
+
+try:
+    from scipy.signal import kaiser
+except Exception as e:
+    from scipy.signal.windows import kaiser
 
 
 def find(condition):
