@@ -655,3 +655,22 @@ def flatten_json_aggregate(
         print("\033[31mTop-level object must be a dictionary.\033[0m")
     return aggregated_items
 
+
+
+
+def filter_high_values(d, threshold=50):
+    '''
+    * ---------------Function---------------
+    * Filters a dictionary to only include key-value pairs where the value exceeds a given threshold.
+    * ----------------Returns---------------
+    * -> dict: A new dictionary containing only the key-value pairs where the value is greater than the threshold.
+    * ----------------Params----------------
+    * d :: dict: The input dictionary to be filtered.
+    * threshold :: int: The value above which key-value pairs are included in the output dictionary. Defaults to 50.
+    * ----------------Usage-----------------
+    * >>> d = {'a': 20, 'b': 60, 'c': 30, 'd': 80}
+    * >>> filter_high_values(d)
+    * {'b': 60, 'd': 80}
+    * ----------------Notes-----------------
+    '''
+    return {key: value for key, value in d.items() if value > threshold}
