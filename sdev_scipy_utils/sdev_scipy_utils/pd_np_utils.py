@@ -1665,6 +1665,134 @@ def pd_from_klepto_stream(path):
     return df
 
 
+def pd_streaming_apply(
+    df,
+    target_col,
+    func,
+    axis=1,
+    increments=1000,
+    progress=False,
+    keep=False,
+    cache_dir=None,
+    verbose=True,
+    max_retries=3,
+    chunk_callback=None,
+):
+    import os
+    import pickle
+    import shutil
+    import gc
+    import math
+    from hashlib import sha256
+    import pandas as pd
+
+    if progress:
+        from tqdm import tqdm
+
+        tqdm.pandas()
+
+    if cache_dir is None:
+        cache_dir = "stream_cache_" + sha256(str(increments).encode()).hexdigest()[:8]
+
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    if "_idx_" not in df.columns:
+        df["_idx_"] = df.index
+
+    n = df.shape[0]
+    num_chunks = math.ceil(n / increments)
+
+    if verbose:
+        print(
+            f"\033[36mTotal rows: {n}, Chunk size: {increments}, Number of chunks: {num_chunks}\033[0m"
+        )
+
+    for i in range(num_chunks):
+        chunk_file = os.path.join(cache_dir, f"chunk_{i}.pkl")
+
+        if os.path.exists(chunk_file):
+            if verbose:
+                print(f"\033[35mChunk {i} already processed, skipping.\033[0m")
+            continue
+
+        lb = i * increments
+        ub = min((i + 1) * increments, n)
+        sample = df.iloc[lb:ub].copy()
+
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                if axis == 1:
+                    sample[target_col] = (
+                        sample.progress_apply(func, axis=1)
+                        if progress
+                        else sample.apply(func, axis=1)
+                    )
+                else:
+                    sample[target_col] = (
+                        sample[target_col].progress_apply(func)
+                        if progress
+                        else sample[target_col].apply(func)
+                    )
+                break
+            except Exception as e:
+                attempt += 1
+                if verbose:
+                    print(
+                        f"\033[31mError processing chunk {i} on attempt {attempt}: {e}\033[0m"
+                    )
+
+                if attempt == max_retries:
+                    raise Exception(
+                        f"Chunk {i} failed after {max_retries} attempts"
+                    ) from e
+
+        if chunk_callback:
+            try:
+                sample = chunk_callback(i, sample)
+            except Exception as e:
+                if verbose:
+                    print(f"\033[31mError in chunk_callback for chunk {i}: {e}\033[0m")
+                raise
+
+        with open(chunk_file, "wb") as f:
+            pickle.dump(sample, f)
+
+        if verbose:
+            print(f"\033[32mProcessed chunk {i}\033[0m")
+
+        gc.collect()
+
+    if verbose:
+        print("\033[36mReassembling chunks...\033[0m")
+
+    chunks = []
+    for i in range(num_chunks):
+        chunk_file = os.path.join(cache_dir, f"chunk_{i}.pkl")
+        if os.path.exists(chunk_file):
+            with open(chunk_file, "rb") as f:
+                chunk = pickle.load(f)
+            chunks.append(chunk)
+        else:
+            raise Exception(f"Missing chunk file: {chunk_file}")
+
+    result = pd.concat(chunks, ignore_index=True)
+    result.sort_values(by="_idx_", inplace=True)
+    result.reset_index(drop=True, inplace=True)
+    result.drop(columns=["_idx_"], inplace=True)
+
+    if verbose:
+        print("\033[32mAll chunks reassembled.\033[0m")
+
+    if not keep:
+        shutil.rmtree(cache_dir)
+        if verbose:
+            print(f"\033[33mCleaned up cache directory: {cache_dir}\033[0m")
+
+    return result
+
+
 def pd_stream_apply(df, col_name, func, increments=1000, progress=False, keep="False"):
     import gc
     import klepto
