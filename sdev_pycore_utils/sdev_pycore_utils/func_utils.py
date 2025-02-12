@@ -81,6 +81,24 @@ def apply_at_tup(func, pos_lst, iterable, apply_to_value=True):
     return temp
 
 
+def safe_func(func, *args, default=None, log_exception=True, verbose=False, **kwargs):
+    try:
+        if verbose:
+            arg_repr = ", ".join(repr(a) for a in args)
+            kwarg_repr = ", ".join(f"{k}={repr(v)}" for k, v in kwargs.items())
+            print(
+                f"\033[36mCalling {func.__name__}({arg_repr}{', ' if kwarg_repr else ''}{kwarg_repr})\033[0m"
+            )
+
+        return func(*args, **kwargs)
+
+    except Exception as e:
+        if log_exception:
+            print(f"\033[31mException in {func.__name__}: {e}\033[0m")
+
+        return default
+
+
 def chunked(iterable, chunk_size):
     """
     Split an iterable into chunks of a specified size.
