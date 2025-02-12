@@ -291,3 +291,11 @@ def quick_html_inspect(response, save_to_file="response.html", snippet_length=50
         )
     else:
         print(f"\033[31m[ERROR] HTTP Response: {response.status_code}\033[0m")
+
+
+def bs4_find_id(soup, class_name):
+    return soup.findAll("div", {"id": {class_name}})
+
+
+def bs4_find_span(soup, class_name):
+    return soup.findAll("span", {"class": {class_name}})
