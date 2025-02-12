@@ -578,7 +578,6 @@ def plot_feature_importances(
             ticktext=feature_scores_df["Feature"],
             showgrid=False,
             tickfont=dict(size=14, color="black"),
-            titlefont=dict(size=16, color="black"),
         ),
         height=height,
         width=1600,
@@ -587,7 +586,6 @@ def plot_feature_importances(
             showgrid=True,
             gridcolor="lightgray",
             tickfont=dict(size=14, color="black"),
-            titlefont=dict(size=16, color="black"),
         ),
         font=dict(size=16),
         plot_bgcolor="white",
@@ -596,8 +594,8 @@ def plot_feature_importances(
         shapes=zebra_shapes,
     )
 
-    pio.write_html(fig, file=f"{output_filename}.html", auto_open=False)
-    fig.write_image(f"{output_filename}.png")
+    # pio.write_html(fig, file=f"{output_filename}.html", auto_open=False)
+    # fig.write_image(f"{output_filename}.png")
 
     fig.show()
 
