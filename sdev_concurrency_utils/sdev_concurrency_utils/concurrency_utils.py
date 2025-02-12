@@ -69,6 +69,7 @@ def await_children_done(verbose=True):
 
 # --{Ast utilities}--#
 
+
 def unindent(source_lines):
     """
     * type-def ::(List[str]) -> None
@@ -414,7 +415,7 @@ class ConcurrentResult(object):
         self.async_result = async_result
 
     def get(self):
-        return self.async_result.get(3e+6)
+        return self.async_result.get(3e6)
 
     def result(self):
         return self.get()[0]
@@ -436,26 +437,26 @@ def concWrapper(f, args, kwargs):
 
 def run_async_thread(func):
     """
-                run_async(func)
-                        function decorator, intended to make "func" run in a separate
-                        thread (asynchronously).
-                        Returns the created Thread object
+    run_async(func)
+            function decorator, intended to make "func" run in a separate
+            thread (asynchronously).
+            Returns the created Thread object
 
-                        E.g.:
-                        @run_async
-                        def task1():
-                                do_something
+            E.g.:
+            @run_async
+            def task1():
+                    do_something
 
-                        @run_async
-                        def task2():
-                                do_something_too
+            @run_async
+            def task2():
+                    do_something_too
 
-                        t1 = task1()
-                        t2 = task2()
-                        ...
-                        t1.join()
-                        t2.join()
-        """
+            t1 = task1()
+            t2 = task2()
+            ...
+            t1.join()
+            t2.join()
+    """
     from threading import Thread
     from functools import wraps
 
@@ -481,3 +482,66 @@ def run_async(func):
         return queue, t
 
     return async_func
+
+
+def stop_futures(futures, stop_processes=False, force_threads=False):
+    """
+    Attempts to stop a list of futures, handling both ProcessPoolExecutor and ThreadPoolExecutor tasks.
+
+    Args:
+        futures (list): List of concurrent.futures.Future objects.
+        stop_processes (bool): If True, attempts to terminate ProcessPoolExecutor tasks.
+        force_threads (bool): If True, attempts to forcibly stop running threads (unsafe).
+    """
+
+    import psutil
+    import ctypes
+    import concurrent.futures
+
+    print("\033[36m[SECTION] Attempting to stop futures...\033[0m")
+
+    for future in futures:
+        if future.done():  # Skip already completed futures
+            print("\033[35m[INFO] Future already completed, skipping...\033[0m")
+            continue
+
+        # Optionally terminate ProcessPoolExecutor tasks
+        if stop_processes and future.running():
+            try:
+                pid = future.result(timeout=0)  # Get process PID
+                p = psutil.Process(pid)
+                p.terminate()
+                print(f"\033[32m[SUCCESS] Terminated process {pid}\033[0m")
+            except (
+                psutil.NoSuchProcess,
+                concurrent.futures.TimeoutError,
+                ValueError,
+            ):
+                print(
+                    "\033[31m[ERROR] Could not terminate future (process may not exist or invalid result)\033[0m"
+                )
+
+        # Attempt to cancel futures that haven't started
+        if not future.running() and future.cancel():
+            print("\033[32m[SUCCESS] Future canceled successfully\033[0m")
+        else:
+            print(
+                "\033[31m[ERROR] Could not cancel future, likely already running\033[0m"
+            )
+
+        # Optionally forcefully terminate running threads (unsafe)
+        if force_threads and future.running():
+            try:
+                thread_id = (
+                    future._thread_id
+                )  # Uses internal API, not guaranteed to be safe
+                res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                    thread_id, ctypes.py_object(SystemExit)
+                )
+                if res > 1:
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, None)
+                    print("\033[31m[ERROR] Failed to stop thread cleanly\033[0m")
+                else:
+                    print("\033[32m[SUCCESS] Stopped running thread forcefully\033[0m")
+            except AttributeError:
+                print("\033[31m[ERROR] Could not determine thread ID\033[0m")
