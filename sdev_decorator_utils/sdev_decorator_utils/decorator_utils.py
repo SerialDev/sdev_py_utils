@@ -1,4 +1,5 @@
 from decorator import decorator
+import functools
 from datetime import datetime
 import traceback
 import numpy as np
@@ -1558,5 +1559,116 @@ def convert_exception(from_exception, to_exception, *to_args, **to_kw):
 
         fn_new.__doc__ = fn.__doc__
         return fn_new
+
+    return wrapper
+
+
+def safe_exec(
+    func=None, /, *args, default=None, log_exception=True, verbose=False, **kwargs
+):
+    """
+    A decorator and function wrapper that safely executes a function, catching exceptions and returning a default value.
+
+    Works in the following ways:
+
+    1. **As a decorator without arguments:**
+       ```python
+       @safe_exec
+       def divide(a, b):
+           return a / b
+
+       print(divide(10, 2))  # 5.0
+       print(divide(10, 0))  # Logs error, returns None
+       ```
+
+    2. **As a decorator with parameters:**
+       ```python
+       @safe_exec(default="error", verbose=True)
+       def divide(a, b):
+           return a / b
+
+       print(divide(10, 2))  # Logs call, returns 5.0
+       print(divide(10, 0))  # Logs call and exception, returns "error"
+       ```
+
+    3. **As an inline function wrapper (like for lambdas):**
+       ```python
+       result = safe_exec(lambda x: x.decode(), b"hello", default="", verbose=True)
+       print(result)  # "hello"
+
+       result = safe_exec(lambda x: x.decode(), 123, default="", verbose=True)
+       print(result)  # Logs error, returns ""
+       ```
+
+    4. **Inline usage in lambda expressions:**
+       ```python
+       result = (lambda x: safe_exec(lambda x: x.decode(), x, default="", verbose=True))(b"hello")
+       print(result)  # "hello"
+
+       result = (lambda x: safe_exec(lambda x: x.decode(), x, default="", verbose=True))(123)
+       print(result)  # Logs error, returns ""
+       ```
+
+    Parameters:
+        func (callable, optional): The function to execute or decorate. If None, decorator mode is used.
+        default (Any, optional): The value to return if an exception occurs. Defaults to None.
+        log_exception (bool, optional): Whether to log exceptions. Defaults to True.
+        verbose (bool, optional): Whether to log function calls with arguments. Defaults to False.
+
+    Returns:
+        Callable or result: If used as a decorator, returns the wrapped function. If used inline, immediately executes and returns the result.
+    """
+    import functools
+
+    # Case 1: If no function is provided, assume decorator mode.
+    if func is None:
+        return lambda f: safe_exec(
+            f, default=default, log_exception=log_exception, verbose=verbose
+        )
+
+    # Case 2: If func is callable but arguments are provided, execute it immediately.
+    if callable(func) and args:
+        try:
+            if verbose:
+                arg_repr = ", ".join(repr(a) for a in args)
+                kwarg_repr = ", ".join(f"{k}={repr(v)}" for k, v in kwargs.items())
+                print(
+                    f"\033[36mCalling {func.__name__ if hasattr(func, '__name__') else 'lambda'}"
+                    f"({arg_repr}{', ' if kwarg_repr else ''}{kwarg_repr})\033[0m"
+                )
+
+            return func(*args, **kwargs)
+
+        except Exception as e:
+            if log_exception:
+                print(
+                    f"\033[31mException in {func.__name__ if hasattr(func, '__name__') else 'lambda'}: {e}\033[0m"
+                )
+
+            return default
+
+    # Case 3: If used as a decorator, return a wrapped function.
+    @functools.wraps(func)
+    def wrapper(*wrapper_args, **wrapper_kwargs):
+        try:
+            if verbose:
+                arg_repr = ", ".join(repr(a) for a in wrapper_args)
+                kwarg_repr = ", ".join(
+                    f"{k}={repr(v)}" for k, v in wrapper_kwargs.items()
+                )
+                print(
+                    f"\033[36mCalling {func.__name__ if hasattr(func, '__name__') else 'lambda'}"
+                    f"({arg_repr}{', ' if kwarg_repr else ''}{kwarg_repr})\033[0m"
+                )
+
+            return func(*wrapper_args, **wrapper_kwargs)
+
+        except Exception as e:
+            if log_exception:
+                print(
+                    f"\033[31mException in {func.__name__ if hasattr(func, '__name__') else 'lambda'}: {e}\033[0m"
+                )
+
+            return default
 
     return wrapper
