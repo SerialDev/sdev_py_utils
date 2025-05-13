@@ -979,3 +979,62 @@ def load_model_and_get_entity_types(model_name: str) -> list:
     label_map = model.config.id2label
     entity_types = list(label_map.values())
     return entity_types
+
+
+def extract_code_blocks(description):
+    import re
+
+    pattern = r"^```(?:\w+)?\s*\n(.*?)(?=^```)```"
+    blocks = re.findall(pattern, description, re.DOTALL | re.MULTILINE)
+    return blocks
+
+
+def cleanup_solidity_comments(code):
+    import re
+
+    # Remove /* multi-line */ comments
+    code = re.sub(r"/\*.*?\*/", "", code, flags=re.DOTALL)
+
+    # Remove // single-line comments
+    code = re.sub(r"//.*", "", code)
+
+    return code.strip()
+
+
+def extract_non_code_blocks(description):
+    import re
+
+    pattern = r"^```(?:\w+)?\s*\n.*?^```"
+    parts = re.split(pattern, description, flags=re.DOTALL | re.MULTILINE)
+    return "".join(parts)
+
+
+def extract_title_blocks_excluding(description, exclude_title):
+    import re
+
+    pattern = r"^(#{1,3})\s*(.*?)\s*\n(.*?)(?=^#{1,3}\s|\Z)"
+    sections = re.findall(pattern, description, flags=re.MULTILINE | re.DOTALL)
+    result = "".join(
+        content
+        for _, title, content in sections
+        if exclude_title.lower() not in title.lower()
+    )
+    return result.strip()
+
+
+def extraction_permutations(description, verbose=False):
+    pattern = r"^(#{1,3})\s*(.*?)\s*\n(.*?)(?=^#{1,3}\s|\Z)"
+    sections = re.findall(pattern, description, flags=re.MULTILINE | re.DOTALL)
+    results = []
+    n = len(sections)
+    for r in range(1, n):
+        for indices in itertools.combinations(range(n), r):
+            excluded = [sections[i][1].strip() for i in indices]
+            extraction = "".join(
+                sections[j][2] for j in range(n) if j not in indices
+            ).strip()
+            if extraction:
+                if verbose:
+                    print("Excluding:", excluded)
+                results.append(extraction)
+    return results
