@@ -1672,3 +1672,122 @@ def safe_exec(
             return default
 
     return wrapper
+
+
+def validate_and_retry(
+    pydantic_class=None, max_retries=3, backoff_factor=1, memoize=False
+):
+    import time
+    import sys
+    from functools import wraps
+    from IPython.display import clear_output
+
+    # Dynamically decide if validation is enabled
+    validate = bool(pydantic_class)
+
+    # Define a list of colors for the "rainbow effect"
+    COLORS = [
+        "\033[33m",  # Yellow/Orange
+        "\033[32m",  # Green
+        "\033[34m",  # Blue
+        "\033[35m",  # Magenta
+        "\033[36m",  # Cyan
+    ]
+
+    def colorize_args(args):
+        """
+        Applies a rainbow effect to the arguments by cycling through colors.
+        """
+        colored_args = []
+        for i, arg in enumerate(args):
+            color = COLORS[i % len(COLORS)]  # Cycle through colors
+            colored_args.append(f"{color}{arg}\033[0m")  # Add color and reset
+        return ", ".join(colored_args)
+
+    def decorator(func):
+        cache = {} if memoize else None
+        call_count = {} if memoize else None
+        output_counter = [0]  # Tracks all outputs, using a list for mutability.
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            colored_args = colorize_args(args)  # Apply rainbow colors to args
+            if memoize:
+                # Memoization logic
+                if args in cache:
+                    call_count[args] += 1
+
+                    # Print thresholds for memoized results
+                    if call_count[args] <= 100 and call_count[args] % 10 == 0:
+                        print(
+                            f"\033[34m* Using memoized result for {colored_args} - result repeated {call_count[args]} times for Function \033[32m{func.__name__}\033[0m"
+                        )
+
+                    # Increment output counter and clear after 5 outputs
+                    output_counter[0] += 1
+                    if output_counter[0] % 5 == 0:
+                        clear_output_line()
+                    return cache[args]
+                else:
+                    print(
+                        f"\033[36mNo cached result for {colored_args}. Executing function...\033[0m"
+                    )
+
+            # Retry logic
+            retries = 0
+            while retries < max_retries:
+                try:
+                    print(
+                        f"\033[36mAttempt {retries + 1} for function \033[32m{func.__name__}\033[36m with args {colored_args}.\033[0m"
+                    )
+                    result = func(*args, **kwargs)
+                    if memoize:
+                        cache[args] = result
+                        call_count[args] = 1  # Initialize call count
+
+                    # Increment output counter and clear after 5 outputs
+                    output_counter[0] += 1
+                    if output_counter[0] % 5 == 0:
+                        clear_output_line()
+
+                    return result
+                except Exception as e:
+                    if validate and isinstance(e, pydantic_class):
+                        print(f"\033[31mValidation error detected: {str(e)}\033[0m")
+                        retries += 1
+                        wait_time = backoff_factor * (2 ** (retries - 1))
+                        print(
+                            f"\033[31mRetrying in {wait_time} seconds... (Attempt {retries}/{max_retries})\033[0m"
+                        )
+
+                        # Increment output counter and clear after 5 outputs
+                        output_counter[0] += 1
+                        if output_counter[0] % 5 == 0:
+                            clear_output_line()
+
+                        time.sleep(wait_time)
+                    else:
+                        # Log and re-raise unrelated exceptions or if validation is disabled
+                        print(f"\033[31mUnhandled error: {str(e)}\033[0m")
+                        raise
+
+            # Raise an exception if max retries are exceeded
+            print(
+                f"\033[31mMax retries exceeded for function \033[32m{func.__name__}\033[31m.\033[0m"
+            )
+            raise Exception(f"Max retries exceeded for function {func.__name__}.")
+
+        def clear_output_line():
+            """
+            Clears the output and prints a green message.
+            Handles terminal and Jupyter environments.
+            """
+            try:
+                clear_output(wait=True)  # Clear Jupyter output
+            except ImportError:
+                sys.stdout.write("\r\033[K")  # Clear terminal line
+            print("\033[32mCleared term\033[0m")
+
+        return wrapper
+
+    return decorator
