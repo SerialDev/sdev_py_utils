@@ -288,3 +288,100 @@ def create_sankey(
         fig.show()
 
     return sunburst_df
+
+
+
+
+class RLFeatureEngineerClassifier:
+    # NOTE: TODO: AGent this
+
+    import numpy as np
+    import pandas as pd
+    import random
+    from collections import defaultdict
+    from sklearn.base import clone
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import cross_val_score
+    from sklearn.datasets import load_digits, make_classification
+    from sklearn.metrics import make_scorer, f1_score
+
+    def __init__(self, df, target_col, estimator=None, episodes=30, alpha=0.1, gamma=0.9,
+                 epsilon=0.5, epsilon_decay=0.95, random_seed=42):
+        self.df = df.copy()
+        self.target_col = target_col
+        self.X_orig = df.drop(columns=[target_col])
+        self.y = df[target_col].values
+        self.episodes = episodes
+        self.alpha, self.gamma = alpha, gamma
+        self.epsilon, self.epsilon_decay = epsilon, epsilon_decay
+        self.random_seed = random_seed
+        self.transformations = [
+            lambda x: np.log1p(np.abs(x)),
+            lambda x: np.sqrt(np.abs(x)),
+            lambda x: np.square(x),
+            lambda x: np.tanh(x),
+            lambda x: 1.0/(1.0+np.abs(x)),
+            lambda x: x,
+            lambda x: x**3,
+            lambda x: np.sin(x),
+            lambda x: np.cos(x),
+            lambda x: np.exp(np.clip(x,-5,5))
+        ]
+        self.q_table = defaultdict(lambda: np.zeros(len(self.transformations)))
+        self.estimator = estimator if estimator else RandomForestClassifier(n_estimators=100, random_state=random_seed)
+        self.scorer = make_scorer(f1_score, average='weighted')
+        self.baseline = self.evaluate_reward(self.X_orig)
+        
+    def select_action(self, state):
+        return np.random.choice(len(self.transformations)) if random.random() < self.epsilon else np.argmax(self.q_table[state])
+
+    def evaluate_reward(self, X):
+        model = clone(self.estimator)
+        scores = cross_val_score(model, X, self.y, cv=5, scoring=self.scorer)
+        return scores.mean()
+
+    def train(self):
+        best_reward = self.baseline
+        best_transforms = {}
+        print(f"\nBaseline Weighted-F1: {self.baseline:.5f}")
+        for ep in range(1, self.episodes+1):
+            X_ep, state_action_pairs = self.X_orig.copy(), []
+            current_transforms = {}
+            for col in X_ep.columns:
+                state = (col,)
+                action_idx = self.select_action(state)
+                X_ep[col] = self.transformations[action_idx](X_ep[col])
+                current_transforms[col]=action_idx
+                state_action_pairs.append((state,action_idx))
+            reward = self.evaluate_reward(X_ep)
+            delta = reward-self.baseline
+            sign = "↑" if delta>=0 else "↓"
+            print(f"Ep{ep}/{self.episodes}: F1:{reward:.5f} Δ:{sign}{delta:.5f} ε:{self.epsilon:.3f}")
+            if reward>best_reward:
+                best_reward, best_transforms = reward, current_transforms.copy()
+            for state,action_idx in state_action_pairs:
+                q_old=self.q_table[state][action_idx]
+                self.q_table[state][action_idx]=q_old+self.alpha*(reward+self.gamma*np.max(self.q_table[state])-q_old)
+            self.epsilon=max(self.epsilon*self.epsilon_decay,0.01)
+        self.best_transforms=best_transforms                
+        print(f"Best final reward: {best_reward:.5f} Δ:{best_reward-self.baseline:.5f}")
+
+    def transform(self):
+        X_final=self.X_orig.copy()
+        for col,action_idx in self.best_transforms.items():
+            X_final[col]=self.transformations[action_idx](X_final[col])
+        return X_final
+    def run_eval(X,y,name,episodes=30):
+    df=pd.DataFrame(X)
+    df['target']=y
+    engineer=RLFeatureEngineerClassifier(df,'target',episodes=episodes)
+    engineer.train()
+    X_eng=engineer.transform()
+    clf=RandomForestClassifier(n_estimators=100,random_state=42)
+    scorer=make_scorer(f1_score,average='weighted')
+    pre=cross_val_score(clf,X,y,cv=5,scoring=scorer).mean()
+    post=cross_val_score(clf,X_eng,y,cv=5,scoring=scorer).mean()
+    print(f"\n{name} results:")
+    print(f"Original features F1:  {pre:.5f}")
+    print(f"Engineered features F1:{post:.5f}")
+    print(f"Net improvement: {post-pre:+.5f}\n{'-'*60}")
