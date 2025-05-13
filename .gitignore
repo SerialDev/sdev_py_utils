@@ -54,3 +54,4 @@ docs/_build/
 # Emacs undo
 *.~undo-tree~
 remote_python.sh
+.aider*
