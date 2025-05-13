@@ -8,24 +8,31 @@ from datetime import datetime
 should_save_to_file = False
 log_filename = ""
 
+
+def log_colour(colour, message):
+    """Utility for ASCII colour-coded logging"""
+    print(f"\033[{color}m{message}\033[0m")
+
+
 def prettify_stacktrace():
     import pretty_errors
     import stackprinter
-    stackprinter.set_excepthook(style='lightbg2')
+
+    stackprinter.set_excepthook(style="lightbg2")
 
     pretty_errors.configure(
-        separator_character = '*',
-        filename_display    = pretty_errors.FILENAME_EXTENDED,
-        line_number_first   = True,
-        display_link        = True,
-        lines_before        = 5,
-        lines_after         = 2,
-        line_color          = pretty_errors.RED + '> ' + pretty_errors.default_config.line_color,
-        code_color          = '  ' + pretty_errors.default_config.line_color,
-        truncate_code       = True,
-        display_locals      = True
+        separator_character="*",
+        filename_display=pretty_errors.FILENAME_EXTENDED,
+        line_number_first=True,
+        display_link=True,
+        lines_before=5,
+        lines_after=2,
+        line_color=pretty_errors.RED + "> " + pretty_errors.default_config.line_color,
+        code_color="  " + pretty_errors.default_config.line_color,
+        truncate_code=True,
+        display_locals=True,
     )
-    pretty_errors.blacklist('c:/python')
+    pretty_errors.blacklist("c:/python")
     pretty_errors.replace_stderr()
     print(f"Enabled: pretty_errors & stackprinter")
 
