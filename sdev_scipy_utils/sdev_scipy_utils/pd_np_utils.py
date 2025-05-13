@@ -34,7 +34,7 @@ def get_non_matching_columns(data, substrings):
     return non_matching_columns
 
 
-def browse_df(df, col=True, n=3):
+def browse_df(df, col=True, n=3, row_stride=3):
     """
     Generator function to iterate through a DataFrame.
 
@@ -53,8 +53,8 @@ def browse_df(df, col=True, n=3):
     else:
         # Iterate by rows (always 3 rows at a time, controlling column visibility)
         for i in range(0, len(df.columns), n):
-            for j in range(0, len(df), 3):
-                yield df.iloc[j : j + 3, i : i + n]
+            for j in range(0, len(df), row_stride):
+                yield df.iloc[j : j + row_stride, i : i + n]
 
 
 def pprint_df(data, float_format="{:.4f}", header_style="bold magenta"):
@@ -1789,6 +1789,141 @@ def pd_streaming_apply(
         shutil.rmtree(cache_dir)
         if verbose:
             print(f"\033[33mCleaned up cache directory: {cache_dir}\033[0m")
+
+    return result
+
+
+def pd_resumable_apply(
+    df,
+    target_col,
+    func,
+    axis=1,
+    increments=1000,
+    keep=True,
+    cache_dir=None,
+    verbose=True,
+    max_retries=3,
+    chunk_callback=None,
+):
+    import os
+    import pickle
+    import shutil
+    import gc
+    import math
+    from hashlib import sha256
+    import pandas as pd
+    from tqdm import tqdm
+
+    tqdm.pandas()
+
+    if cache_dir is None:
+        cache_dir = "stream_cache_" + sha256(str(increments).encode()).hexdigest()[:8]
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    if "_idx_" not in df.columns:
+        df["_idx_"] = df.index
+
+    n = df.shape[0]
+    num_chunks = math.ceil(n / increments)
+
+    existing_chunks = set()
+    for fname in os.listdir(cache_dir):
+        if fname.startswith("chunk_") and fname.endswith(".pkl"):
+            try:
+                chunk_num = int(fname.split("_")[1].split(".")[0])
+                existing_chunks.add(chunk_num)
+            except:
+                continue
+
+    if existing_chunks:
+        if verbose:
+            print(
+                f"[RESUME] Resuming processing. Chunks already processed: {sorted(existing_chunks)}"
+            )
+    else:
+        if verbose:
+            print(f"[START] Starting new processing run with {num_chunks} chunks.")
+
+    for i in range(num_chunks):
+        chunk_file_final = os.path.join(cache_dir, f"chunk_{i}.pkl")
+        chunk_file_temp = chunk_file_final + ".tmp"
+
+        if i in existing_chunks:
+            if verbose:
+                print(f"[SKIP] Chunk {i} found in cache. Skipping processing.")
+            continue
+
+        lb, ub = i * increments, min((i + 1) * increments, n)
+        sample = df.iloc[lb:ub].copy()
+
+        if verbose:
+            print(f"[PROCESSING] Chunk {i} ({lb}:{ub})")
+
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                if axis == 1:
+                    sample[target_col] = sample.progress_apply(func, axis=1)
+                else:
+                    sample[target_col] = sample[target_col].progress_apply(func)
+                break
+            except Exception as e:
+                attempt += 1
+                if verbose:
+                    print(
+                        f"[ERROR] Chunk {i} processing failed on try {attempt}/{max_retries}: {e}"
+                    )
+                if attempt == max_retries:
+                    raise Exception(
+                        f"[FAIL] Chunk {i} failed permanently after {max_retries} retries."
+                    ) from e
+
+        if chunk_callback:
+            if verbose:
+                print(f"[CALLBACK] Running chunk_callback on chunk {i}")
+            try:
+                sample = chunk_callback(i, sample)
+            except Exception as e:
+                if verbose:
+                    print(f"[ERROR] chunk_callback failed for chunk {i}: {e}")
+                raise
+
+        if verbose:
+            print(f"[DUMP] Saving chunk {i} result to cache.")
+
+        with open(chunk_file_temp, "wb") as f:
+            pickle.dump(sample, f)
+        os.rename(chunk_file_temp, chunk_file_final)
+
+        gc.collect()
+
+    if verbose:
+        print("[ASSEMBLY] Reassembling processed chunks into final dataframe.")
+
+    chunks = []
+    for i in tqdm(range(num_chunks), desc="Reassembling chunks"):
+        chunk_file = os.path.join(cache_dir, f"chunk_{i}.pkl")
+        if os.path.exists(chunk_file):
+            with open(chunk_file, "rb") as f:
+                chunks.append(pickle.load(f))
+        else:
+            raise Exception(
+                f"[MISSING_CHUNK] Unable to find processed chunk file: {chunk_file}"
+            )
+
+    result = pd.concat(chunks, ignore_index=True)
+    result.sort_values("_idx_", inplace=True)
+    result.reset_index(drop=True, inplace=True)
+    result.drop(columns=["_idx_"], inplace=True)
+
+    if verbose:
+        print("[COMPLETE] Dataframe processing and assembly complete.")
+
+    if not keep:
+        shutil.rmtree(cache_dir)
+        if verbose:
+            print(f"[CACHE_REMOVED] Cache directory '{cache_dir}' has been removed.")
 
     return result
 
@@ -4233,4 +4368,318 @@ def insert_list_into_masked_df(df, mask, column, values):
                     raise
 
     print("\033[32mDataFrame updated successfully.\033[0m")
+    return df
+
+
+def drop_empty_list_rows(df, col):
+    return df[df[col].astype(bool)]
+
+
+def explode_column(df, col):
+    return df.explode(col)
+
+
+def get_memory_usage_df(df):
+    """
+    * type-def ::(pd.DataFrame) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Get memory usage of each column in a pandas DataFrame in a human-readable format.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame containing columns and their respective memory usage
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+    * ----------------{Usage}-----------------
+        * >>> memory_df = get_memory_usage_df(df)
+        * >>> print(memory_df)
+    """
+    mem_usage = df.memory_usage(deep=True).to_frame(name="Memory (Bytes)")
+    mem_usage["Memory (MB)"] = mem_usage["Memory (Bytes)"] / (1024 * 1024)
+    return mem_usage
+
+
+def pd_time_between_events(df, timestamp_col, group_by=None):
+    """
+    * type-def ::(pd.DataFrame, str, Optional[str]) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Computes time difference between consecutive events.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with time differences
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : timestamp_col ::str | Column name containing timestamps
+        * : group_by ::Optional[str] | Column name to group by before computing deltas
+    * ----------------{Usage}-----------------
+        * >>> df['time_diff'] = pd_time_between_events(df, 'timestamp', group_by='user_id')
+    """
+    df = df.sort_values(by=[group_by, timestamp_col] if group_by else timestamp_col)
+    df["time_diff"] = (
+        df.groupby(group_by)[timestamp_col].diff()
+        if group_by
+        else df[timestamp_col].diff()
+    )
+    return df
+
+
+def pd_rolling_apply(df, col, window, func):
+    """
+    * type-def ::(pd.DataFrame, str, int, Callable) -> pd.Series
+    * ---------------{Function}---------------
+        * Applies a function to a rolling window.
+    * ----------------{Returns}---------------
+        * : series ::pd.Series | A Series with the function applied
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : col ::str | The column to apply the function on
+        * : window ::int | Rolling window size
+        * : func ::Callable | Function to apply
+    * ----------------{Usage}-----------------
+        * >>> df['rolling_avg'] = pd_rolling_apply(df, 'Price', window=7, func=np.mean)
+    """
+    return df[col].rolling(window).apply(func)
+
+
+def pd_random_sample_by_group(df, group_col, n=1):
+    """
+    * type-def ::(pd.DataFrame, str, int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Selects a random sample from each group in a DataFrame.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with sampled rows
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : group_col ::str | Column name to group by
+        * : n ::int | Number of samples per group (default: 1)
+    * ----------------{Usage}-----------------
+        * >>> sampled_df = pd_random_sample_by_group(df, 'Category', n=2)
+    """
+    return df.groupby(group_col).apply(lambda x: x.sample(n=n)).reset_index(drop=True)
+
+
+def pd_column_dependency_analysis(df):
+    """
+    * type-def ::(pd.DataFrame) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Computes column dependencies using correlation & mutual information.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with correlation & dependency scores
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+    * ----------------{Usage}-----------------
+        * >>> dependency_df = pd_column_dependency_analysis(df)
+    """
+    from sklearn.feature_selection import mutual_info_regression
+
+    numeric_df = df.select_dtypes(include=[np.number]).dropna()
+
+    correlation_matrix = numeric_df.corr().abs()
+    dependencies = pd.DataFrame(
+        index=numeric_df.columns, columns=["Correlation Max", "Mutual Info Max"]
+    )
+
+    for col in numeric_df.columns:
+        corr_vals = correlation_matrix[col].drop(col)
+        dependencies.loc[col, "Correlation Max"] = corr_vals.max()
+
+        mi_scores = mutual_info_regression(
+            numeric_df.drop(columns=[col]), numeric_df[col]
+        )
+        dependencies.loc[col, "Mutual Info Max"] = max(mi_scores)
+
+    return dependencies.sort_values(by=["Mutual Info Max"], ascending=False)
+
+
+def pd_high_cardinality_feature_analysis(df, threshold=100):
+    """
+    * type-def ::(pd.DataFrame, int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Identifies high-cardinality categorical features.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame listing categorical columns with high unique value counts
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : threshold ::int | Maximum number of unique values before a feature is considered high-cardinality (default: 100)
+    * ----------------{Usage}-----------------
+        * >>> high_card_df = pd_high_cardinality_feature_analysis(df)
+    """
+    cat_cols = df.select_dtypes(include=["object", "category"]).columns
+    cardinalities = {
+        col: df[col].nunique() for col in cat_cols if df[col].nunique() > threshold
+    }
+    return pd.DataFrame(
+        list(cardinalities.items()), columns=["Feature", "Unique Values"]
+    ).sort_values(by="Unique Values", ascending=False)
+
+
+def pd_faster_pivot_table(df, index, columns, values):
+    """
+    * type-def ::(pd.DataFrame, str, str, str) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Faster alternative to pivot_table using groupby().unstack().
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | Pivoted DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | Input DataFrame
+        * : index ::str | Row index
+        * : columns ::str | Column values
+        * : values ::str | Data values to aggregate
+    * ----------------{Usage}-----------------
+        * >>> pivoted_df = pd_faster_pivot_table(df, 'store', 'month', 'sales')
+    """
+    return df.groupby([index, columns])[values].sum().unstack()
+
+
+def np_faster_rolling_window(arr, window):
+    """
+    * type-def ::(np.ndarray, int) -> np.ndarray
+    * ---------------{Function}---------------
+        * Creates a rolling window over a NumPy array.
+    * ----------------{Returns}---------------
+        * : ndarray ::np.ndarray | Rolling window array
+    * ----------------{Params}----------------
+        * : arr ::np.ndarray | Input array
+        * : window ::int | Rolling window size
+    * ----------------{Usage}-----------------
+        * >>> rolling_array = np_faster_rolling_window(arr, 5)
+    """
+    import numpy.lib.stride_tricks as st
+
+    shape = (arr.shape[0] - window + 1, window)
+    strides = (arr.strides[0], arr.strides[0])
+    return st.as_strided(arr, shape=shape, strides=strides)
+
+
+def pd_feature_importance_selection(df, target_col, num_features=10):
+    """
+    * type-def ::(pd.DataFrame, str, int) -> List[str]
+    * ---------------{Function}---------------
+        * Uses a RandomForest model to select important features.
+    * ----------------{Returns}---------------
+        * : features ::List[str] | Top feature names
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | Input DataFrame
+        * : target_col ::str | Target variable
+        * : num_features ::int | Number of top features to select
+    * ----------------{Usage}-----------------
+        * >>> selected_features = pd_feature_importance_selection(df, 'target')
+    """
+    from sklearn.ensemble import RandomForestRegressor
+
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+    model.fit(X, y)
+
+    importances = pd.Series(model.feature_importances_, index=X.columns)
+    return list(importances.nlargest(num_features).index)
+
+
+def pd_train_test_split_stratified(df, target_col, test_size=0.2):
+    """
+    * type-def ::(pd.DataFrame, str, float) -> Tuple[pd.DataFrame, pd.DataFrame]
+    * ---------------{Function}---------------
+        * Splits dataset into train/test preserving class distribution.
+    * ----------------{Returns}---------------
+        * : train_df, test_df ::Tuple[pd.DataFrame, pd.DataFrame] | Train & test sets
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | Input DataFrame
+        * : target_col ::str | Target column
+        * : test_size ::float | Proportion of test set
+    * ----------------{Usage}-----------------
+        * >>> train, test = pd_train_test_split_stratified(df, 'label')
+    """
+    from sklearn.model_selection import train_test_split
+
+    train, test = train_test_split(
+        df, test_size=test_size, stratify=df[target_col], random_state=42
+    )
+    return train, test
+
+
+def pd_sparse_memory_optimization(df):
+    """
+    * type-def ::(pd.DataFrame) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Converts numerical & categorical columns to sparse types to reduce memory.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | Optimized DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | Input DataFrame
+    * ----------------{Usage}-----------------
+        * >>> optimized_df = pd_sparse_memory_optimization(df)
+    """
+    for col in df.select_dtypes(include=["int", "float"]).columns:
+        if df[col].nunique() < df.shape[0] * 0.01:  # If sparsity >99%
+            df[col] = pd.arrays.SparseArray(df[col])
+
+    for col in df.select_dtypes(include=["object", "category"]).columns:
+        df[col] = df[col].astype("category")
+
+    return df
+
+
+def pd_auto_feature_scaling(df):
+    """
+    * type-def ::(pd.DataFrame) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Automatically scales numerical features.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | Scaled DataFrame
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | Input DataFrame
+    * ----------------{Usage}-----------------
+        * >>> scaled_df = pd_auto_feature_scaling(df)
+    """
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+    for col in df.select_dtypes(include=["float", "int"]).columns:
+        if df[col].skew() > 1:  # Highly skewed: use MinMaxScaler
+            df[col] = MinMaxScaler().fit_transform(df[[col]])
+        else:  # Normal distribution: use StandardScaler
+            df[col] = StandardScaler().fit_transform(df[[col]])
+    return df
+
+
+def extract_code_embedding_features(code):
+    """
+    * type-def ::(str) -> np.ndarray
+    * ---------------{Function}---------------
+        * Converts Python code into a dense embedding vector.
+    * ----------------{Returns}---------------
+        * : vector ::np.ndarray | 768-dimensional feature vector
+    * ----------------{Params}----------------
+        * : code ::str | Input Python code
+    * ----------------{Usage}-----------------
+        * >>> vector = extract_code_embedding_features("def add(a, b): return a + b")
+    """
+    from transformers import AutoTokenizer, AutoModel
+    import torch
+
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+    model = AutoModel.from_pretrained("microsoft/codebert-base")
+
+    inputs = tokenizer(code, return_tensors="pt", padding=True, truncation=True)
+    outputs = model(**inputs)
+    return outputs.last_hidden_state.mean(dim=1).detach().numpy()
+
+
+def auto_bin_numeric_features(df, n_bins=5):
+    """
+    * type-def ::(pd.DataFrame, int) -> pd.DataFrame
+    * ---------------{Function}---------------
+        * Automatically bins numeric features into optimal categories.
+    * ----------------{Returns}---------------
+        * : df ::pd.DataFrame | A DataFrame with discretized numeric features
+    * ----------------{Params}----------------
+        * : df ::pd.DataFrame | The input DataFrame
+        * : n_bins ::int | Number of bins per feature (default: 5)
+    * ----------------{Usage}-----------------
+        * >>> df_binned = auto_bin_numeric_features(df, n_bins=5)
+    """
+    from sklearn.preprocessing import KBinsDiscretizer
+
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    discretizer = KBinsDiscretizer(n_bins=n_bins, encode="ordinal", strategy="quantile")
+
+    df[num_cols] = discretizer.fit_transform(df[num_cols])
     return df
