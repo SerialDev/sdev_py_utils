@@ -1,4 +1,3 @@
-
 from collections import namedtuple
 from collections import deque
 import random
@@ -8,9 +7,9 @@ import heapq
 
 class NDPoint(object):
     """
-    *  NDPoint 
+    *  NDPoint
     * -----------{returns}------------
-    * a point in n-dimensional space . . . 
+    * a point in n-dimensional space . . .
     """
 
     def __init__(self, x, idx=None):
@@ -23,7 +22,7 @@ class NDPoint(object):
 
 class VPTree(object):
     """
-    * Function: Efficient data structure to perform nearest-Neighbor search 
+    * Function: Efficient data structure to perform nearest-Neighbor search
     * -----------{returns}------------
     *  . . . Vantage point tree
     """
@@ -63,16 +62,37 @@ class VPTree(object):
 
 
 class PriorityQueue(object):
+    """Bounded priority queue using a max-heap (negated priorities).
+
+    Keeps the *k* smallest-priority items.  After each push the internal
+    heap is maintained in O(log n) instead of O(n log n) list.sort().
+    The public ``queue`` attribute is lazily materialised as a sorted
+    list (ascending by priority) so callers that read ``queue[-1]``
+    still get the current maximum.
+    """
+
     def __init__(self, size=None):
-        self.queue = []
-        self.queue.sort()
+        self._heap = []  # max-heap via negated priorities
         self.size = size
+        self._dirty = False  # True when _sorted cache is stale
 
     def push(self, priority, item):
-        self.queue.append((priority, item))
-        self.queue.sort()
-        if self.size is not None and len(self.queue) > self.size:
-            self.queue.pop()
+        if self.size is not None and len(self._heap) >= self.size:
+            # Only insert if smaller than current max (heap root = neg max)
+            if priority < -self._heap[0][0]:
+                heapq.heapreplace(self._heap, (-priority, item))
+                self._dirty = True
+        else:
+            heapq.heappush(self._heap, (-priority, item))
+            self._dirty = True
+
+    @property
+    def queue(self):
+        """Return items sorted ascending by priority (compatible with old API)."""
+        if self._dirty or not hasattr(self, "_sorted"):
+            self._sorted = sorted([(-neg_p, item) for neg_p, item in self._heap])
+            self._dirty = False
+        return self._sorted
 
 
 ##-------------{Distance functions}-----
@@ -87,9 +107,9 @@ def l2(p1, p2):
 
 def get_nearest_neighbors(tree, q, k=1):
     """
-    * Function: find k nearest neighbor(s) of q 
+    * Function: find k nearest neighbor(s) of q
     * -----------{returns}------------
-    * k nearest neighbors . . . 
+    * k nearest neighbors . . .
     * -----------{params}-------------
       :param tree: vp-tree
       :param q: a query point
@@ -134,9 +154,9 @@ def get_nearest_neighbors(tree, q, k=1):
 
 def get_all_in_range(tree, q, tau):
     """
-    * Function: Find all points within a given radious of point q 
+    * Function: Find all points within a given radious of point q
     * -----------{returns}------------
-    * points . . . 
+    * points . . .
     * -----------{params}=------------
     * tree: vp-tree
     * q: a query point

@@ -1,7 +1,10 @@
-from math import sqrt
+from math import sqrt, isinf
+import numpy as np
 from numpy import array, zeros, full, argmin, inf, ndim
 from scipy.spatial.distance import cdist
-from math import isinf
+from scipy.ndimage import minimum_filter1d, maximum_filter1d
+
+_INF = float("inf")
 
 
 def dtw(x, y, dist, warp=1, w=inf, s=1.0):
@@ -80,12 +83,19 @@ def accelerated_dtw(x, y, dist, warp=1):
     D1 = D0[1:, 1:]
     D0[1:, 1:] = cdist(x, y, dist)
     C = D1.copy()
-    for i in range(r):
-        for j in range(c):
-            min_list = [D0[i, j]]
-            for k in range(1, warp + 1):
-                min_list += [D0[min(i + k, r), j], D0[i, min(j + k, c)]]
-            D1[i, j] += min(min_list)
+    if warp == 1:
+        for i in range(r):
+            min_da = np.minimum(D0[i, :c], D0[i, 1 : c + 1])
+            i1 = min(i + 1, r)
+            for j in range(c):
+                D1[i, j] += min(min_da[j], D0[i1, j])
+    else:
+        for i in range(r):
+            for j in range(c):
+                min_list = [D0[i, j]]
+                for k in range(1, warp + 1):
+                    min_list += [D0[min(i + k, r), j], D0[i, min(j + k, c)]]
+                D1[i, j] += min(min_list)
     if len(x) == 1:
         path = zeros(len(y)), range(len(y))
     elif len(y) == 1:
@@ -93,6 +103,7 @@ def accelerated_dtw(x, y, dist, warp=1):
     else:
         path = _traceback(D0)
     return D1[-1, -1], C, D1, path
+
 
 def _traceback(D):
     """
@@ -131,8 +142,11 @@ def _traceback(D):
             i -= 1
         else:  # (tb == 2):
             j -= 1
-        p.insert(0, i)
-        q.insert(0, j)
+        p.append(i)
+        q.append(j)
+    # Reverse once at the end: O(n) total instead of O(n^2) from insert(0).
+    p.reverse()
+    q.reverse()
     return np.array(p), np.array(q)
 
 
@@ -209,26 +223,28 @@ if __name__ == "__main__":
 
 
 def DTWDistance(s1, s2):
+    """Compute the Dynamic Time Warping distance between two 1-D sequences.
+
+    Uses a 2D Python list for the cost matrix instead of a dict with tuple
+    keys, eliminating per-cell hashing overhead.  The outer-loop value
+    ``s1_i`` is cached to halve list index lookups in the inner loop.
+
+    Usage::
+
+        from sklearn.metrics.pairwise import pairwise_distances
+        p = pairwise_distances(test, metric=DTWDistance)
     """
-    from sklearn.metrics.pairwise import pairwise_distances
-    p = pairwise_distances(test, metric = DTWDistance)
-    """
-    DTW = {}
-
-    for i in range(len(s1)):
-        DTW[(i, -1)] = float("inf")
-    for i in range(len(s2)):
-        DTW[(-1, i)] = float("inf")
-    DTW[(-1, -1)] = 0
-
-    for i in range(len(s1)):
-        for j in range(len(s2)):
-            dist = (s1[i] - s2[j]) ** 2
-            DTW[(i, j)] = dist + min(
-                DTW[(i - 1, j)], DTW[(i, j - 1)], DTW[(i - 1, j - 1)]
-            )
-
-    return sqrt(DTW[len(s1) - 1, len(s2) - 1])
+    n, m = len(s1), len(s2)
+    DTW = [[_INF] * (m + 1) for _ in range(n + 1)]
+    DTW[0][0] = 0.0
+    for i in range(1, n + 1):
+        s1_i = s1[i - 1]
+        DTW_i = DTW[i]
+        DTW_prev = DTW[i - 1]
+        for j in range(1, m + 1):
+            cost = (s1_i - s2[j - 1]) ** 2
+            DTW_i[j] = cost + min(DTW_prev[j], DTW_i[j - 1], DTW_prev[j - 1])
+    return sqrt(DTW[n][m])
 
 
 def euclid_dist(t1, t2):
@@ -239,46 +255,40 @@ def LB_Keogh(s1, s2, r):
     """
     https://nbviewer.org/github/alexminnaar/time-series-classification-and-clustering/blob/master/Time%20Series%20Classification%20and%20Clustering.ipynb
 
+    Vectorized using scipy rolling min/max filters (O(n) C-level passes)
+    instead of per-element Python loops with slice min/max.
     """
-    LB_sum = 0
-    for ind, i in enumerate(s1):
-
-        lower_bound = min(s2[(ind - r if ind - r >= 0 else 0) : (ind + r)])
-        upper_bound = max(s2[(ind - r if ind - r >= 0 else 0) : (ind + r)])
-
-        if i > upper_bound:
-            LB_sum = LB_sum + (i - upper_bound) ** 2
-        elif i < lower_bound:
-            LB_sum = LB_sum + (i - lower_bound) ** 2
-
-    return sqrt(LB_sum)
+    s1 = np.asarray(s1, dtype=np.float64)
+    s2 = np.asarray(s2, dtype=np.float64)
+    lower = minimum_filter1d(s2, size=2 * r, mode="nearest")
+    upper = maximum_filter1d(s2, size=2 * r, mode="nearest")
+    above = np.maximum(s1 - upper, 0.0)
+    below = np.maximum(lower - s1, 0.0)
+    return float(np.sqrt(np.sum(above**2 + below**2)))
 
 
 def k_means_clust(data, num_clust, num_iter, w=5):
     import random
 
-    centroids = random.sample(data, num_clust)
-    counter = 0
+    centroids = random.sample(list(data), num_clust)
     for n in range(num_iter):
-        counter += 1
-        print(counter)
+        print("\033[33m" + "iteration {}".format(n + 1) + "\033[0m")
         assignments = {}
-        # assign data points to clusters
         for ind, i in enumerate(data):
-            min_dist = float("inf")
+            min_dist = _INF
             closest_clust = None
             for c_ind, j in enumerate(centroids):
                 if LB_Keogh(i, j, 5) < min_dist:
-                    cur_dist = DTWDistance(i, j, w)
+                    cur_dist = DTWDistance(i, j)
                     if cur_dist < min_dist:
                         min_dist = cur_dist
                         closest_clust = c_ind
-            if closest_clust in assignments:
-                assignments[closest_clust].append(ind)
-            else:
-                assignments[closest_clust] = []
+            if closest_clust is not None:
+                if closest_clust in assignments:
+                    assignments[closest_clust].append(ind)
+                else:
+                    assignments[closest_clust] = [ind]
 
-        # recalculate centroids of clusters
         for key in assignments:
             clust_sum = 0
             for k in assignments[key]:
@@ -289,20 +299,23 @@ def k_means_clust(data, num_clust, num_iter, w=5):
 
 
 def DTWDistance_w(s1, s2, w):
-    DTW = {}
+    """Windowed Dynamic Time Warping distance using a 2D Python list.
 
-    w = max(w, abs(len(s1) - len(s2)))
+    Only cells within a Sakoe-Chiba band of width *w* are evaluated,
+    reducing complexity from O(n*m) to O(n*w).  Uses a 2D list instead
+    of a dict to eliminate per-cell hashing overhead.
+    """
+    n, m = len(s1), len(s2)
+    w = max(w, abs(n - m))
+    DTW = [[_INF] * (m + 1) for _ in range(n + 1)]
+    DTW[0][0] = 0.0
 
-    for i in range(-1, len(s1)):
-        for j in range(-1, len(s2)):
-            DTW[(i, j)] = float("inf")
-    DTW[(-1, -1)] = 0
+    for i in range(1, n + 1):
+        s1_i = s1[i - 1]
+        DTW_i = DTW[i]
+        DTW_prev = DTW[i - 1]
+        for j in range(max(1, i - w), min(m + 1, i + w)):
+            cost = (s1_i - s2[j - 1]) ** 2
+            DTW_i[j] = cost + min(DTW_prev[j], DTW_i[j - 1], DTW_prev[j - 1])
 
-    for i in range(len(s1)):
-        for j in range(max(0, i - w), min(len(s2), i + w)):
-            dist = (s1[i] - s2[j]) ** 2
-            DTW[(i, j)] = dist + min(
-                DTW[(i - 1, j)], DTW[(i, j - 1)], DTW[(i - 1, j - 1)]
-            )
-
-    return sqrt(DTW[len(s1) - 1, len(s2) - 1])
+    return sqrt(DTW[n][m])

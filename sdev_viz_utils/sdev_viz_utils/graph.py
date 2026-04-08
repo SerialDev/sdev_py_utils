@@ -228,14 +228,14 @@ class SlicePlot:
                     except StopIteration:
                         continue  # Skip if the edge is not found or not yet introduced
                     if u not in inserted_nodes:
-                        current_connections[0].insert(0, f"Node {u}")
-                        current_connections[1].insert(0, f"{u} -> {v}")
-                        current_connections[3].insert(0, f"{u} -> {v}")
+                        current_connections[0].append(f"Node {u}")
+                        current_connections[1].append(f"{u} -> {v}")
+                        current_connections[3].append(f"{u} -> {v}")
                         inserted_nodes.add(u)
                     if v not in inserted_nodes:
-                        current_connections[0].insert(0, f"Node {v}")
-                        current_connections[1].insert(0, f"{v} -> {u}")
-                        current_connections[3].insert(0, f"{v} -> {u}")
+                        current_connections[0].append(f"Node {v}")
+                        current_connections[1].append(f"{v} -> {u}")
+                        current_connections[3].append(f"{v} -> {u}")
                         inserted_nodes.add(v)
                     if (
                         edge["time_index"] == t
@@ -246,9 +246,9 @@ class SlicePlot:
                             )
                             current_shapes.append(arc_shape)
                             current_hover_traces.append(arc_hover_trace)
-                            current_connections[2].insert(0, f"Loopback: {u} -> {v}")
-                            current_connections[1].insert(0, "")
-                            current_connections[3].insert(0, f"Loopback: {u} -> {v}")
+                            current_connections[2].append(f"Loopback: {u} -> {v}")
+                            current_connections[1].append("")
+                            current_connections[3].append(f"Loopback: {u} -> {v}")
                         else:
                             current_shapes.append(
                                 dict(
@@ -271,9 +271,13 @@ class SlicePlot:
                                     text=f"{u} -> {v}",
                                 )
                             )
-                            current_connections[1].insert(0, f"{u} -> {v}")
-                            current_connections[2].insert(0, "")
-                            current_connections[3].insert(0, f"{u} -> {v}")
+                            current_connections[1].append(f"{u} -> {v}")
+                            current_connections[2].append("")
+                            current_connections[3].append(f"{u} -> {v}")
+            # Reverse all sublists: items were appended (O(1) each) instead
+            # of insert(0) (O(n) each), so we reverse once at the end (O(n)).
+            for sublist in current_connections:
+                sublist.reverse()
             shapes = current_shapes.copy()
             hover_traces = current_hover_traces.copy()
 

@@ -645,12 +645,7 @@ def concat_pd_list(data, axis=0):
         * 2  attr3    value3
         * ...
     """
-    for i, section in enumerate(data):
-        if i == 0:
-            sections = section
-        else:
-            sections = pd.concat((sections, section), axis=axis)
-    return sections
+    return pd.concat(list(data), axis=axis)
 
 
 # {Row to column header}#
@@ -774,7 +769,7 @@ def np_parallel(func, data, parts=4, verbose=False):
     """
 
     def split_length(data, parts=4):
-        return np.int(np.ceil(data.shape[0] / parts))
+        return int(np.ceil(data.shape[0] / parts))
 
     def split_array(data, parts=4):
         split_len = split_length(data, parts)
@@ -790,8 +785,8 @@ def np_parallel(func, data, parts=4, verbose=False):
 
     def np_multi(func, data, parts=4):
         split = split_array(data, parts)
-        pool = Pool(parts)
-        applied = np.array(pool.map(func, split))
+        with Pool(parts) as pool:
+            applied = np.array(pool.map(func, split))
         applied = np.concatenate(([*applied]), axis=0)
         return applied
 
@@ -1090,37 +1085,26 @@ def get_subset(data, col=None, cond_value=0, flag=None):
         Sliced data based on cond_value and flag
     """
 
+    import operator as _op
+
+    _FLAG_OPS = {
+        "==": _op.eq,
+        "<": _op.lt,
+        "<=": _op.le,
+        ">": _op.gt,
+        ">=": _op.ge,
+        "!=": _op.ne,
+    }
+
     def pd_get_subset(df, col, cond_value, flag=None):
-        if flag == "==":
-            return df[df[col] == cond_value]
-        elif flag == "<":
-            return df[df[col] < cond_value]
-        elif flag == "<=":
-            return df[df[col] <= cond_value]
-        elif flag == ">":
-            return df[df[col] > cond_value]
-        elif flag == ">=":
-            return df[df[col] >= cond_value]
-        elif flag == "!=":
-            return df[df[col] != cond_value]
-        elif flag == None:
+        if flag is None:
             return df
+        return df[_FLAG_OPS[flag](df[col], cond_value)]
 
     def np_get_subset(array, cond_value, flag=None):
-        if flag == "==":
-            return array[array == cond_value]
-        elif flag == "<":
-            return array[array < cond_value]
-        elif flag == "<=":
-            return array[array <= cond_value]
-        elif flag == ">":
-            return array[array > cond_value]
-        elif flag == ">=":
-            return array[array >= cond_value]
-        elif flag == "!=":
-            return array[array != cond_value]
-        elif flag == None:
+        if flag is None:
             return array
+        return array[_FLAG_OPS[flag](array, cond_value)]
 
     if type(data) == pd.core.frame.DataFrame:
         assert col is not None, "Data type{} : please provide column name".format(
@@ -1452,17 +1436,19 @@ def process_flags_pd(df, value, column):
 
 
 def fast_np_fillna(a):
-    # Eliminate NaN
     ind = np.where(~pd.isnull(a))[0]
+    if len(ind) == 0:
+        return a
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
     a[last + 1 :] = a[last]
     return a
 
 
-def fast_np_fillna(a):
-    # Eliminate None
+def fast_np_fillnone(a):
     ind = np.where(~np.equal(a, None))[0]
+    if len(ind) == 0:
+        return a
     first, last = ind[0], ind[-1]
     a[:first] = a[first]
     a[last + 1 :] = a[last]
@@ -2672,7 +2658,6 @@ def np_topk(data, k):
 
 
 def x_only_train_test_split(data, test_size=0.33):
-
     from sklearn.model_selection import train_test_split
 
     X_train, X_test, _, _ = train_test_split(
@@ -2965,10 +2950,9 @@ def LOOEncoding(
             encode=False,
         )
         print(
-            f"Saved fitted encoder to bucket '{bucket_name}', blob '{blob_name+ '_joblib'}', project '{project_name}'"
+            f"Saved fitted encoder to bucket '{bucket_name}', blob '{blob_name + '_joblib'}', project '{project_name}'"
         )
     else:
-
         try:
             # Download the encoder from the cloud storage bucket
             encoder_bytes = download_bytesio_blob(bucket_name, blob_name, project_name)

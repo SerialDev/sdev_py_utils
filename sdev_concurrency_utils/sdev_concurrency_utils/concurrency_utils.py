@@ -13,7 +13,7 @@ import numpy as np
 
 def np_parallel(func, data, parts=4):
     def split_array(data, parts=4):
-        split_len = np.int(np.ceil(data.shape[0] / parts))
+        split_len = int(np.ceil(data.shape[0] / parts))
         split_array = []
         for index, i in enumerate(range(parts), 1):
             if index == 1:
@@ -24,25 +24,17 @@ def np_parallel(func, data, parts=4):
                 split_array.append((array))
         return np.array(split_array)
 
-    def concatenation_string(parts):
-        temp = ""
-        for i in range(parts):
-            temp += "applied[{}], ".format(i)
-        return "applied = np.concatenate(({}), axis=0)".format(temp[:-2])
-
     def np_multithreaded(func, data, parts=4):
         split = split_array(data, parts)
-        pool = Pool(parts)
-        applied = np.array(pool.map(func, split))
-        exec(concatenation_string(parts))
-        return applied
+        with Pool(parts) as pool:
+            applied = pool.map(func, split)
+        return np.concatenate(applied, axis=0)
 
     def np_multiprocessing(func, data, parts=4):
         split = split_array(data, parts)
-        pool = Pool()
-        applied = np.array(pool.map(func, split))
-        exec(concatenation_string(parts))
-        return applied
+        with Pool() as pool:
+            applied = pool.map(func, split)
+        return np.concatenate(applied, axis=0)
 
     if Pool.__module__ == "multiprocessing.dummy":
         return np_multithreaded(func, data, parts)

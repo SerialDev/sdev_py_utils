@@ -1,4 +1,4 @@
-""" Online Algorithms implementations for python"""
+"""Online Algorithms implementations for python"""
 
 import numpy as np
 from random import shuffle
@@ -11,8 +11,9 @@ import json
 import types
 import textwrap
 import collections
+import collections.abc
 
-iterator_types = (types.GeneratorType, collections.Iterable)
+iterator_types = (types.GeneratorType, collections.abc.Iterable)
 
 
 class Struct:
@@ -31,8 +32,10 @@ class RunningStats:
     """
     O(1) space complexity Running Statistics (mean, variance, stdev) based on
     1962 paper by B. P. Welford and is presented
-    in Donald Knuth’s Art of Computer Programming, Vol 2, page 232,
+    in Donald Knuth's Art of Computer Programming, Vol 2, page 232,
     """
+
+    __slots__ = ["n", "old_m", "new_m", "old_s", "new_s", "min_", "max_"]
 
     def __init__(self):
         self.n = 0
@@ -85,8 +88,21 @@ class RunningStatsSK:
     Modified version to compute kurtosis and skewness in one pass
     O(1) space complexity Running Statistics (mean, variance, stdev) based on
     1962 paper by B. P. Welford and is presented
-    in Donald Knuth’s Art of Computer Programming, Vol 2, page 232,
+    in Donald Knuth's Art of Computer Programming, Vol 2, page 232,
     """
+
+    __slots__ = [
+        "n",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "n1",
+        "delta",
+        "delta_n",
+        "delta_n2",
+        "term1",
+    ]
 
     def __init__(self):
         self.n = 0
@@ -219,7 +235,6 @@ class BinMedian:
                 samepoints = 1
                 i = r + 1
                 while i < n:
-
                     if x[i] != x[r]:
                         samepoints = 0
                         break
@@ -289,6 +304,8 @@ class TDigest(object):
 
 
 class Centroid(object):
+    __slots__ = ["mean", "count", "id"]
+
     def __init__(self, x, w, id):
         self.mean = float(x)
         self.count = float(w)
@@ -317,6 +334,7 @@ class TDigestCore(object):
         self.centroid_list = []
         self.n = 0
         self.id_counter = 0
+        self.total_weight = 0.0
 
     def push(self, x, w):
         self.n += 1
@@ -330,18 +348,20 @@ class TDigestCore(object):
                 q = self._centroid_quantile(c)
                 delta_w = min(4 * self.n * self.delta * q * (1 - q) - c.count, w)
                 c.push(x, delta_w)
+                self.total_weight += delta_w
                 w -= delta_w
 
         if w > 0:
             self.centroid_list.append(Centroid(x, w, self.id_counter))
             self.centroid_list.sort(key=lambda c: c.mean)
+            self.total_weight += w
             self.id_counter += 1
 
     def quantile(self, x):
         if len(self.centroid_list) < 3:
             return 0.0
-        total_weight = sum([centroid.count for centroid in self.centroid_list])
-        q = x * total_weight
+        tw = self.total_weight
+        q = x * tw
         m = len(self.centroid_list)
         cumulated_weight = 0
         for nr in range(m):
@@ -368,21 +388,39 @@ class TDigestCore(object):
         return self.centroid_list[nr].mean
 
     def _closest_centroids(self, x):
-        S = []
-        z = None
-        for centroid in self.centroid_list:
-            d = centroid.distance(x)
-            if z is None:
-                z = d
-                S.append(centroid)
-            elif z == d:
-                S.append(centroid)
-            elif z > d:
-                S = [centroid]
-                z = d
-            elif x > centroid.mean:
-                break
+        from bisect import bisect_left
+
+        clist = self.centroid_list
+        m = len(clist)
+        if m == 0:
+            return []
+        lo = 0
+        hi = m - 1
+        pos = bisect_left([c.mean for c in clist], x)
+        candidates = []
+        if pos < m:
+            candidates.append(pos)
+        if pos > 0:
+            candidates.append(pos - 1)
+        if not candidates:
+            return []
+        best_dist = min(clist[i].distance(x) for i in candidates)
+        S = [clist[i] for i in candidates if clist[i].distance(x) == best_dist]
+        idx = candidates[0]
+        for direction in (-1, 1):
+            j = idx + direction
+            while 0 <= j < m:
+                d = clist[j].distance(x)
+                if d == best_dist:
+                    if clist[j] not in S:
+                        S.append(clist[j])
+                    j += direction
+                else:
+                    break
         T = []
+        tw = self.total_weight
+        if tw == 0:
+            return T
         for centroid in S:
             q = self._centroid_quantile(centroid)
             if centroid.count + 1 <= 4 * self.n * self.delta * q * (1 - q):
@@ -390,14 +428,16 @@ class TDigestCore(object):
         return T
 
     def _centroid_quantile(self, c):
+        tw = self.total_weight
+        if tw == 0:
+            return 0.0
         q = 0
         for centroid in self.centroid_list:
-            if centroid.equals(c):
+            if centroid is c:
                 q += c.count / 2
                 break
-            else:
-                q += centroid.count
-        return q / sum([centroid.count for centroid in self.centroid_list])
+            q += centroid.count
+        return q / tw
 
     def __len__(self):
         return len(self.centroid_list)
@@ -407,57 +447,6 @@ class TDigestCore(object):
 
 
 ##==========================={Stream Histogram}=================================
-
-
-##-------------{Stream functions}-------
-from math import sqrt
-
-
-def argmin(array):
-    # http://lemire.me/blog/archives/2008/12/17/fast-argmax-in-python/
-    return array.index(min(array))
-
-
-def bin_diff(array, weighted=False):
-    return [_diff(a, b, weighted) for a, b in zip(array[:-1], array[1:])]
-
-
-def _diff(a, b, weighted):
-    diff = b.value - a.value
-    if weighted:
-        diff *= log(_E + min(a.count, b.count))
-    return diff
-
-
-def bin_sums(array, less=None):
-    return [
-        (a.count + b.count) / 2.
-        for a, b in zip(array[:-1], array[1:])
-        if less is None or b.value <= less
-    ]
-
-
-def accumulate(iterable):
-    it = iter(iterable)
-    total = next(it)
-    yield total
-    for element in it:
-        total += element
-        yield total
-
-
-def roots(a, b, c):
-    """Super simple quadratic solver."""
-    d = b ** 2.0 - (4.0 * a * c)
-    if d < 0:
-        raise (ValueError("This equation has no real solution!"))
-    elif d == 0:
-        x = (-b + sqrt(d)) / (2.0 * a)
-        return (x, x)
-    else:
-        x1 = (-b + sqrt(d)) / (2.0 * a)
-        x2 = (-b - sqrt(d)) / (2.0 * a)
-        return (x1, x2)
 
 
 ##-------------{Core}-------------------
@@ -734,7 +723,7 @@ class StreamHist(object):
         data = [self.count(), self.mean(), self.var(), self.min()]
         data += self.quantiles(*quantiles) + [self.max()]
         names = ["count", "mean", "var", "min"]
-        names += ["%i%%" % round(q * 100., 0) for q in quantiles] + ["max"]
+        names += ["%i%%" % round(q * 100.0, 0) for q in quantiles] + ["max"]
         return dict(zip(names, data))
 
     def compute_breaks(self, n=50):
@@ -902,7 +891,7 @@ def _compute_sum(x, bin_i, bin_i1, prev_sum):
     p_diff = bin_i1.value - bin_i.value
     bp_ratio = b_diff / p_diff
 
-    i1Term = 0.5 * bp_ratio ** 2.0
+    i1Term = 0.5 * bp_ratio**2.0
     iTerm = bp_ratio - i1Term
 
     first = prev_sum + bin_i.count * iTerm
@@ -918,137 +907,6 @@ def _find_z(a, b, c):
             result_root = candidate_root
             break
     return result_root
-
-
-class Bin(object):
-    """Histogram bin object.
-    This class implements a simple (value, count) histogram bin pair with
-    several added features such as the ability to merge two bins, comparison
-    methods, and the ability to export and import from dictionaries . The Bin
-    class should be used in conjunction with the StreamHist.
-    """
-
-    __slots__ = ["value", "count"]
-
-    def __init__(self, value, count=1):
-        """Create a Bin with a given mean and count.
-        Parameters
-        ----------
-        value : float
-            The mean of the bin.
-        count : int (default=1)
-            The number of points in this bin. It is assumed that there are
-            `count` points surrounding `value`, of which `count/2` points are
-            to the left and `count/2` points are to the right.
-        """
-        super(Bin, self).__init__()
-        self.value = value
-        self.count = count
-
-    @classmethod
-    def from_dict(cls, d):
-        """Create a bin instance from a dictionary.
-        Parameters
-        ----------
-        d : dict
-            The dictionary must at a minimum a `mean` or `value` key. In
-            addition, it may contain a `count` key which contains the number
-            of points in the bin.
-        """
-        value = d.get("mean", d.get("value", None), None)
-        if value is None:
-            raise ValueError("Dictionary must contain a mean or value key.")
-        return cls(value=value, count=d.get("count", 1))
-
-    def __getitem__(self, index):
-        """Alternative method for getting the bin's mean and count.
-        Parameters
-        ----------
-        index : int
-            The index must be either 0 or 1, where 0 gets the mean (value),
-            and 1 gets the count.
-        """
-        if index == 0:
-            return self.value
-        elif index == 1:
-            return self.count
-        raise IndexError("Invalid index (must be 0 or 1).")
-
-    def __repr__(self):
-        """Simple representation of a histogram bin.
-        Returns
-        -------
-        Bin(value=`value`, count=`count`) where value and count are the bin's
-        stored mean and count.
-        """
-        return "Bin(value=%d, count=%d)" % (self.value, self.count)
-
-    def __iter__(self):
-        """Iterator over the mean and count of this bin."""
-        yield ("mean", self.value)
-        yield ("count", self.count)
-
-    def __str__(self):
-        """String representation of a histogram bin."""
-        return str(dict(self))
-
-    def __eq__(self, obj):
-        """Tests for equality of two bins.
-        Parameters
-        ----------
-        obj : Bin
-            The bin to which this bin's mean is compared.
-        """
-        return self.value == obj.value
-
-    def __lt__(self, obj):
-        """Tests if this bin has a lower mean than another bin.
-        Parameters
-        ----------
-        obj : Bin
-            The bin to which this bin's mean is compared.
-        """
-        return self.value < obj.value
-
-    def __gt__(self, obj):
-        """Tests if this bin has a higher mean than another bin.
-        Parameters
-        ----------
-        obj : Bin
-            The bin to which this bin's mean is compared.
-        """
-        return self.value > obj.value
-
-    def __add__(self, obj):
-        """Merge this bin with another bin and return the result.
-        This method implements Step 7 from Algorithm 1 (Update) in ref [1].
-        Parameters
-        ----------
-        obj : Bin
-            The bin that will be merged with this bin.
-        """
-        count = float(self.count + obj.count)  # Summed heights
-        if count:
-            # Weighted average
-            value = self.value * float(self.count) + obj.value * float(obj.count)
-            value /= count
-        else:
-            value = 0.0
-        return Bin(value=value, count=int(count))
-
-    def __iadd__(self, obj):
-        """Merge another bin into this one.
-        Parameters
-        ----------
-        obj : Bin
-            The bin that will be merged into this bin.
-        """
-        out = self + obj
-        self = out
-        return self
-
-
-##-------------{Bin Histogram}----------
 
 
 class Bin(object):
@@ -1334,9 +1192,10 @@ from sys import platform as _platform
 from math import log, sqrt
 import types
 import collections
+import collections.abc
 from numbers import Number as numeric_types
 
-iterator_types = (types.GeneratorType, collections.Iterable)
+iterator_types = (types.GeneratorType, collections.abc.Iterable)
 
 if _sys.version_info.major >= 3:
     _izip = zip
@@ -1406,7 +1265,7 @@ def argmin(array):
 
 def bin_sums(array, less=None):
     return [
-        (a.count + b.count) / 2.
+        (a.count + b.count) / 2.0
         for a, b in _izip(array[:-1], array[1:])
         if less is None or b.value <= less
     ]
@@ -1423,7 +1282,7 @@ def linspace(start, stop, num):
 
 def roots(a, b, c):
     """Super simple quadratic solver."""
-    d = b ** 2.0 - (4.0 * a * c)
+    d = b**2.0 - (4.0 * a * c)
     if d < 0:
         raise (ValueError("This equation has no real solution!"))
     elif d == 0:

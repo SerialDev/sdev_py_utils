@@ -70,32 +70,6 @@ def merge_dictionaries(dicts, unique_key=False):
         super_dict = {}
         for k in set(k for d in dicts for k in d):
             super_dict[k] = set(d[k] for d in dicts if k in d)
-            if len(super_dict[k]) == 1:
-                super_dict[k] = super_dict[k][0]
-        return super_dict
-    else:
-        super_dict = {}
-        for k in set(k for d in dicts for k in d):
-            super_dict[k] = [d[k] for d in dicts if k in d]
-            if len(super_dict[k]) == 1:
-                super_dict[k] = super_dict[k][0]
-        return super_dict
-
-
-def merge_dictionaries(dicts, unique_key=False):
-    """
-    * type-def ::[dict] -> dict
-    * ---------------{Function}---------------
-    * merge a list of dictionaries into a one dict [unique optional] . . .
-    * ----------------{Params}----------------
-    * : list of dicts
-    * ----------------{Returns}---------------
-    * dictionary [unique optional] . . .
-    """
-    if unique_key:
-        super_dict = {}
-        for k in set(k for d in dicts for k in d):
-            super_dict[k] = set(d[k] for d in dicts if k in d)
         return super_dict
     else:
         super_dict = {}
@@ -169,7 +143,7 @@ def _finditem(obj, key):
 
 
 def search(d, key, default=None):
-   """
+    """
     * ---------------{Function}---------------
     * Searches for a value corresponding to the specified key in a (possibly nested) dictionary
     * ----------------{Returns}---------------
@@ -453,6 +427,7 @@ def multi_deconstruct(dict_list, key_list):
     query += "]"
     return list(map(eval(query), dict_list))
 
+
 def get_by_path(root, items):
     """
     * ---------------{Function}---------------
@@ -532,8 +507,6 @@ def flatten_dictionary(d, parent_key="", sep="_"):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
 
 
 def prepend_key(d, prefix):
@@ -656,10 +629,8 @@ def flatten_json_aggregate(
     return aggregated_items
 
 
-
-
 def filter_high_values(d, threshold=50):
-    '''
+    """
     * ---------------Function---------------
     * Filters a dictionary to only include key-value pairs where the value exceeds a given threshold.
     * ----------------Returns---------------
@@ -672,5 +643,5 @@ def filter_high_values(d, threshold=50):
     * >>> filter_high_values(d)
     * {'b': 60, 'd': 80}
     * ----------------Notes-----------------
-    '''
+    """
     return {key: value for key, value in d.items() if value > threshold}
